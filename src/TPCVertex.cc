@@ -10,15 +10,15 @@
 
 #include "TPCVertex.hh"
 
-#include <iostream>
-#include <iterator>
-
-#include "std_ostream.hh"
-
 #include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "Kinematics.hh"
+#include "ThreeVector.hh"
+#include "TPCLocalTrack.hh"
+#include "TPCLocalTrackHelix.hh"
 #include "UserParamMan.hh"
+
+#include <std_ostream.hh>
 
 namespace
 {
@@ -39,7 +39,6 @@ TPCVertex::TPCVertex(Int_t id1, Int_t id2)
   debug::ObjectCounter::increase(ClassName());
   m_track_id.push_back(id1);
   m_track_id.push_back(id2);
-
 }
 
 //_____________________________________________________________________________
@@ -51,7 +50,6 @@ TPCVertex::TPCVertex(TVector3 vertex, std::vector<Int_t> trackid)
     m_scatter_track_flags(kScatterTrackFlagsUnknown),
     m_track_chisqr(), m_track_nhit(), m_track_fit_flag(),
     m_track_pos(), m_track_mom(), m_track_theta()
-
 {
   debug::ObjectCounter::increase(ClassName());
   m_track_id.reserve(trackid.size());
@@ -79,15 +77,15 @@ TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
   static const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
 
   Double_t helix_par1[5];
-  track1 -> GetParam(helix_par1);
-  Double_t scantheta1 = VertexScanRange/helix_par1[3]; //mm -> rad.
-  Double_t range_theta1[2] = {track1 -> GetMint() - scantheta1,
-			                        track1 -> GetMaxt() + scantheta1};
+  track1->GetParam(helix_par1);
+  Double_t scantheta1 = VertexScanRange/helix_par1[kHelixR]; // mm -> rad.
+  Double_t range_theta1[2] = {track1->GetMint() - scantheta1,
+			                        track1->GetMaxt() + scantheta1};
   Double_t helix_par2[5];
-  track2 -> GetParam(helix_par2);
-  Double_t scantheta2 = VertexScanRange/helix_par2[3]; //mm -> rad.
-  Double_t range_theta2[2] = {track2 -> GetMint() - scantheta2,
-			                        track2 -> GetMaxt() + scantheta2};
+  track2->GetParam(helix_par2);
+  Double_t scantheta2 = VertexScanRange/helix_par2[kHelixR]; // mm -> rad.
+  Double_t range_theta2[2] = {track2->GetMint() - scantheta2,
+			                        track2->GetMaxt() + scantheta2};
 
   Double_t theta1, theta2, dist;
   TVector3 vertex = Kinematics::VertexPointHelix(
@@ -96,6 +94,8 @@ TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
     range_theta2[0], range_theta2[1],
     theta1, theta2, dist
   );
+
+  // check within the TPC volume
   if(!TMath::IsNaN(dist) &&
      TMath::Abs(vertex.x()) < 250. &&
      TMath::Abs(vertex.z()) < 250. &&
@@ -104,26 +104,26 @@ TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
   if(m_is_calculated){
     m_scatter_track_flags = 0;
     m_vertex = vertex;
-    m_track_charge.push_back(track1 -> GetCharge());
-    m_track_charge.push_back(track2 -> GetCharge());
-    m_track_pid.push_back(track1 -> GetPid());
-    m_track_pid.push_back(track2 -> GetPid());
-    if (track1 -> GetIsK18() != 0) m_scatter_track_flags |= kTrack1IsK18;
-    if (track1 -> GetIsBeam() != 0) m_scatter_track_flags |= kTrack1IsBeam;
-    if (track1 -> GetIsAccidental() != 0) m_scatter_track_flags |= kTrack1IsAccidental;
-    if (track2 -> GetIsK18() != 0) m_scatter_track_flags |= kTrack2IsK18;
-    if (track2 -> GetIsBeam() != 0) m_scatter_track_flags |= kTrack2IsBeam;
-    if (track2 -> GetIsAccidental() != 0) m_scatter_track_flags |= kTrack2IsAccidental;
-    m_track_chisqr.push_back(track1 -> GetChiSquare());
-    m_track_chisqr.push_back(track2 -> GetChiSquare());
-    m_track_nhit.push_back(track1 -> GetNHit());
-    m_track_nhit.push_back(track2 -> GetNHit());
-    m_track_fit_flag.push_back(track1 -> GetFitFlag());
-    m_track_fit_flag.push_back(track2 -> GetFitFlag());
-    m_track_pos.push_back(track1 -> GetPosition(helix_par1, theta1));
-    m_track_pos.push_back(track2 -> GetPosition(helix_par2, theta2));
-    TVector3 mom1 = track1 -> CalcHelixMom(helix_par1, theta1);
-    TVector3 mom2 = track2 -> CalcHelixMom(helix_par2, theta2);
+    m_track_charge.push_back(track1->GetCharge());
+    m_track_charge.push_back(track2->GetCharge());
+    m_track_pid.push_back(track1->GetPid());
+    m_track_pid.push_back(track2->GetPid());
+    if (track1->GetIsK18() != 0) m_scatter_track_flags |= kTrack1IsK18;
+    if (track1->GetIsBeam() != 0) m_scatter_track_flags |= kTrack1IsBeam;
+    if (track1->GetIsAccidental() != 0) m_scatter_track_flags |= kTrack1IsAccidental;
+    if (track2->GetIsK18() != 0) m_scatter_track_flags |= kTrack2IsK18;
+    if (track2->GetIsBeam() != 0) m_scatter_track_flags |= kTrack2IsBeam;
+    if (track2->GetIsAccidental() != 0) m_scatter_track_flags |= kTrack2IsAccidental;
+    m_track_chisqr.push_back(track1->GetChiSquare());
+    m_track_chisqr.push_back(track2->GetChiSquare());
+    m_track_nhit.push_back(track1->GetNHit());
+    m_track_nhit.push_back(track2->GetNHit());
+    m_track_fit_flag.push_back(track1->GetFitFlag());
+    m_track_fit_flag.push_back(track2->GetFitFlag());
+    m_track_pos.push_back(track1->GetPosition(helix_par1, theta1));
+    m_track_pos.push_back(track2->GetPosition(helix_par2, theta2));
+    TVector3 mom1 = track1->CalcHelixMom(helix_par1, theta1);
+    TVector3 mom2 = track2->CalcHelixMom(helix_par2, theta2);
     m_track_mom.push_back(mom1);
     m_track_mom.push_back(mom2);
     m_track_theta.push_back(theta1);

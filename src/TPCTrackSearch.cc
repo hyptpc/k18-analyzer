@@ -31,37 +31,29 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 
 #include "TPCTrackSearch.hh"
 
-#include <chrono>
-#include <stdio.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <TH2D.h>
-#include <TH3D.h>
-#include <TLorentzVector.h>
 
-#include "DebugTimer.hh"
+#include "ConfMan.hh"
+#include "DebugCounter.hh"
+#include "DeleteUtility.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
-#include "MathTools.hh"
-#include "DatabasePDG.hh"
-#include "UserParamMan.hh"
-#include "DeleteUtility.hh"
-#include "ConfMan.hh"
 #include "HoughTransform.hh"
-#include "Kinematics.hh"
-#include "TPCPadHelper.hh"
-#include "TPCLTrackHit.hh"
+#include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCLTrackHit.hh"
+#include "TPCPadHelper.hh"
 #include "TPCReconstructor.hh"
 #include "TPCVertex.hh"
-#include "TPCCluster.hh"
-#include "RootHelper.hh"
-#include "DebugCounter.hh"
+#include "UserParamMan.hh"
+
 #define DebugDisp 0
 #define FragmentedTrackTest 1
 #define ReassignClusterTest 1
@@ -79,9 +71,20 @@ namespace
   //const Double_t K18YWindow = 10.;
   const Double_t K18YWindow = 15.;
 
+  // Min helix radius [mm] to accept linear->helix conversion (HighMomHelixTrackSearch).
+  // At B = 1 T, 200 mm corresponds to pT ~ 60 MeV/c (pT = 0.3 * B[T] * R[m]).
+  const Double_t MIN_HELIX_RADIUS_LINEAR_CONVERT = 200.;
+
   // Closest distance cut for vertex finding
   const Double_t VertexDistCut = 30.;
   const Double_t ppi_distcut = 10.; //Closest distance for p, pi at the vertex point
+
+  // RestoreFragmentedTracks: max closest distance [mm] for merging fragmented track pairs
+  const Double_t FragmentMergeClosestDistMax = 20.;
+
+  // RestoreFragmentedAccidentalTracks: max |dz| for downstream parent-track candidates
+  // (same scale as beam-like |dz| cut in TPCLocalTrackHelix.cc)
+  const Double_t MaxCandidateAbsDz = 0.05;
 
   // Maximum number of fitting steps
   const Int_t MaxFitSteps = 10;
@@ -112,6 +115,29 @@ namespace
   //_____________________________________________________________________________
   // Local Functions
   //_____________________________________________________________________________
+  // ReassignClustersNearTheTarget: closest hit in target volume (local coords).
+  template <typename T>
+  Bool_t FindClosestTargetHit(const T* track, Int_t max_layer, Int_t& hit_index)
+  {
+    if(!track) return false;
+    hit_index = -1;
+    Double_t best_r_xy = 1.e10;
+    for(Int_t ih = 0, n = track->GetNHit(); ih < n; ++ih){
+      TPCLTrackHit* hitp = track->GetHit(ih);
+      if(!hitp) continue;
+      if(hitp->GetLayer() > max_layer) continue;
+      const TVector3& pos = hitp->GetLocalHitPos();
+      const Double_t r_xy = TMath::Hypot(pos.x(), pos.y());
+      if(r_xy >= tpc::TARGET_RADIUS) continue;
+      if(TMath::Abs(pos.z()) >= tpc::TARGET_HALF_Y) continue;
+      if(r_xy < best_r_xy){
+        best_r_xy = r_xy;
+        hit_index = ih;
+      }
+    }
+    return hit_index >= 0;
+  }
+
   template <typename T> void
   CalcTracks(std::vector<T*>& TrackCont)
   {
@@ -153,15 +179,12 @@ namespace
   template <typename T> void
   MarkingClusteredAccidentalTracks(std::vector<T*>& TrackCont, std::vector<TPCVertex*>& ClusteredVertexCont)
   {
-    Double_t signal_section = 30; //within this section, we don't use this veto process. (todo: check for E72 geometry)
     for(auto& vertex: ClusteredVertexCont){
-      if(TMath::Abs(vertex -> GetVertex().y()) < signal_section) continue;
-      vertex -> SetIsAccidental();
-
-      Int_t ntracks = vertex -> GetNTracks();
+      vertex->SetIsAccidental();
+      Int_t ntracks = vertex->GetNTracks();
       for(Int_t i=0; i<ntracks; i++){
-        Int_t id = vertex -> GetTrackId(i);
-        TrackCont[id] -> SetIsAccidental();
+        Int_t id = vertex->GetTrackId(i);
+        TrackCont[id]->SetIsAccidental();
       }
     }
   }
@@ -221,7 +244,7 @@ namespace
     Bool_t status = HelixTrack->ConvertParam(LinearPar);
     delete LinearTrack;
     if(status &&
-       HelixTrack-> Getr() < 200.) status = false;
+       HelixTrack->Getr() < MIN_HELIX_RADIUS_LINEAR_CONVERT) status = false;
     return status;
   }
 
@@ -586,11 +609,12 @@ MakeLinearTrack(TPCLocalTrack *track, Bool_t &is_valid_after_sep,
 
 //_____________________________________________________________________________
 Bool_t
-MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
-	       const std::vector<TPCClusterContainer>& ClCont,
-	       Double_t *HelixPar, Double_t MaxHoughWindow,
-	       Double_t MaxHoughWindowY)
-{
+MakeHelixTrack(
+  TPCLocalTrackHelix *Track, Bool_t &is_valid_after_sep,
+  const std::vector<TPCClusterContainer>& ClCont,
+  Double_t *HelixPar, Double_t max_hough_window,
+  Double_t max_hough_window_y
+){
 
   Bool_t status = false;
 
@@ -606,38 +630,39 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
       Double_t tmpx = -pos.x();
       Double_t tmpy = pos.z() - tpc::Z_TARGET;
       Double_t tmpz = pos.y();
-      Double_t r_cal = TMath::Sqrt(pow(tmpx - HelixPar[0], 2) + pow(tmpy - HelixPar[1], 2));
-      Double_t dist = TMath::Abs(r_cal - HelixPar[3]);
-      if(dist < MaxHoughWindow){
+      Double_t r_cal = TMath::Hypot(tmpx - HelixPar[kHelixCx], tmpy - HelixPar[kHelixCy]);
+      Double_t dist = TMath::Abs(r_cal - HelixPar[kHelixR]);
+      if(dist < max_hough_window){
         //for the inital track, scanning theta within range (-pi, pi)
-        Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
-        Double_t tmp_xval = HelixPar[3]*tmpt;
-        Double_t denom = TMath::Hypot(HelixPar[4], 1.);
-        Double_t distY = TMath::Abs(HelixPar[4]*tmp_xval - tmpz + HelixPar[2])/denom;
-        Double_t distY_p2pi = TMath::Abs(HelixPar[4]*(tmp_xval + 2.*TMath::Pi()*HelixPar[3]) - tmpz + HelixPar[2])/denom;
-        Double_t distY_m2pi = TMath::Abs(HelixPar[4]*(tmp_xval - 2.*TMath::Pi()*HelixPar[3]) - tmpz + HelixPar[2])/denom;
-        if(distY < MaxHoughWindowY){
+        // Y-theta space: x-axis ~ arc length (r*theta), y-axis ~ z
+        Double_t theta       = TMath::ATan2(tmpy - HelixPar[kHelixCy], tmpx - HelixPar[kHelixCx]);
+        Double_t arc_length  = HelixPar[kHelixR] * theta;            // r * theta
+        Double_t denom       = TMath::Hypot(HelixPar[kHelixDz], 1.);  // distance denominator
+        Double_t dist_y      = TMath::Abs(HelixPar[kHelixDz]*arc_length - tmpz + HelixPar[kHelixZ0]) / denom;
+        Double_t dist_y_p2pi = TMath::Abs(HelixPar[kHelixDz]*(arc_length + 2.*TMath::Pi()*HelixPar[kHelixR]) - tmpz + HelixPar[kHelixZ0]) / denom;
+        Double_t dist_y_m2pi = TMath::Abs(HelixPar[kHelixDz]*(arc_length - 2.*TMath::Pi()*HelixPar[kHelixR]) - tmpz + HelixPar[kHelixZ0]) / denom;
+        if(dist_y < max_hough_window_y){
           //Add hit into the track
           hit->SetHoughDist(dist);
-          hit->SetHoughDistY(distY);
+          hit->SetHoughDistY(dist_y);
           Track->AddTPCHit(new TPCLTrackHit(hit));
 
           id++;
           status = true;
         } //distY
-        else if(distY_p2pi < MaxHoughWindowY){
+        else if(dist_y_p2pi < max_hough_window_y){
           //Add hit into the track
           hit->SetHoughDist(dist);
-          hit->SetHoughDistY(distY_p2pi);
+          hit->SetHoughDistY(dist_y_p2pi);
           Track->AddTPCHit(new TPCLTrackHit(hit));
 
           id++;
           status = true;
         }
-        else if(distY_m2pi < MaxHoughWindowY){
+        else if(dist_y_m2pi < max_hough_window_y){
           //Add hit into the track
           hit->SetHoughDist(dist);
-          hit->SetHoughDistY(distY_m2pi);
+          hit->SetHoughDistY(dist_y_m2pi);
           Track->AddTPCHit(new TPCLTrackHit(hit));
 
           id++;
@@ -648,19 +673,19 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
   } //layer
 
   if(status){
-    Track -> SetClustersHoughFlag(Candidate);
-    Track -> CalcHelixTheta();
+    Track->SetClustersHoughFlag(Candidate);
+    Track->CalcHelixTheta();
 
     //If track has very large gap, then spilt it.
-    if(Track -> SeparateClustersWithGap()) Track -> CalcHelixTheta();
+    if(Track->SeparateClustersWithGap()) Track->CalcHelixTheta();
 
-    //If the vtx is in the target, need to check whether two tracks are fragmented tracks or independent tracks.
-    VtxFlag = Track -> SeparateTracksAtTarget();
-    if(VtxFlag && AddClusters(Track, ClCont)){
+    // Check for merged tracks at target; is_valid_after_sep = separation + prefit ok.
+    is_valid_after_sep = Track->SeparateTracksAtTarget();
+    if(is_valid_after_sep && AddClusters(Track, ClCont)){
       Double_t par[5];
-      Track -> GetParam(par);
-      VtxFlag = Track -> DoPreFit(par);
-      Track -> SetClustersHoughFlag(Candidate);
+      Track->GetParam(par);
+      is_valid_after_sep = Track->DoPreFit(par);
+      Track->SetClustersHoughFlag(Candidate);
     }
   }
 
@@ -675,17 +700,18 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
 
 //_____________________________________________________________________________
 void
-HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
-		 const std::vector<TPCClusterContainer>& ClCont,
-		 std::vector<TPCLocalTrackHelix*>& TrackCont,
-		 std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-		 Int_t MinNumOfHits)
-{
+HelixTrackSearch(
+  Int_t Trackflag, Int_t Houghflag,
+  const std::vector<TPCClusterContainer>& ClCont,
+  std::vector<TPCLocalTrackHelix*>& TrackCont,
+  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+  Int_t MinNumOfHits
+){
 
   // MaxHoughWindow: max |r_hit - R_helix| [mm] for Y-theta Hough gate and helix cluster assignment
-  static const Double_t MaxHoughWindow  = gUser.GetParameter("MaxHoughWindow");
+  static const Double_t max_hough_window  = gUser.GetParameter("MaxHoughWindow");
   // MaxHoughWindowY: max perp. dist [mm] from helix to Y line (MakeHelixTrack distY cut)
-  static const Double_t MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
   Bool_t prev_add = true;
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
@@ -710,7 +736,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 
     //Linear Hough-transform
     Int_t MaxBinY[2];
-    tpc::HoughTransformLineYTheta(ClCont, MaxBinY, HelixPar, MaxHoughWindow);
+    tpc::HoughTransformLineYTheta(ClCont, MaxBinY, HelixPar, max_hough_window);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
@@ -720,9 +746,9 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 
     //If two tracks are merged at the target, separate them and recalculate params.
     Bool_t is_valid_after_sep;
-    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
+    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, max_hough_window, max_hough_window_y);
     if(!prev_add) continue;
-    if(!track -> IsGoodForTracking() || !is_valid_after_sep){
+    if(!track->IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
@@ -732,7 +758,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
     Bool_t hough_flag = true;
     for(Int_t i=0; i<XZhough_x.size(); ++i){
       Int_t bindiffXZ = TMath::Abs(MaxBinXZ[0] - XZhough_x[i]) + TMath::Abs(MaxBinXZ[1] - XZhough_y[i]) + TMath::Abs(MaxBinXZ[2] - XZhough_z[i]);
-      Int_t bindiffY = TMath::Abs(MaxBinY[0] - Yhough_x[i]) + TMath::Abs(MaxBinY[1] - Yhough_y[i]);
+      Int_t bindiffY  = TMath::Abs(MaxBinY[0]  - Yhough_x[i])  + TMath::Abs(MaxBinY[1]  - Yhough_y[i]);
       if(bindiffXZ<=1 && bindiffY<=1){
         hough_flag = false;
 #if DebugDisp
@@ -944,15 +970,16 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 
 //_____________________________________________________________________________
 Int_t
-LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
-		      std::vector<TPCLocalTrackHelix*>& TrackCont,
-		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
-		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-		      std::vector<TPCVertex*>& VertexCont,
-		      std::vector<TPCVertex*>& ClusteredVertexCont,
-		      Bool_t Exclusive,
-		      Int_t MinNumOfHits)
-{
+LocalTrackSearchHelix(
+  const std::vector<TPCClusterContainer>& ClCont,
+  std::vector<TPCLocalTrackHelix*>& TrackCont,
+  std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
+  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+  std::vector<TPCVertex*>& VertexCont,
+  std::vector<TPCVertex*>& ClusteredVertexCont,
+  Bool_t Exclusive,
+  Int_t MinNumOfHits
+){
   // BeamThroughTPC==1: skip accidental-track marking (beam-through mode)
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
@@ -1002,7 +1029,6 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 }
 
 //_____________________________________________________________________________
-// K18 ver (maybe we can remove it) 
 Int_t
 LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      const std::vector<TPCClusterContainer>& ClCont,
@@ -1097,27 +1123,27 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     auto before_hough = std::chrono::high_resolution_clock::now();
 
     //Line Hough-transform on the XZ plane
-    Double_t LinearPar[4]; Int_t MaxBinXZ[2];
-    if(!tpc::HoughTransformLineXZ(ClCont, MaxBinXZ, LinearPar, MinNumOfHits)){
+    Double_t linear_par[4]; Int_t max_bin_xz[2];
+    if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
       std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
 #endif
       break;
     }
 
-    Int_t MaxBinY[2];
     //Line Hough-transform on the YZ or YX plane
-    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, max_hough_window_y);
-    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, max_hough_window_y);
+    Int_t max_bin_y[2];
+    if(TMath::Abs(linear_par[2]) < 1.) tpc::HoughTransformLineYZ(ClCont, max_bin_y, linear_par, max_hough_window_y);
+    else tpc::HoughTransformLineYX(ClCont, max_bin_y, linear_par, max_hough_window_y);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
     TPCLocalTrack *track = new TPCLocalTrack;
-    track->SetParam(LinearPar);
+    track->SetParam(linear_par);
 
     //If two tracks are merged at the target, separate them and recalculate params.
     Bool_t is_valid_after_sep;
-    prev_add = MakeLinearTrack(track, is_valid_after_sep, ClCont, LinearPar, max_hough_window_y);
+    prev_add = MakeLinearTrack(track, is_valid_after_sep, ClCont, linear_par, max_hough_window_y);
     if(!prev_add) break;  // memo: replaced 'continue' with 'break' since they behave the same here.
     if(!track -> IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
@@ -1128,24 +1154,24 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     //Check for duplicates
     Bool_t hough_flag = true;
     for(Int_t i=0; i<XZhough_x.size(); ++i){
-      Int_t bindiffXZ = TMath::Abs(MaxBinXZ[0] - XZhough_x[i]) + TMath::Abs(MaxBinXZ[1] - XZhough_y[i]);
-      Int_t bindiffY = TMath::Abs(MaxBinY[0] - Yhough_x[i]) + TMath::Abs(MaxBinY[1] - Yhough_y[i]);
-      if(bindiffXZ<=1 && bindiffY<=1){
+      Int_t bindiff_xz = TMath::Abs(max_bin_xz[0] - XZhough_x[i]) + TMath::Abs(max_bin_xz[1] - XZhough_y[i]);
+      Int_t bindiff_y = TMath::Abs(max_bin_y[0] - Yhough_x[i]) + TMath::Abs(max_bin_y[1] - Yhough_y[i]);
+      if(bindiff_xz<=1 && bindiff_y<=1){
 	hough_flag = false;
 #if DebugDisp
 	std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
 		 <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
 		 <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
 	std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-		 <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<" on the vertical plane x: "
-		 <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+		 <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
+		 <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
 #endif
       }
     }
-    XZhough_x.push_back(MaxBinXZ[0]);
-    XZhough_y.push_back(MaxBinXZ[1]);
-    Yhough_x.push_back(MaxBinY[0]);
-    Yhough_y.push_back(MaxBinY[1]);
+    XZhough_x.push_back(max_bin_xz[0]);
+    XZhough_y.push_back(max_bin_xz[1]);
+    Yhough_x.push_back(max_bin_y[0]);
+    Yhough_y.push_back(max_bin_y[1]);
 
     if(!hough_flag){
 #if DebugDisp
@@ -1176,9 +1202,9 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
   // static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   // MaxHoughWindow: max |r_hit - R_helix| [mm] for Y-theta Hough gate and helix cluster assignment
-  static const Double_t MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
+  static const Double_t max_hough_window = gUser.GetParameter("MaxHoughWindow");
   // MaxHoughWindowY: max perp. dist [mm] from helix to Y line (MakeHelixTrack distY cut)
-  static const Double_t MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1208,7 +1234,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 
     //Linear Hough-transform
     Int_t MaxBinY[2];
-    tpc::HoughTransformLineYTheta(ClCont, MaxBinY, HelixPar, MaxHoughWindow);
+    tpc::HoughTransformLineYTheta(ClCont, MaxBinY, HelixPar, max_hough_window);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
@@ -1217,7 +1243,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 
     //If two tracks are merged at the target, separate them and recalculate params.
     Bool_t is_valid_after_sep;
-    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
+    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, max_hough_window, max_hough_window_y);
     if(!prev_add) continue;
     if(!track -> IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
@@ -1271,19 +1297,19 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 
 //_____________________________________________________________________________
 void
-HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
-			std::vector<TPCLocalTrackHelix*>& TrackCont,
-			std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-			Int_t MinNumOfHits)
-{
-
+HighMomHelixTrackSearch(
+  const std::vector<TPCClusterContainer>& ClCont,
+  std::vector<TPCLocalTrackHelix*>& TrackCont,
+  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+  Int_t MinNumOfHits
+){
   // MaxHoughWindowY: max perp. dist [mm] to XZ line (2nd Hough gate) and to XZ/YZ lines (MakeLinearTrack)
   static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
-  std::vector<Double_t> tempXZhough_x;
-  std::vector<Double_t> tempXZhough_y;
-  std::vector<Double_t> tempYhough_x;
-  std::vector<Double_t> tempYhough_y;
+  std::vector<Double_t> temp_xz_hough_x;
+  std::vector<Double_t> temp_xz_hough_y;
+  std::vector<Double_t> temp_y_hough_x;
+  std::vector<Double_t> temp_y_hough_y;
 
   Bool_t prev_add = true;
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
@@ -1298,8 +1324,8 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     auto before_hough = std::chrono::high_resolution_clock::now();
 
     //Line Hough-transform on the XZ plane
-    Double_t LinearPar[4]; Int_t MaxBinXZ[2];
-    if(!tpc::HoughTransformLineXZ(ClCont, MaxBinXZ, LinearPar, MinNumOfHits)){
+    Double_t linear_par[4]; Int_t max_bin_xz[2];
+    if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
       std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
 #endif
@@ -1307,62 +1333,62 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     }
 
     //Line Hough-transform on the YZ or YX plane
-    Int_t MaxBinY[2];
-    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, max_hough_window_y);
-    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, max_hough_window_y);
+    Int_t max_bin_y[2];
+    if(TMath::Abs(linear_par[2]) < 1.) tpc::HoughTransformLineYZ(ClCont, max_bin_y, linear_par, max_hough_window_y);
+    else tpc::HoughTransformLineYX(ClCont, max_bin_y, linear_par, max_hough_window_y);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
-    TPCLocalTrack *trackTemp = new TPCLocalTrack;
-    trackTemp->SetParam(LinearPar);
+    TPCLocalTrack *track_temp = new TPCLocalTrack;
+    track_temp->SetParam(linear_par);
 
     Bool_t is_valid_after_sep;
-    prev_add = MakeLinearTrack(trackTemp, is_valid_after_sep, ClCont, LinearPar, max_hough_window_y);
+    prev_add = MakeLinearTrack(track_temp, is_valid_after_sep, ClCont, linear_par, max_hough_window_y);
     if(!prev_add) break;  // memo: replaced 'continue' with 'break' since they behave the same here.
-    if(!trackTemp -> IsGoodForTracking() || !is_valid_after_sep){
-      trackTemp->SetClustersHoughFlag(BadHoughTransform);
-      delete trackTemp;
+    if(!track_temp -> IsGoodForTracking() || !is_valid_after_sep){
+      track_temp->SetClustersHoughFlag(BadHoughTransform);
+      delete track_temp;
       continue;
     }
 
     //Check for duplicates
     Bool_t hough_flag = true;
-    for(Int_t i=0; i<tempXZhough_x.size(); ++i){
-      Int_t bindiffXZ = TMath::Abs(MaxBinXZ[0] - tempXZhough_x[i]) + TMath::Abs(MaxBinXZ[1] - tempXZhough_y[i]);
-      Int_t bindiffY  = TMath::Abs(MaxBinY[0]  - tempYhough_x[i])  + TMath::Abs(MaxBinY[1]  - tempYhough_y[i]);
+    for(Int_t i=0; i<temp_xz_hough_x.size(); ++i){
+      Int_t bindiffXZ = TMath::Abs(max_bin_xz[0] - temp_xz_hough_x[i]) + TMath::Abs(max_bin_xz[1] - temp_xz_hough_y[i]);
+      Int_t bindiffY  = TMath::Abs(max_bin_y[0]  - temp_y_hough_x[i])  + TMath::Abs(max_bin_y[1]  - temp_y_hough_y[i]);
       if(bindiffXZ<=1 && bindiffY<=1){
         hough_flag = false;
 #if DebugDisp
         std::cout <<"Previous hough bin on the XZ plane "<<i<<"th x: "
-                  <<tempXZhough_x[i]<<", y: "<<tempXZhough_y[i]<<" on the vertical plane x: "
-                  <<tempYhough_x[i]<<", y: "<<tempYhough_y[i]<<std::endl;
+                  <<temp_xz_hough_x[i]<<", y: "<<temp_xz_hough_y[i]<<" on the vertical plane x: "
+                  <<temp_y_hough_x[i]<<", y: "<<temp_y_hough_y[i]<<std::endl;
         std::cout <<"Current hough bin on the XZ plane "<<i<<"th x: "
-                  <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<" on the vertical plane x: "
-                  <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+                  <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
+                  <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
 #endif
       }
     }
-    tempXZhough_x.push_back(MaxBinXZ[0]);
-    tempXZhough_y.push_back(MaxBinXZ[1]);
-    tempYhough_x.push_back(MaxBinY[0]);
-    tempYhough_y.push_back(MaxBinY[1]);
+    temp_xz_hough_x.push_back(max_bin_xz[0]);
+    temp_xz_hough_y.push_back(max_bin_xz[1]);
+    temp_y_hough_x.push_back(max_bin_y[0]);
+    temp_y_hough_y.push_back(max_bin_y[1]);
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<tempXZhough_x.size()<<std::endl;
+      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<temp_xz_hough_x.size()<<std::endl;
 #endif
-      trackTemp->SetClustersHoughFlag(BadHoughTransform);
-      delete trackTemp;
+      track_temp->SetClustersHoughFlag(BadHoughTransform);
+      delete track_temp;
       continue;
     }
 
     //Convert the temporary straight line track into helix track
     TPCLocalTrackHelix *track = new TPCLocalTrackHelix;
-    if(!ConvertTrack(trackTemp, track)){
+    if(!ConvertTrack(track_temp, track)){
 #if DebugDisp
       track->Print(FUNC_NAME+ " Track converting is failed");
 #endif
-      track -> SetClustersHoughFlag(BadForTracking); //track w/ few clusters
+      track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
       delete track;
       continue;
     }
@@ -1401,10 +1427,10 @@ VertexSearch(std::vector<T*>& TrackCont,
     for(Int_t trackid2=trackid1+1; trackid2<TrackCont.size(); trackid2++){
       T *track2 = TrackCont[trackid2];
       TPCVertex *vertex = new TPCVertex(trackid1, trackid2);
-      vertex -> Calculate(track1, track2);
+      vertex->Calculate(track1, track2);
 
-      Double_t closedist = vertex -> GetClosestDist();
-      if(closedist < VertexDistCut){
+      Double_t closest_dist = vertex->GetClosestDist();
+      if(closest_dist < VertexDistCut){
       	VertexCont.push_back(vertex);
 #if DebugDisp
         vertex->Print(FUNC_NAME+" Vertex finding");
@@ -1430,17 +1456,17 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
   std::vector<Int_t> candidates;
   for(auto& vertex: VertexCont){
     //Threshold conditions of a distance and an angle between two tracks.
-    TVector3 vtx = vertex -> GetVertex();
-    Int_t trackid1 = vertex -> GetTrackId(0);
-    Int_t trackid2 = vertex -> GetTrackId(1);
-    if(TrackCont[trackid1] -> GetIsK18()==1 ||
-       TrackCont[trackid2] -> GetIsK18()==1) continue; // todo: maybe not needed for E72
+    TVector3 vtx = vertex->GetVertex();
+    Int_t trackid1 = vertex->GetTrackId(0);
+    Int_t trackid2 = vertex->GetTrackId(1);
+    if(TrackCont[trackid1]->GetIsK18()==1 ||
+       TrackCont[trackid2]->GetIsK18()==1) continue;
 
     Bool_t isbeam1 = true;
-    for(Int_t ihit=0;ihit<TrackCont[trackid1] -> GetNHit();ihit++){
-      TPCHit *hit = TrackCont[trackid1] -> GetHitInOrder(ihit) -> GetHit();
-      TVector3 pos = hit -> GetPosition();
-      if(pos.z() > tpc::Z_TARGET || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){ // todo: refine for E72
+    for(Int_t ihit=0; ihit<TrackCont[trackid1]->GetNHit(); ihit++){
+      TPCHit *hit  = TrackCont[trackid1]->GetHitInOrder(ihit)->GetHit();
+      TVector3 pos = hit->GetPosition();
+      if(!TrackCont[trackid1]->IsBeamLikeHit(pos)){
         isbeam1 = false;
         break;
       }
@@ -1448,20 +1474,16 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     if(isbeam1) continue; //veto beam particle
 
     Bool_t isbeam2 = true;
-    for(Int_t ihit=0;ihit<TrackCont[trackid2] -> GetNHit();ihit++){
-      TPCHit *hit = TrackCont[trackid2] -> GetHitInOrder(ihit) -> GetHit();
-      TVector3 pos = hit -> GetPosition();
-      if(pos.z() > tpc::Z_TARGET || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){ // todo: refine for E72
+    for(Int_t ihit=0; ihit<TrackCont[trackid2]->GetNHit(); ihit++){
+      TPCHit *hit  = TrackCont[trackid2]->GetHitInOrder(ihit)->GetHit();
+      TVector3 pos = hit->GetPosition();
+      if(!TrackCont[trackid2]->IsBeamLikeHit(pos)){
         isbeam2 = false;
         break;
       }
     }
     if(isbeam2) continue; //veto beam particle
-    /*
-      std::cout<<"id "<<vertex -> GetTrackId(0)<<" "<<vertex -> GetTrackId(1)<<std::endl;
-      std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
-      std::cout<<"angle "<<0.1*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.1)*TMath::Pi()<<std::endl;
-    */
+
 
     //case1. accidental beam crossing the target is splitted into two tracks
     //case2. merging fragmentations of commom track. for case2. closest point of two parts are not in the track
@@ -1469,15 +1491,14 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     // two parts are close.
     // Exclude mid-angle pairs (0.1*pi < opening angle < 0.9*pi):
     // these are unlikely to be fragmented pieces of one track.
-    const Double_t kAngleWindow = 0.4*TMath::Pi();
-    if(vertex -> GetClosestDist() > 20. ||
-       TMath::Abs(vertex->GetOpeningAngle() - 0.5*TMath::Pi()) < kAngleWindow) continue;
+    const Double_t angle_window = 0.4*TMath::Pi();
+    if(vertex->GetClosestDist() > FragmentMergeClosestDistMax ||
+       TMath::Abs(vertex->GetOpeningAngle() - 0.5*TMath::Pi()) < angle_window) continue;
 
     // closest point is not in the target.
     // without this, two scattered tracks with opposite direction frequently wrongly merged.
-    if(TMath::Abs(vtx.x()) < 15. &&
-       TMath::Abs(vtx.y()) < 10. &&
-       TMath::Abs(vtx.z() - tpc::Z_TARGET) < 10.) continue; // todo : refine for E72
+    if(TMath::Hypot(vtx.x(), vtx.z() - tpc::Z_TARGET) < tpc::TARGET_RADIUS &&
+       TMath::Abs(vtx.y()) < tpc::TARGET_HALF_Y) continue;
 
 #if DebugDisp
     vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
@@ -1490,20 +1511,20 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 
     //Longer track(track1) is a reference.
     //Add two tracks.
-    Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
+    Bool_t order = TrackCont[trackid1]->GetNHit() >= TrackCont[trackid2]->GetNHit() ?  true : false;
     if(!order){
-      trackid1 = vertex -> GetTrackId(1);
-      trackid2 = vertex -> GetTrackId(0);
+      trackid1 = vertex->GetTrackId(1);
+      trackid2 = vertex->GetTrackId(0);
     }
 
     T *track1 = TrackCont[trackid1];
     T *track2 = TrackCont[trackid2];
     T *MergedTrack = new T(track1);
-    for(Int_t ihit=0; ihit<track2 -> GetNHit(); ++ihit)
-      MergedTrack -> AddTPCHit(new TPCLTrackHit(track2 -> GetHitInOrder(ihit) -> GetHit()));
+    for(Int_t ihit=0; ihit<track2->GetNHit(); ++ihit)
+      MergedTrack->AddTPCHit(new TPCLTrackHit(track2->GetHitInOrder(ihit)->GetHit()));
 
     //Check whether tracks belong to the same track or not
-    if(!MergedTrack -> TestMergedTrack()){
+    if(!MergedTrack->TestMergedTrack()){
       candidates_VertexCont.push_back(vertex);
       delete MergedTrack;
       continue;
@@ -1512,8 +1533,8 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     candidates.push_back(trackid2);
 
 #if DebugDisp
-    MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track");
-    //MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track", true);
+    MergedTrack->Print(FUNC_NAME+" Before fitting the merged track");
+    //MergedTrack->Print(FUNC_NAME+" Before fitting the merged track", true);
 #endif
 
     Int_t prev_size = TrackCont.size();
@@ -1522,37 +1543,36 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     Int_t post_size = TrackCont.size();
     if(prev_size+1 == post_size){ // A merged-track fit succeeded and one new track was added.
       MergedTrack = TrackCont[post_size-1];
-      MergedTrack -> Calculate();
+      MergedTrack->Calculate();
       if(Exclusive){
-        MergedTrack -> DoFitExclusive();
-        MergedTrack -> CalculateExclusive();
+        MergedTrack->DoFitExclusive();
+        MergedTrack->CalculateExclusive();
       }
-      MergedTrack -> CheckIsAccidental();
+      MergedTrack->CheckIsAccidental();
 
 #if DebugDisp
-      MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
-      //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
+      MergedTrack->Print(FUNC_NAME+" After fitting the merged track");
+      //MergedTrack->Print(FUNC_NAME+" After fitting the merged track", true);
 #endif
     }
     else{ // A merged-track fit failed (or no new track was added); keep this vertex as a retry candidate.
       candidates_VertexCont.push_back(vertex);
-      for(Int_t i=0; i<2; ++i){
-        Int_t trackID = candidates[candidates.size() - 1];
-        TrackCont[trackID] -> SetClustersHoughFlag(GoodForTracking);
-        candidates.erase(candidates.begin() + candidates.size() - 1);
-      }
+      TrackCont[trackid1]->SetClustersHoughFlag(GoodForTracking);
+      TrackCont[trackid2]->SetClustersHoughFlag(GoodForTracking);
+      candidates.pop_back();
+      candidates.pop_back();
     }
-  } // for(auto& vertex: VertexCont)
+  } // end of for(auto& vertex: VertexCont)
 
   //(Iterative process) For candidates with fitting failed, trying another way for fitting.
   for(auto& vertex: candidates_VertexCont){
-    TVector3 vtx = vertex -> GetVertex();
-    Int_t trackid1 = vertex -> GetTrackId(0);
-    Int_t trackid2 = vertex -> GetTrackId(1);
+    TVector3 vtx = vertex->GetVertex();
+    Int_t trackid1 = vertex->GetTrackId(0);
+    Int_t trackid2 = vertex->GetTrackId(1);
 
 #if DebugDisp
-    vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
-    //vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks", true);
+    vertex->Print(FUNC_NAME+" Vertex candidate for merging tracks");
+    //vertex->Print(FUNC_NAME+" Vertex candidate for merging tracks", true);
 #endif
 
     //Avoid duplication
@@ -1561,22 +1581,22 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 
     //Longer track(track1) is a reference.
     //Add two tracks.
-    Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
+    Bool_t order = TrackCont[trackid1]->GetNHit() >= TrackCont[trackid2]->GetNHit() ?  true : false;
     if(!order){
-      trackid1 = vertex -> GetTrackId(1);
-      trackid2 = vertex -> GetTrackId(0);
+      trackid1 = vertex->GetTrackId(1);
+      trackid2 = vertex->GetTrackId(0);
     }
 
     T *track1 = TrackCont[trackid1];
     T *track2 = TrackCont[trackid2];
     T *MergedTrack = new T(track1);
-    Int_t total_nhit = track1 -> GetNHit() + track2 -> GetNHit();
+    Int_t total_nhit = track1->GetNHit() + track2->GetNHit();
     std::vector<TPCClusterContainer> clusters_fortest(NumOfLayersTPC);
-    for(Int_t hitid=0;hitid<track2 -> GetNHit();hitid++){
-      TPCHit *hit = track2 -> GetHitInOrder(hitid) -> GetHit();
-      hit -> SetHoughFlag(0);
-      Int_t layer = hit -> GetLayer();
-      clusters_fortest[layer].push_back(hit -> GetParentCluster());
+    for(Int_t hitid=0; hitid<track2->GetNHit(); hitid++){
+      TPCHit *hit = track2->GetHitInOrder(hitid)->GetHit();
+      hit->SetHoughFlag(0);
+      Int_t layer = hit->GetLayer();
+      clusters_fortest[layer].push_back(hit->GetParentCluster());
     }
 
     Int_t prev_size = TrackCont.size();
@@ -1590,39 +1610,38 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
       std::cout<<FUNC_NAME+" #of bad clusters : "<<total_nhit - MergedTrack -> GetNHit()<<std::endl;
 #endif
 
-      if(total_nhit - MergedTrack -> GetNHit() > 3){
+      if(total_nhit - MergedTrack->GetNHit() > 3){ // might be able to optimize the threshold
         delete MergedTrack;
-        TrackCont.erase(TrackCont.begin() + post_size - 1);
-        track1 -> SetClustersHoughFlag(GoodForTracking);
-        track2 -> SetClustersHoughFlag(GoodForTracking);
+        TrackCont.pop_back();
+        track1->SetClustersHoughFlag(GoodForTracking);
+        track2->SetClustersHoughFlag(GoodForTracking);
         continue;
       }
       else{
-        MergedTrack -> Calculate();
+        MergedTrack->Calculate();
         if(Exclusive){
-          MergedTrack -> DoFitExclusive();
-          MergedTrack -> CalculateExclusive();
+          MergedTrack->DoFitExclusive();
+          MergedTrack->CalculateExclusive();
         }
-        MergedTrack -> CheckIsAccidental();
+        MergedTrack->CheckIsAccidental();
       }
     }
     else{ // A merged-track fit failed (or no new track was added); keep this vertex as a retry candidate.
-      track1 -> SetClustersHoughFlag(GoodForTracking);
-      track2 -> SetClustersHoughFlag(GoodForTracking);
+      track1->SetClustersHoughFlag(GoodForTracking);
+      track2->SetClustersHoughFlag(GoodForTracking);
       continue;
     }
 
     candidates.push_back(trackid1);
     candidates.push_back(trackid2);
-  }
-  candidates_VertexCont.clear();
+  } // end of for(auto& vertex: candidates_VertexCont)
 
   if(candidates.size()>0){
-    std::sort(candidates.begin(), candidates.end());
-    for(Int_t i=0; i<candidates.size(); ++i){
-      Int_t trackID = candidates[i] - i;
-      T *prevtrack = TrackCont[trackID];
-      TrackCont.erase(TrackCont.begin() + trackID);
+    // Sort track indices in descending order so erasing does not shift remaining indices.
+    std::sort(candidates.begin(), candidates.end(), std::greater<Int_t>());
+    for(Int_t track_id : candidates){
+      T *prevtrack = TrackCont[track_id];
+      TrackCont.erase(TrackCont.begin() + track_id);
       delete prevtrack;
     }
 
@@ -1644,112 +1663,98 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 
   // BeamThroughTPC==1: skip accidental-track marking after cluster reassignment
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
-  const Int_t MostInnerlayer_Track   = 6; //testing layers from 0 to "MostInnerlayer_Cluster".
-  const Int_t MostInnerlayer_Cluster = 4; //testing layers from 0 to "MostInnerlayer_Cluster".
+  const Int_t MaxTargetLayer = tpc::LAST_TGT_LAYER + 1;
+  static const Int_t MaxStrip = 2;
 
   Bool_t status = false;
   Int_t ntracks = TrackCont.size();
-  Int_t k18id = -9999; // todo: maybe not needed for E72
+  Int_t k18id = -9999;
   std::vector<Int_t> candidates_trackid;
   std::vector<T*> newtracks_fortest;
   std::vector<TPCHit*> clusters_fortest;
   std::vector<Int_t> clusters_original_trackid;
   for(Int_t trackid=0; trackid<ntracks; trackid++){
     T *track = TrackCont[trackid];
-    if(track -> GetIsAccidental()==1) continue;
-    if(track -> GetIsK18()==1) k18id = trackid; // todo: maybe not needed for E72
-    if(track -> GetClosestDist() < 50.){ //tracks from the target (todo: check for E72 geometry)
-      Int_t n = track->GetNHit();
-      TPCLTrackHit *hitp0 = track->GetHitInOrder(0); //most inner cluster
-      TPCHit *hit0 = hitp0->GetHit();
-      Int_t layer0 = hitp0->GetLayer();
-      TVector3 pos0 = hitp0->GetLocalHitPos();
-      if(TMath::Abs(pos0.y()) > 50.) continue; // todo: check for E72 geometry
-      if(layer0 > MostInnerlayer_Track) continue;
-      status = true;
-      candidates_trackid.push_back(trackid);
+    if(track->GetIsAccidental()==1) continue;
+    if(track->GetIsK18()==1) k18id = trackid;
+    if(track->GetClosestDist() >= tpc::TARGET_RADIUS) continue;
 
-      T *CopiedTrack0 = new T(track);
-      newtracks_fortest.push_back(CopiedTrack0);
+    Int_t ih = -1;
+    if(!FindClosestTargetHit(track, MaxTargetLayer, ih)) continue;
+    TPCLTrackHit *hitp = track->GetHit(ih);
+    if(!hitp) continue;
 
-      if(n <= MinNumOfHits || layer0 > MostInnerlayer_Cluster) continue;
-      T *CopiedTrack1 = new T(CopiedTrack0);
-      Int_t hitorder0 = CopiedTrack0 -> GetOrder(0);
-      CopiedTrack1 -> EraseHit(hitorder0);
-      hit0 -> SetHoughFlag(GoodForTracking);
-      if(CopiedTrack1->DoFit(MinNumOfHits)){
-        clusters_fortest.push_back(hit0);
-        clusters_original_trackid.push_back(trackid);
+    status = true;
+    candidates_trackid.push_back(trackid);
 
-        newtracks_fortest[newtracks_fortest.size() - 1] = CopiedTrack1;
-        delete CopiedTrack0;
+    T *trial = new T(track);
+    newtracks_fortest.push_back(trial);
 
-        TPCLTrackHit *hitp1 = track->GetHitInOrder(1); //second most inner cluster
-        TPCHit *hit1 = hitp1->GetHit();
-        Int_t layer1 = hitp1->GetLayer();
-        TVector3 pos1 = hitp1->GetLocalHitPos();
-        if(TMath::Abs(pos1.y()) > 50.) continue; // todo: check for E72 geometry
-        if(n-1 <= MinNumOfHits || layer1 > MostInnerlayer_Cluster) continue;
+    for(Int_t iter=0; iter<MaxStrip; ++iter){
+      if(trial->GetNHit() <= MinNumOfHits) break;
 
-        //Exclude most inner cluster and dofit.
-        T *CopiedTrack2 = new T(CopiedTrack1);
-        Int_t hitorder1 = CopiedTrack2 -> GetOrder(0);
-        CopiedTrack2 -> EraseHit(hitorder1);
-        hit1 -> SetHoughFlag(GoodForTracking);
-        if(CopiedTrack2->DoFit(MinNumOfHits)){
-          clusters_fortest.push_back(hit1);
-          clusters_original_trackid.push_back(trackid);
-
-          newtracks_fortest[newtracks_fortest.size() - 1] = CopiedTrack2;
-          delete CopiedTrack1;
-        }
-        else delete CopiedTrack2;
+      if(iter > 0){
+        if(!FindClosestTargetHit(trial, MaxTargetLayer, ih)) break;
+        hitp = trial->GetHit(ih);
+        if(!hitp) break;
       }
-      else delete CopiedTrack1;
+
+      TPCHit *cl = hitp->GetHit();
+      T *strip = new T(trial);
+      strip->EraseHit(ih);
+      cl->SetHoughFlag(GoodForTracking);
+      if(!strip->DoFit(MinNumOfHits)){
+        delete strip;
+        break;
+      }
+
+      clusters_fortest.push_back(cl);
+      clusters_original_trackid.push_back(trackid);
+
+      delete trial;
+      trial = strip;
+      newtracks_fortest.back() = trial;
     }
   }
   if(!status) return;
 
-  // todo: maybe not needed for E72
-  T *copiedK18track;
-  if(k18id!=-9999){
-    T *K18track = TrackCont[k18id];
-    copiedK18track = new T(K18track);
+  if(k18id != -9999){
+    T *k18_track = new T(TrackCont[k18id]);
     candidates_trackid.push_back(k18id);
-    newtracks_fortest.push_back(copiedK18track);
+    newtracks_fortest.push_back(k18_track);
   }
 
   //After excluding clusters near the target, try to add more clusters
   //Because of clusters near the target, frequently tracking quility becomes worse.
   //So without those clusters, it is better to try to add clusters
-  Bool_t reassaign = false;
-  std::vector<Int_t> reassaign_candidates;
+  Bool_t reassign = false;
+  std::vector<Int_t> reassign_candidates;
 
-  for(Int_t i=0; i<newtracks_fortest.size(); i++){
+  for(Int_t i=0; i<(Int_t)newtracks_fortest.size(); i++){
     Int_t trackid = candidates_trackid[i];
     if(trackid == k18id) continue;
 
-    T *track = newtracks_fortest[i];
-    T *CopiedTrack = new T(track);
+    T *trial = newtracks_fortest[i];
+    T *extended = new T(trial);
 
-    Int_t prev_size = TrackCont.size();
-    FitTrack(CopiedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-    Int_t post_size = TrackCont.size();
-    if(prev_size+1 == post_size){ //Fitting is succeeded
-      CopiedTrack = TrackCont[post_size-1];
+    Int_t n_tracks_before = TrackCont.size();
+    FitTrack(extended, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+    Int_t n_tracks_after = TrackCont.size();
+    if(n_tracks_before + 1 == n_tracks_after){ //Fitting is succeeded
+      extended = TrackCont[n_tracks_after - 1];
       if(Exclusive){
-        CopiedTrack -> DoFitExclusive();
-        CopiedTrack -> CalculateExclusive();
+        extended->DoFitExclusive();
+        extended->CalculateExclusive();
       }
-      TrackCont.erase(TrackCont.begin() + post_size - 1);
+      TrackCont.pop_back();
 
-      if(CopiedTrack -> GetNHit() > track -> GetNHit()){
-        reassaign = true;
-        reassaign_candidates.push_back(trackid);
-        newtracks_fortest[i] = CopiedTrack;
-        delete track;
+      if(extended->GetNHit() > trial->GetNHit()){
+        reassign = true;
+        reassign_candidates.push_back(trackid);
+        newtracks_fortest[i] = extended;
+        delete trial;
       }
-      else delete CopiedTrack;
+      else delete extended;
     }
   }
 
@@ -1757,87 +1762,95 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   std::cout<<FUNC_NAME+" Finding the best combination between tracks and clusters"<<std::endl;
 #endif
 
-  for(Int_t i=0; i<clusters_fortest.size(); i++){
-    TPCHit *hit = clusters_fortest[i]; //cluster for testing
-    TVector3 pos = hit -> GetPosition();
+  // Assign each cluster stripped near the target to the best-matching candidate track.
+  // Compare residuals among newtracks_fortest; keep on the original track, reassign,
+  // or reject the cluster if no candidate accepts it.
+  for(Int_t i=0; i<(Int_t)clusters_fortest.size(); i++){
+    TPCHit *cl = clusters_fortest[i];
+    Int_t orig_trackid = clusters_original_trackid[i];
 
-    Int_t best = -9999;
+    Int_t best_idx = -9999;
     Int_t best_trackid = -1;
     Double_t min_residual = 9999.;
-    for(Int_t j=0; j<newtracks_fortest.size(); j++){
+    for(Int_t cand_idx=0; cand_idx<(Int_t)newtracks_fortest.size(); cand_idx++){
       Double_t residual = 0.;
-      if(newtracks_fortest[j] -> IsGoodHitToAdd(hit, residual)){
+      if(newtracks_fortest[cand_idx]->IsGoodHitToAdd(cl, residual)){
         if(min_residual > residual){
           min_residual = residual;
-          best = j;
-          best_trackid = candidates_trackid[j];
+          best_idx = cand_idx;
+          best_trackid = candidates_trackid[cand_idx];
         }
       }
     }
 
-    Int_t id = clusters_original_trackid[i]; //cluster's original id
-    hit -> SetHoughFlag(GoodForTracking);
-    if(id==best_trackid){ //cluster is suitable for the original track
-      newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
+    cl->SetHoughFlag(GoodForTracking);
+    if(orig_trackid == best_trackid){ // cluster fits the track it was stripped from
+      newtracks_fortest[best_idx]->AddTPCHit(new TPCLTrackHit(cl));
     }
-    else{ //cluster is not suitable for the original track
-      reassaign = true;
-      if(best_trackid==-1){ //cluster is not suitable for all tracks
-        reassaign_candidates.push_back(id);
-        hit -> SetHoughFlag(0);
+    else{ // cluster belongs elsewhere or nowhere
+      reassign = true;
+      if(best_trackid == -1){ // no candidate accepts this cluster
+        reassign_candidates.push_back(orig_trackid);
+        cl->SetHoughFlag(0);
       }
-      else{ //cluster is suitable for the other track not the original track
-        reassaign_candidates.push_back(id);
-        reassaign_candidates.push_back(best_trackid);
-        newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
+      else{ // cluster fits another candidate track
+        reassign_candidates.push_back(orig_trackid);
+        reassign_candidates.push_back(best_trackid);
+        newtracks_fortest[best_idx]->AddTPCHit(new TPCLTrackHit(cl));
       }
     }
   }
-  if(newtracks_fortest.size()!=candidates_trackid.size()) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+  if(newtracks_fortest.size()!=candidates_trackid.size()) 
+    std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
 
-  std::sort(reassaign_candidates.begin(), reassaign_candidates.end());
-  reassaign_candidates.erase(std::unique(reassaign_candidates.begin(), reassaign_candidates.end()), reassaign_candidates.end());
+  std::sort(reassign_candidates.begin(), reassign_candidates.end());
+  reassign_candidates.erase(std::unique(reassign_candidates.begin(), reassign_candidates.end()), reassign_candidates.end());
 
-  if(!reassaign){ //No change
-    if(reassaign_candidates.size()!=0) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+  if(!reassign){ //No change
+    if(reassign_candidates.size()!=0) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
 #if DebugDisp
     std::cout<<FUNC_NAME+" No reassigning happened"<<std::endl;
 #endif
-    for(Int_t i=0; i<newtracks_fortest.size(); i++) delete newtracks_fortest[i];
+    del::ClearContainer(newtracks_fortest);
   }
-  else{ //Reassaigning happens
+  else{ //Reassigning happens
 #if DebugDisp
-    std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassaign_candidates.size()<<std::endl;
+    std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassign_candidates.size()<<std::endl;
 #endif
 
-    for(Int_t i=0; i<newtracks_fortest.size(); i++){
-      Int_t trackid = candidates_trackid[i];
-      if(std::find(reassaign_candidates.begin(), reassaign_candidates.end(), trackid) == reassaign_candidates.end()) 
-        delete newtracks_fortest[i];
-      else{
-        Int_t threshold = MinNumOfHits;
-        if(trackid == k18id) threshold = 3;
+    // Re-fit and commit tracks in reassign_candidates into TrackCont.
+    for(Int_t cand_idx=0; cand_idx<(Int_t)newtracks_fortest.size(); cand_idx++){
+      Int_t trackid = candidates_trackid[cand_idx];
+      T *trial = newtracks_fortest[cand_idx];
 
-        if(newtracks_fortest[i] -> DoFit(threshold)){
-          newtracks_fortest[i] -> SetClustersHoughFlag(GoodForTracking);
-          newtracks_fortest[i] -> Calculate();
-          if(Exclusive){
-            newtracks_fortest[i] -> DoFitExclusive();
-            newtracks_fortest[i] -> CalculateExclusive();
-          }
-
-          //update with a new track and delete the previous track
-          T *prev_track = TrackCont[trackid];
-          TrackCont[trackid] = newtracks_fortest[i];
-          delete prev_track;
-        }
-        else delete newtracks_fortest[i];
+      if(std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid) == reassign_candidates.end()){
+        delete trial;
+        continue;
       }
-    } //for scattered tracks
+
+      Int_t threshold = MinNumOfHits;
+      if(trackid == k18id) threshold = 3;
+
+      if(!trial->DoFit(threshold)){
+        delete trial;
+        continue;
+      }
+
+      trial->SetClustersHoughFlag(GoodForTracking);
+      trial->Calculate();
+      if(Exclusive){
+        trial->DoFitExclusive();
+        trial->CalculateExclusive();
+      }
+
+      T *prev_track = TrackCont[trackid];
+      TrackCont[trackid] = trial;
+      delete prev_track;
+    }
   }
   ResetHoughFlag(ClCont);
 
-  if(reassaign){
+  if(reassign){
     //Vertex finding again with new tracks
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
@@ -1846,7 +1859,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
     if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
-  } //reassaigning process
+  } //reassigning process
 }
 
 //_____________________________________________________________________________
@@ -1862,186 +1875,195 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
   // BeamThroughTPC==1: skip accidental-track marking after vertex reassignment
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
-  Int_t ntracks = TrackCont.size();
-  (void)ntracks; // reserved for future loop/consistency checks
+  // strip -> assign -> commit -> VertexSearch; one reassignment per outer while pass
+  const Double_t vertex_closest_dist_max = 10.;              // max GetClosestDist [mm]
+  const Double_t cluster_dist_max = 20.;                     // strip window around GetTrackPos [mm]
+  const Double_t arc_margin_mm = 0.5 * tpc::TARGET_RADIUS;   // Mint/Maxt margin for vertex GetTrackTheta [mm]
 
   std::vector<std::pair<Int_t, Int_t>> candidate_pairs;
-  Double_t window = 20.; //selection cut : cluster <-> track dist < window
-  Bool_t flag = true;
-  while(flag){
-    flag = false;
+  Bool_t reassign_pending = true;  // retry outer loop after each committed reassignment
+  while(reassign_pending){
+    reassign_pending = false;
 
-    // todo: we can unify track1/2 procedure
-    for(auto& vertex: VertexCont){
-      TVector3 vtx = vertex -> GetVertex();
-      Int_t trackid1 = vertex -> GetTrackId(0);
-      Int_t trackid2 = vertex -> GetTrackId(1);
+    for(auto& vertex : VertexCont){
+      const Int_t trackid0 = vertex->GetTrackId(0);
+      const Int_t trackid1 = vertex->GetTrackId(1);
 
-      if(std::find(candidate_pairs.begin(), candidate_pairs.end(), std::make_pair(trackid1, trackid2)) != candidate_pairs.end()) continue;
+      if(std::find(candidate_pairs.begin(), candidate_pairs.end(),
+		   std::make_pair(trackid0, trackid1)) != candidate_pairs.end()) continue;
 
-      T *track1 = TrackCont[trackid1];
-      T *track2 = TrackCont[trackid2];
-      //if(vertex -> GetClosestDist() > 5) continue;
-      if(vertex -> GetClosestDist() > 10.) continue;
-      if(track1 -> GetIsAccidental()==1 || track2 -> GetIsAccidental()==1) continue;
-      if(track1 -> GetIsK18()==1 || track2 -> GetIsK18()==1) continue; // todo: maybe not needed for E72
+      T* tracks[2] = {TrackCont[trackid0], TrackCont[trackid1]};
+      const Int_t trackids[2] = {trackid0, trackid1};
 
-      Double_t theta1 = vertex -> GetTrackTheta(0);
-      Double_t theta2 = vertex -> GetTrackTheta(1);
-      //vertex point exists outside of both tracks, then it is not a candidate.
-      // todo: reconsider this for E72 geometry, since the target size is large
-      if((theta1 < track1 -> GetMint() - 10./track1 -> Getr() ||
-          theta1 > track1 -> GetMaxt() + 10./track1 -> Getr()) ||
-         (theta2 < track2 -> GetMint() - 10./track2 -> Getr() ||
-          theta2 > track2 -> GetMaxt() + 10./track2 -> Getr())) continue;
+      if(vertex->GetClosestDist() > vertex_closest_dist_max) continue;
+      if(tracks[0]->GetIsAccidental() == 1 || tracks[1]->GetIsAccidental() == 1) continue;
+      if(tracks[0]->GetIsK18() == 1 || tracks[1]->GetIsK18() == 1) continue;
 
-      Int_t closeid1 = 0;
-      Double_t minresi1 = 9999.;
-      std::vector<Int_t> close_ids1;
-      TVector3 vtx1 = vertex -> GetTrackPos(0);
-      for(Int_t i=0; i<track1 -> GetNHit(); ++i){
-        TVector3 dist = track1 -> GetHitInOrder(i) -> GetLocalCalPosHelix() - vtx1; //distance between the vtx to the cluster
-        if(dist.Mag() < window){
-          close_ids1.push_back(track1 -> GetOrder(i));
+      // GetTrackTheta: helix parameter at closest approach on each track (not cluster theta)
+      Bool_t skip_vertex = false;
+      for(Int_t itrack = 0; itrack < 2; ++itrack){
+        const Double_t theta = vertex->GetTrackTheta(itrack);
+        const Double_t margin_rad = arc_margin_mm / tracks[itrack]->Getr();
+        if(theta < tracks[itrack]->GetMint() - margin_rad ||
+           theta > tracks[itrack]->GetMaxt() + margin_rad){
+          skip_vertex = true;
+          break;
         }
-        if(dist.Mag() < minresi1){
-          closeid1 = i;
-          minresi1 = dist.Mag();
+      }
+      if(skip_vertex) continue;
+
+      // Collect hit orders within cluster_dist_max of GetTrackPos on each track
+      Int_t closest_hit_idx[2] = {0, 0};
+      std::vector<Int_t> close_hit_orders[2];
+      for(Int_t itrack = 0; itrack < 2; ++itrack){
+        const TVector3 vtx_pos = vertex->GetTrackPos(itrack);
+        Double_t min_dist = 1.e10;
+        for(Int_t ih = 0, n = tracks[itrack]->GetNHit(); ih < n; ++ih){
+          const Double_t d =
+            (tracks[itrack]->GetHitInOrder(ih)->GetLocalCalPosHelix() - vtx_pos).Mag();
+          if(d < cluster_dist_max){
+            close_hit_orders[itrack].push_back(tracks[itrack]->GetOrder(ih));
+          }
+          if(d < min_dist){
+            closest_hit_idx[itrack] = ih;
+            min_dist = d;
+          }
         }
       }
 
-      Int_t closeid2 = 0;
-      Double_t minresi2 = 9999.;
-      std::vector<Int_t> close_ids2;
-      TVector3 vtx2 = vertex -> GetTrackPos(1);
-      for(Int_t i=0; i<track2 -> GetNHit(); ++i){
-        TVector3 dist = track2 -> GetHitInOrder(i) -> GetLocalCalPosHelix() - vtx2; //distance between the vtx to the cluster
-        if(dist.Mag() < window){
-          close_ids2.push_back(track2 -> GetOrder(i));
-        }
-        if(dist.Mag() < minresi2){
-          closeid2 = i;
-          minresi2 = dist.Mag();
-        }
-      }
-      if(closeid1==0 && closeid2==0 && (close_ids2.size()!=1 && close_ids1.size()!=1)) continue; //vertex at the end of two tracks
+      // Skip ambiguous geometry: both tracks' nearest hit is InOrder(0) (track end)
+      // and neither has exactly one cluster in cluster_dist_max.
+      if(closest_hit_idx[0] == 0 && closest_hit_idx[1] == 0 &&
+         close_hit_orders[0].size() != 1 && close_hit_orders[1].size() != 1) continue;
 
-      //case1
-      std::vector<T*> newtracks_fortest;
+      if(close_hit_orders[0].empty() && close_hit_orders[1].empty()) continue;
+
+      // Strip nearby hits; build trial tracks (not yet in TrackCont)
+      std::vector<T*> trial_tracks;
       std::vector<Int_t> candidates_trackid;
       std::vector<TPCHit*> clusters_fortest;
       std::vector<Int_t> clusters_original_trackid;
-      if(close_ids1.size() > 0 || close_ids2.size() > 0){
-        T *CopiedTrack1 = new T(track1);
-        CopiedTrack1 -> EraseHits(close_ids1);
-        if(!CopiedTrack1->DoFit(MinNumOfHits)){
-          track1 -> SetClustersHoughFlag(GoodForTracking);
-          delete CopiedTrack1;
-          continue;
-        }
 
-        T *CopiedTrack2 = new T(track2);
-        CopiedTrack2 -> EraseHits(close_ids2);
-        if(!CopiedTrack2->DoFit(MinNumOfHits)){
-          track1 -> SetClustersHoughFlag(GoodForTracking);
-          track2 -> SetClustersHoughFlag(GoodForTracking);
-          delete CopiedTrack1;
-          delete CopiedTrack2;
-          continue;
-        }
-
-        newtracks_fortest.push_back(CopiedTrack1);
-        candidates_trackid.push_back(trackid1);
-        for(Int_t i=0; i<close_ids1.size(); ++i){
-          TPCHit *hit = track1 -> GetHit(close_ids1[i]) -> GetHit();
-          clusters_fortest.push_back(hit);
-          clusters_original_trackid.push_back(trackid1);
-        }
-
-        newtracks_fortest.push_back(CopiedTrack2);
-        candidates_trackid.push_back(trackid2);
-        for(Int_t i=0; i<close_ids2.size(); ++i){
-          TPCHit *hit = track2 -> GetHit(close_ids2[i]) -> GetHit();
-          clusters_fortest.push_back(hit);
-          clusters_original_trackid.push_back(trackid2);
-        }
-
-        for(Int_t i=0; i<clusters_fortest.size(); i++){
-          TPCHit *hit = clusters_fortest[i]; //cluster for testing
-          hit -> SetHoughFlag(Candidate);
-          TVector3 pos = hit -> GetPosition();
-
-          Int_t best = -9999;
-          Int_t best_trackid = -1;
-          Double_t min_residual = 9999.;
-          for(Int_t j=0; j<newtracks_fortest.size(); j++){
-            Double_t residual = 0.;
-            if(newtracks_fortest[j] -> IsGoodHitToAdd(hit, residual)){
-              if(min_residual > residual){
-                min_residual = residual;
-                best = j;
-                best_trackid = candidates_trackid[j];
-              }
-            }
+      Bool_t strip_ok = true;
+      for(Int_t itrack = 0; itrack < 2; ++itrack){
+        T* trial = new T(tracks[itrack]);
+        trial->EraseHits(close_hit_orders[itrack]);
+        if(!trial->DoFit(MinNumOfHits)){
+          del::ClearContainer(trial_tracks);
+          delete trial;
+          for(Int_t t = 0; t <= itrack; ++t){
+            tracks[t]->SetClustersHoughFlag(GoodForTracking);
           }
-
-          Int_t id = clusters_original_trackid[i]; //cluster's original id
-          if(id==best_trackid){ //cluster is suitable for the original track
-            hit -> SetHoughFlag(GoodForTracking);
-            newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
-          }
-          else{ //cluster is not suitable for the original track
-            flag = true;
-            if(best_trackid==-1){ //cluster is not suitable for all tracks
-              hit -> SetHoughFlag(0);
-            }
-            else{ //cluster is suitable for the other track not the original track
-              newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
-            }
-          }
-        } //for(Int_t i=0; i<clusters_fortest.size(); i++){
-
-        if(!flag){ //no change -> checking next track pair
-          for(Int_t i=0; i<newtracks_fortest.size(); i++) delete newtracks_fortest[i];
-          track1 -> SetClustersHoughFlag(GoodForTracking);
-          track2 -> SetClustersHoughFlag(GoodForTracking);
-        }
-        else{ //reassaigning happens
-          for(Int_t i=0; i<newtracks_fortest.size(); i++){
-            Int_t trackid = candidates_trackid[i];
-            T *prev_track = TrackCont[trackid];
-
-            if(newtracks_fortest[i] -> DoFit(MinNumOfHits)){
-              newtracks_fortest[i] -> SetClustersHoughFlag(GoodForTracking);
-              newtracks_fortest[i] -> Calculate();
-              if(Exclusive){
-                newtracks_fortest[i] -> DoFitExclusive();
-                newtracks_fortest[i] -> CalculateExclusive();
-              }
-
-              //update with a new track and delete the previous track
-              TrackCont[trackid] = newtracks_fortest[i];
-              delete prev_track;
-            }
-            else{
-              prev_track -> SetClustersHoughFlag(GoodForTracking);
-              delete newtracks_fortest[i];
-            }
-          } //for scattered tracks
-
-          //Vertex finding again with new tracks
-          del::ClearContainer(VertexCont);
-          VertexSearch(TrackCont, VertexCont);
-          candidate_pairs.push_back(std::make_pair(candidates_trackid[0], candidates_trackid[1]));
-
+          strip_ok = false;
           break;
-        } // else //reassaigning happens
+        }
+        trial_tracks.push_back(trial);
+        candidates_trackid.push_back(trackids[itrack]);
+        for(Int_t ord : close_hit_orders[itrack]){
+          TPCHit* hit = tracks[itrack]->GetHit(ord)->GetHit();
+          clusters_fortest.push_back(hit);
+          clusters_original_trackid.push_back(trackids[itrack]);
+        }
+      }
+      if(!strip_ok) continue;
 
-        if(newtracks_fortest.size()!=candidates_trackid.size()) 
-          std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
-      } // if(close_ids1.size() > 0 || close_ids2.size() > 0) case 1
-    }  //for(auto& vertex: VertexCont)
-  }  // while(true)
+      // Assign each stripped cluster to the trial with smallest IsGoodHitToAdd residual
+      Bool_t reassign = false;
+      std::vector<Int_t> reassign_candidates;
+      for(Int_t icl = 0, ncl = clusters_fortest.size(); icl < ncl; ++icl){
+        TPCHit* hit = clusters_fortest[icl];
+        hit->SetHoughFlag(Candidate);
+
+        Int_t best_idx = -9999;
+        Int_t best_trackid = -1;
+        Double_t min_residual = 1.e10;
+        for(Int_t j = 0, nt = trial_tracks.size(); j < nt; ++j){
+          Double_t residual = 0.;
+          if(trial_tracks[j]->IsGoodHitToAdd(hit, residual) && min_residual > residual){
+            min_residual = residual;
+            best_idx = j;
+            best_trackid = candidates_trackid[j];
+          }
+        }
+
+        const Int_t orig_trackid = clusters_original_trackid[icl];
+        if(orig_trackid == best_trackid){
+          hit->SetHoughFlag(GoodForTracking);
+          trial_tracks[best_idx]->AddTPCHit(new TPCLTrackHit(hit));
+        }
+        else{
+          reassign = true;
+          if(best_trackid == -1){
+            reassign_candidates.push_back(orig_trackid);
+            hit->SetHoughFlag(0);
+          }
+          else{
+            reassign_candidates.push_back(orig_trackid);
+            reassign_candidates.push_back(best_trackid);
+            trial_tracks[best_idx]->AddTPCHit(new TPCLTrackHit(hit));
+          }
+        }
+      } //for(icl : clusters_fortest)
+
+      if(trial_tracks.size() != candidates_trackid.size())
+        std::cout << FUNC_NAME + " FATAL Error #of tracks is not matched" << std::endl;
+
+      std::sort(reassign_candidates.begin(), reassign_candidates.end());
+      reassign_candidates.erase(
+        std::unique(reassign_candidates.begin(), reassign_candidates.end()),
+        reassign_candidates.end());
+
+      if(!reassign){
+        del::ClearContainer(trial_tracks);
+        tracks[0]->SetClustersHoughFlag(GoodForTracking);
+        tracks[1]->SetClustersHoughFlag(GoodForTracking);
+        continue;
+      }
+
+      // Commit only tracks listed in reassign_candidates; DoFit is the final gate
+      Bool_t any_committed = false;
+      for(Int_t j = 0, nt = trial_tracks.size(); j < nt; ++j){
+        const Int_t trackid = candidates_trackid[j];
+        T* trial = trial_tracks[j];
+
+        if(std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid)
+           == reassign_candidates.end()){
+          delete trial;
+          continue;
+        }
+
+        T* prev_track = TrackCont[trackid];
+        if(trial->DoFit(MinNumOfHits)){
+          trial->SetClustersHoughFlag(GoodForTracking);
+          trial->Calculate();
+          if(Exclusive){
+            trial->DoFitExclusive();
+            trial->CalculateExclusive();
+          }
+          TrackCont[trackid] = trial;
+          delete prev_track;
+          any_committed = true;
+        }
+        else{
+          prev_track->SetClustersHoughFlag(GoodForTracking);
+          delete trial;
+        }
+      }
+
+      if(!any_committed){
+        tracks[0]->SetClustersHoughFlag(GoodForTracking);
+        tracks[1]->SetClustersHoughFlag(GoodForTracking);
+        continue;
+      }
+
+      del::ClearContainer(VertexCont);
+      VertexSearch(TrackCont, VertexCont);
+      candidate_pairs.push_back(std::make_pair(trackids[0], trackids[1]));
+      reassign_pending = true;  // rescan VertexCont after geometry update
+      break;
+    } //for(vertex : VertexCont)
+  } //while(reassign_pending)
+
   ResetHoughFlag(ClCont);
 
 #if FragmentedTrackTest
@@ -2058,141 +2080,89 @@ FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 				std::vector<TPCVertex*>& VertexCont,
 				std::vector<TPCVertex*>& ClusteredVertexCont)
 {
-  // TODO: These two loops could be unified with mode-dependent filters.
-  // Current implementation is fine; this is just a refactoring possibility.
-
-  // todo : check for E72 geom
-  Double_t tgtXZ_cut = 30.; //mm
-  Double_t target_section = 15; // abs(y)<target_section is not counted in this function
-
   TVector3 tgt(0., 0., tpc::Z_TARGET);
-  std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
-  std::vector<std::vector<Int_t>> clustered_tracks; //Clustered tracks id
+  std::vector<std::vector<TPCVertex*>> clustered_vertices;
+  std::vector<std::vector<Int_t>> clustered_tracks;
   std::vector<TVector3> accidental_vertices;
 
   std::vector<Int_t> candidates_trackids;
 
-  Int_t ntracks = TrackCont.size();
-  for(Int_t trackid=0; trackid<ntracks; trackid++){
-    T* ref_track = TrackCont[trackid];
-    if(ref_track -> GetIsK18()==1) continue; //The beam track is not accidental track.
-    if(ref_track -> GetIsBeam()!=1) continue; //Already found accidental tracks are excluded.
+  const Int_t n_cluster_stages = 2;
+  const Int_t ntracks = TrackCont.size();
 
-    std::vector<TPCVertex*> candidate_clustered_vertices;
-    std::vector<Int_t> candidate_clustered_tracks;
-    std::vector<TVector3> candidate_clustered_pos;
-
-    TVector3 vertex_point(0, 0, 0);
-    candidate_clustered_tracks.push_back(trackid);
-    candidate_clustered_pos.push_back(ref_track -> GetClosestPositionTgtXZ() - tgt);
-    for(auto& vertex: VertexCont){
-      //if(vertex -> GetClosestDist() > 15.) continue;
-      if(vertex -> GetClosestDist() > 20.) continue; // todo: check for E72 geometry
-      TVector3 vtx = vertex -> GetVertex() - tgt;
-      if(TMath::Hypot(vtx.x(), vtx.z()) > tgtXZ_cut) continue;
-
-      Int_t trackid1 = vertex -> GetTrackId(0);
-      Int_t trackid2 = vertex -> GetTrackId(1);
-      if(trackid2 == trackid){
-        trackid1 = vertex -> GetTrackId(1);
-        trackid2 = vertex -> GetTrackId(0);
-      }
-      else if(trackid1 != trackid) continue;
-
-      T* coin_track = TrackCont[trackid2];
-      if(coin_track -> GetIsK18()==1) continue;
-      TVector3 residual_tgt = coin_track -> GetClosestPositionTgtXZ() - tgt;
-      Double_t distXZ = TMath::Hypot(residual_tgt.x(), residual_tgt.z());
-      if(distXZ > tgtXZ_cut) continue;
-
-      candidate_clustered_vertices.push_back(vertex);
-      candidate_clustered_tracks.push_back(trackid2);
-      candidate_clustered_pos.push_back(residual_tgt);
-
-      vertex_point += residual_tgt;
-      candidates_trackids.push_back(trackid2);
+  for(Int_t stage = 0; stage < n_cluster_stages; ++stage){
+    // stage 0: beam track as seed — 1st pass
+    // stage 1: non-beam seeds not yet in candidates — 2nd pass (tighter GetClosestDist cut)
+    if(stage >= 1){
+      std::sort(candidates_trackids.begin(), candidates_trackids.end());
+      candidates_trackids.erase(
+        std::unique(candidates_trackids.begin(), candidates_trackids.end()),
+        candidates_trackids.end());
     }
 
-    if(candidate_clustered_tracks.size() < 2) continue;
-    candidates_trackids.push_back(trackid);
+    // empirical max GetClosestDist() [mm]; stage-specific, not shared with other cuts
+    const Double_t max_vertex_closest_dist = (stage == 0) ? 20. : 15.;
 
-    Double_t ncltrk = static_cast<Double_t>(candidate_clustered_tracks.size());
+    for(Int_t seed_trackid = 0; seed_trackid < ntracks; ++seed_trackid){
+      T* seed_track = TrackCont[seed_trackid];
+      if(seed_track->GetIsK18() == 1) continue;
 
-    clustered_vertices.push_back(candidate_clustered_vertices);
-    clustered_tracks.push_back(candidate_clustered_tracks);
-    accidental_vertices.push_back(
-      TVector3( vertex_point.x()/ncltrk,
-                vertex_point.y()/ncltrk,
-                vertex_point.z()/ncltrk)
-    );
-  } //trackid
-
-  std::sort(candidates_trackids.begin(), candidates_trackids.end());
-  candidates_trackids.erase(std::unique(candidates_trackids.begin(), candidates_trackids.end()), candidates_trackids.end());
-
-  for(Int_t trackid=0; trackid<ntracks; trackid++){
-    if(std::find(candidates_trackids.begin(), candidates_trackids.end(), trackid) != candidates_trackids.end()) continue;
-
-    T* ref_track = TrackCont[trackid];
-    if(ref_track -> GetIsK18()==1) continue;
-    if(ref_track -> GetIsBeam()==1) continue;
-
-    TVector3 ref_residual_tgt = ref_track -> GetClosestPositionTgtXZ() - tgt;
-    Double_t ref_distXZ = TMath::Hypot(ref_residual_tgt.x(), ref_residual_tgt.z());
-    if(ref_distXZ > tgtXZ_cut) continue;
-
-    std::vector<TPCVertex*> candidate_clustered_vertices;
-    std::vector<Int_t> candidate_clustered_tracks;
-    std::vector<TVector3> candidate_clustered_pos;
-
-    TVector3 vertex_point(0, 0, 0);
-    candidate_clustered_tracks.push_back(trackid);
-    candidate_clustered_pos.push_back(ref_residual_tgt);
-    for(auto& vertex: VertexCont){
-      if(vertex -> GetClosestDist() > 15.) continue;
-      TVector3 vtx = vertex -> GetVertex() - tgt;
-      if(TMath::Hypot(vtx.x(), vtx.z()) > tgtXZ_cut) continue;
-
-      Int_t trackid1 = vertex -> GetTrackId(0);
-      Int_t trackid2 = vertex -> GetTrackId(1);
-
-      if(trackid2 == trackid){
-        trackid1 = vertex -> GetTrackId(1);
-        trackid2 = vertex -> GetTrackId(0);
+      // seed track filters (depend on stage)
+      if(stage == 0 && seed_track->GetIsBeam() != 1) continue;
+      if(stage >= 1){
+        if(std::find(candidates_trackids.begin(), candidates_trackids.end(), seed_trackid)
+           != candidates_trackids.end()) continue;
+        if(seed_track->GetIsBeam() == 1) continue;
+        TVector3 seed_residual_tgt = seed_track->GetClosestPositionTgtXZ() - tgt;
+        if(TMath::Hypot(seed_residual_tgt.x(), seed_residual_tgt.z()) > tpc::TARGET_RADIUS) continue;
       }
-      else if(trackid1 != trackid) continue;
 
-      T* coin_track = TrackCont[trackid2];
-      if(coin_track -> GetIsK18()==1) continue;
-      if(coin_track -> GetIsBeam()==1) continue;
-      TVector3 residual_tgt = coin_track -> GetClosestPositionTgtXZ() - tgt;
-      Double_t distXZ = TMath::Hypot(residual_tgt.x(), residual_tgt.z());
-      if(distXZ > tgtXZ_cut) continue;
+      std::vector<TPCVertex*> candidate_clustered_vertices;
+      std::vector<Int_t> candidate_clustered_tracks;
+      TVector3 vertex_point(0, 0, 0);
 
-      candidate_clustered_vertices.push_back(vertex);
-      candidate_clustered_tracks.push_back(trackid2);
-      candidate_clustered_pos.push_back(residual_tgt);
+      candidate_clustered_tracks.push_back(seed_trackid);
+      for(auto& vertex : VertexCont){
+        // skip unless this vertex involves the seed track
+        const Int_t trackid0 = vertex->GetTrackId(0);
+        const Int_t trackid1 = vertex->GetTrackId(1);
+        Int_t coin_trackid = -1;
+        if(trackid0 == seed_trackid) coin_trackid = trackid1;
+        else if(trackid1 == seed_trackid) coin_trackid = trackid0;
+        else continue;
 
-      vertex_point += residual_tgt;
-      candidates_trackids.push_back(trackid2);
+        if(vertex->GetClosestDist() > max_vertex_closest_dist) continue;
+        TVector3 vtx = vertex->GetVertex() - tgt;
+        if(TMath::Hypot(vtx.x(), vtx.z()) > tpc::TARGET_RADIUS) continue;
+
+        T* coin_track = TrackCont[coin_trackid];
+        if(coin_track->GetIsK18() == 1) continue;
+        if(stage >= 1 && coin_track->GetIsBeam() == 1) continue;
+
+        TVector3 coin_residual_tgt = coin_track->GetClosestPositionTgtXZ() - tgt;
+        if(TMath::Hypot(coin_residual_tgt.x(), coin_residual_tgt.z()) > tpc::TARGET_RADIUS) continue;
+
+        candidate_clustered_vertices.push_back(vertex);
+        candidate_clustered_tracks.push_back(coin_trackid);
+        vertex_point += coin_residual_tgt;
+        candidates_trackids.push_back(coin_trackid);
+      }
+
+      if(candidate_clustered_tracks.size() < 2) continue;
+      candidates_trackids.push_back(seed_trackid);
+
+      const Double_t ncltrk = static_cast<Double_t>(candidate_clustered_tracks.size());
+      clustered_vertices.push_back(candidate_clustered_vertices);
+      clustered_tracks.push_back(candidate_clustered_tracks);
+      accidental_vertices.push_back(
+        TVector3(vertex_point.x()/ncltrk,
+                 vertex_point.y()/ncltrk,
+                 vertex_point.z()/ncltrk));
     }
-
-    if(candidate_clustered_tracks.size() < 2) continue;
-    candidates_trackids.push_back(trackid);
-
-    Double_t ncltrk = static_cast<Double_t>(candidate_clustered_tracks.size());
-
-    clustered_vertices.push_back(candidate_clustered_vertices);
-    clustered_tracks.push_back(candidate_clustered_tracks);
-    accidental_vertices.push_back(
-      TVector3( vertex_point.x()/ncltrk,
-                vertex_point.y()/ncltrk,
-                vertex_point.z()/ncltrk)
-    );
-  } //trackid
+  }
 
   for(Int_t id=0; id<accidental_vertices.size(); id++){
-    if(TMath::Abs(accidental_vertices[id].y()) < target_section) continue;
+    if(TMath::Abs(accidental_vertices[id].y()) < tpc::TARGET_HALF_Y) continue;
     TPCVertex *clustered_vtx = new TPCVertex(accidental_vertices[id], clustered_tracks[id]);
     ClusteredVertexCont.push_back(clustered_vtx);
   }
@@ -2209,36 +2179,38 @@ TestingCharge(std::vector<T*>& TrackCont,
 	      Bool_t Exclusive)
 {
 
-  Bool_t flag = false;
-  TrackContInvertedCharge.resize(TrackCont.size());
+  // Try charge inversion per track: inclusive chi2, else Lambda rescue (ppi_distcut ~ 10 mm).
+  // TrackContInvertedCharge[i] is set only for charge-tested tracks; else nullptr.
+  // VertexSearch runs only if at least one track adopts the inverted charge.
+  TrackContInvertedCharge.assign(TrackCont.size(), nullptr);
+  Bool_t any_inverted = false;
   for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
     T *track = TrackCont[trackid];
-    if(track -> GetIsAccidental()==1 || track -> GetIsK18()==1 ||
-       track -> GetIsBeam()==1) continue;
+    if(track->GetIsAccidental()==1 || track->GetIsK18()==1 ||
+       track->GetIsBeam()==1) continue;
 
     T *InvertedTrack = new T(track);
-    Bool_t test = InvertedTrack -> TestInvertCharge();
-    if(!test || (track -> GetCharge() == InvertedTrack -> GetCharge())){
+    Bool_t test = InvertedTrack->TestInvertCharge();
+    if(!test || (track->GetCharge() == InvertedTrack->GetCharge())){
       delete InvertedTrack;
       continue;
     }
 
-    flag = true;
-    InvertedTrack -> Calculate();
+    InvertedTrack->Calculate();
     if(Exclusive){
-      InvertedTrack -> DoFitExclusive();
-      InvertedTrack -> CalculateExclusive();
+      InvertedTrack->DoFitExclusive();
+      InvertedTrack->CalculateExclusive();
     }
 
     Bool_t invert = false;
-    if(!invert && track -> GetChiSquare() > InvertedTrack -> GetChiSquare()) invert = true;
+    if(track->GetChiSquare() > InvertedTrack->GetChiSquare()) invert = true;
     else{
       for(Int_t i=0; i<VertexCont.size(); i++){
         TPCVertex *vertex = VertexCont[i];
-        Double_t closedist = vertex -> GetClosestDist();
+        Double_t closedist = vertex->GetClosestDist();
         if(closedist < ppi_distcut){
-          Int_t trackid1 = vertex -> GetTrackId(0);
-          Int_t trackid2 = vertex -> GetTrackId(1);
+          Int_t trackid1 = vertex->GetTrackId(0);
+          Int_t trackid2 = vertex->GetTrackId(1);
           if(trackid1 != trackid && trackid2 != trackid) continue;
 
           T *track1 = TrackCont[trackid1];
@@ -2247,8 +2219,12 @@ TestingCharge(std::vector<T*>& TrackCont,
           else if(trackid2 == trackid) track2 = InvertedTrack;
 
           TPCVertex *newvertex = new TPCVertex(trackid1, trackid2);
-          newvertex -> Calculate(track1, track2);
-          if(TPCReconstructor::HasLambdaCandidate(newvertex)) invert = true;
+          newvertex->Calculate(track1, track2);
+          if(TPCReconstructor::HasLambdaCandidate(newvertex)){
+            invert = true;
+            delete newvertex;
+            break;
+          }
           delete newvertex;
         }
       }
@@ -2257,6 +2233,7 @@ TestingCharge(std::vector<T*>& TrackCont,
     if(invert){
       TrackCont[trackid] = InvertedTrack;
       TrackContInvertedCharge[trackid] = track;
+      any_inverted = true;
     }
     else{
       TrackCont[trackid] = track;
@@ -2264,8 +2241,7 @@ TestingCharge(std::vector<T*>& TrackCont,
     }
   }
 
-  if(flag){
-    //Vertex finding again with new tracks
+  if(any_inverted){
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
   }
@@ -2281,211 +2257,197 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
 				  Int_t MinNumOfHits)
 {
 
-  Bool_t reassaign = false;
+  Bool_t reassign = false;
 
-  //case 1: accidental track is divided into a very short track on the upstream of the target and a track on the downstream of the target
+  const Int_t max_fragment_hits = 4;
+  const Double_t min_mom_negative = 0.5;
+  const Double_t min_mom_positive = 1.0;
+
+  // case 1: merge a short upstream fragment with its downstream parent track at a vertex
   std::vector<Int_t> erase_trackid;
   std::vector<Int_t> new_trackid;
-  for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
-    T *track = TrackCont[trackid];
-    if(track -> GetIsAccidental()==1) continue;
-    if(track -> GetIsBeam()==1) continue;
-    if(track -> GetIsK18()==1) continue;
-    if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid)
-       != erase_trackid.end()) continue;
-    if(std::find(new_trackid.begin(), new_trackid.end(), trackid)
-       != new_trackid.end()) continue;
 
-    //candidates : negative charge mom > 0.5 or positive charge(flipped charge) with mom > 1.0
-    // todo: reconsider this for E72 geometry
-    Double_t slope = track -> Getdz();
-    Double_t helixmom = track -> GetMom0().Mag();
-    Int_t charge = track -> GetCharge();
-    if(TMath::Abs(slope)>0.1 || TMath::Abs(helixmom)<0.5) continue;
-    if(charge>0 && TMath::Abs(helixmom)<1.0) continue;
+  for(auto& vertex : VertexCont){
+    Int_t id0 = vertex->GetTrackId(0);
+    Int_t id1 = vertex->GetTrackId(1);
 
-    for(auto& vertex: VertexCont){
-      //Threshold conditions of a distance and an angle between two tracks.
-      TVector3 vtx = vertex -> GetVertex();
-      Int_t trackid1 = vertex -> GetTrackId(0);
-      Int_t trackid2 = vertex -> GetTrackId(1);
-      if(trackid1!=trackid && trackid2!=trackid) continue;
-      if(trackid2==trackid){
-        trackid2 = vertex -> GetTrackId(0);
-        trackid1 = vertex -> GetTrackId(1);
+    if(std::find(erase_trackid.begin(), erase_trackid.end(), id0) != erase_trackid.end()) continue;
+    if(std::find(erase_trackid.begin(), erase_trackid.end(), id1) != erase_trackid.end()) continue;
+    if(std::find(new_trackid.begin(), new_trackid.end(), id0) != new_trackid.end()) continue;
+    if(std::find(new_trackid.begin(), new_trackid.end(), id1) != new_trackid.end()) continue;
+
+    T *track0 = TrackCont[id0];
+    T *track1 = TrackCont[id1];
+
+    // assign parent (longer) and fragment (shorter) by hit count
+    if(track0->GetNHit() == track1->GetNHit()) continue;
+
+    Int_t parent_id = (track0->GetNHit() > track1->GetNHit()) ? id0 : id1;
+    Int_t fragment_id = (track0->GetNHit() > track1->GetNHit()) ? id1 : id0;
+    T *parent = TrackCont[parent_id];
+    T *fragment = TrackCont[fragment_id];
+
+    // parent: downstream body candidate (slope + charge-dependent mom cuts)
+    if(parent->GetIsAccidental()==1 || parent->GetIsBeam()==1 || parent->GetIsK18()==1) continue;
+    if(TMath::Abs(parent->Getdz()) > MaxCandidateAbsDz) continue;
+
+    Double_t helix_mom = parent->GetMom0().Mag();
+    const Double_t min_mom = (parent->GetCharge() > 0) ? min_mom_positive : min_mom_negative;
+    if(TMath::Abs(helix_mom) < min_mom) continue;
+
+    // fragment: short upstream stub
+    if(fragment->GetIsK18()==1) continue;
+    if(fragment->GetNHit() > max_fragment_hits) continue;
+
+    Bool_t cl_added = false;
+    fragment->SetClustersHoughFlag(0);
+    TPCLocalTrackHelix *merged_track = new TPCLocalTrackHelix(parent);
+    for(Int_t hit_idx=0; hit_idx<fragment->GetNHit(); hit_idx++){
+      TPCHit *cl = fragment->GetHitInOrder(hit_idx)->GetHit();
+      Double_t resi = 0.;
+      Bool_t no_limitation = true;
+      if(merged_track->IsGoodHitToAdd(cl, resi, no_limitation)){
+        merged_track->AddTPCHit(new TPCLTrackHit(cl));
+        cl_added = true;
       }
-      if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid1)
-      	 != erase_trackid.end()) continue;
-      if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid2)
-	       != erase_trackid.end()) continue;
-      if(std::find(new_trackid.begin(), new_trackid.end(), trackid1)
-	       != new_trackid.end()) continue;
-      if(std::find(new_trackid.begin(), new_trackid.end(), trackid2)
-	       != new_trackid.end()) continue;
+    }
 
-      T *CandidateTrack = TrackCont[trackid2];
-      if(CandidateTrack -> GetIsK18()==1) continue;
-      if(CandidateTrack -> GetNHit()>4) continue; //this constraint has same effect as IsBackward(), todo: reconsider this for E72 geometry
+    // Check whether tracks belong to the same track or not
+    if(!cl_added || (fragment->GetNHit() + parent->GetNHit() - merged_track->GetNHit() > 2)){
+      fragment->SetClustersHoughFlag(GoodForTracking);
+      delete merged_track;
+      continue;
+    }
 
-      Bool_t cl_added = false;
-      CandidateTrack -> SetClustersHoughFlag(0);
-      TPCLocalTrackHelix *MergedTrack = new TPCLocalTrackHelix(track);
-      for(Int_t hit=0;hit<CandidateTrack -> GetNHit();hit++){
-        TPCHit* cl = CandidateTrack -> GetHitInOrder(hit) -> GetHit();
-        Double_t resi=0.;
-        Bool_t nolimitation = true;
-        if(MergedTrack->IsGoodHitToAdd(cl, resi, nolimitation)){
-          MergedTrack -> AddTPCHit(new TPCLTrackHit(cl));
-          cl_added = true;
-        }
+    merged_track->SetIsAccidental(); // needed to turn off VertexAtTarget()
+
+    Int_t n_tracks_before = TrackCont.size();
+    FitTrack(merged_track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+    Int_t n_tracks_after = TrackCont.size();
+    if(n_tracks_before + 1 == n_tracks_after){
+      merged_track = TrackCont[n_tracks_after - 1];
+      TrackCont.pop_back();
+      merged_track->Calculate();
+      merged_track->CheckIsAccidental();
+      if(Exclusive){
+        merged_track->DoFitExclusive();
+        merged_track->CalculateExclusive();
       }
 
-      //Check whether tracks belong to the same track or not
-      if(!cl_added || (CandidateTrack->GetNHit() + track->GetNHit() - MergedTrack->GetNHit()>2)){
-          CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
-          delete MergedTrack;
-          continue;
+      if(merged_track->GetNHit() > parent->GetNHit() &&
+         merged_track->GetIsAccidental()==1){
+        TrackCont.push_back(merged_track);
+        new_trackid.push_back(n_tracks_after - 1);
+        erase_trackid.push_back(parent_id);
+        erase_trackid.push_back(fragment_id);
+        reassign = true;
       }
       else{
-        MergedTrack -> SetIsAccidental(); //it's needed to trun off VertexAtTarget()
-
-        Int_t prev_size = TrackCont.size();
-        FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-
-        Int_t post_size = TrackCont.size();
-        if(prev_size+1 == post_size){ //Fitting is succeeded
-          MergedTrack = TrackCont[post_size-1];
-          TrackCont.erase(TrackCont.begin() + post_size - 1);
-          MergedTrack -> Calculate();
-          MergedTrack -> CheckIsAccidental();
-          if(Exclusive){
-            MergedTrack -> DoFitExclusive();
-            MergedTrack -> CalculateExclusive();
-          }
-
-          if(MergedTrack -> GetNHit() > track -> GetNHit() &&
-             MergedTrack -> GetIsAccidental()==1){
-              
-            TrackCont.push_back(MergedTrack);
-            new_trackid.push_back(post_size - 1);
-            erase_trackid.push_back(trackid1);
-            erase_trackid.push_back(trackid2);
-            reassaign = true;
-          }
-          else{
-            track -> SetClustersHoughFlag(GoodForTracking);
-            CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
-            delete MergedTrack;
-          }
-        }
-        else{ //Fitting is failed
-          track -> SetClustersHoughFlag(GoodForTracking);
-          CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
-        }
+        parent->SetClustersHoughFlag(GoodForTracking);
+        fragment->SetClustersHoughFlag(GoodForTracking);
+        delete merged_track;
       }
+    }
+    else{ // Fitting is failed
+      parent->SetClustersHoughFlag(GoodForTracking);
+      fragment->SetClustersHoughFlag(GoodForTracking);
     }
   }
 
-  std::sort(erase_trackid.begin(), erase_trackid.end());
-  for(Int_t i=0; i<erase_trackid.size(); ++i){
-    Int_t id = erase_trackid[i] - i;
+  std::sort(erase_trackid.begin(), erase_trackid.end(), std::greater<Int_t>());
+  for(Int_t id : erase_trackid){
     T *track = TrackCont[id];
     TrackCont.erase(TrackCont.begin() + id);
     delete track;
   }
 
-  //case 2: accidental track is divided into clusters on the upstream of the target and a track on the downstream of the target
-  std::vector<TPCClusterContainer> CandidateClCont(10);
-  for(Int_t layer=0; layer<10; layer++){ //inner layers
+  // case 2: accidental track is divided into clusters on the upstream of the target and a track on the downstream of the target
+  std::vector<TPCClusterContainer> candidate_cl_cont(10);
+  for(Int_t layer=0; layer<10; layer++){ //inner layers 0..9
     for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
       auto cl = ClCont[layer][ci];
       TPCHit* hit = cl->GetMeanHit();
       if(hit->GetHoughFlag()==GoodForTracking ||
          hit->GetHoughFlag()==K18Tracks) continue;
       TVector3 pos = cl->GetPosition();
+      // upstream orphan clusters: z gate + naive x-only transverse pre-filter
       if(pos.Z() > tpc::Z_TARGET) continue;
-      if(TMath::Abs(pos.x()) > 20.) continue; // todo: check for E72 geometry
-      CandidateClCont[layer].push_back(cl);
+      if(TMath::Abs(pos.x()) > tpc::TARGET_HALF_X) continue;
+      candidate_cl_cont[layer].push_back(cl);
     } //ci
   } //layer
 
   for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
-    T *track = TrackCont[trackid];
-    if(track -> GetIsAccidental()==1) continue;
-    if(track -> GetIsBeam()==1) continue;
-    if(track -> GetIsK18()==1) continue;
-    //if(!track -> VertexAtTarget()) continue;
+    T *parent = TrackCont[trackid];
+    if(parent->GetIsAccidental()==1 || parent->GetIsBeam()==1 || parent->GetIsK18()==1) continue;
+    if(TMath::Abs(parent->Getdz()) > MaxCandidateAbsDz) continue;
 
-    //candidates : negative charge mom > 0.5 or positive charge(flipped charge) with mom > 1.0
-    Double_t slope = track -> Getdz();
-    Double_t helixmom = track -> GetMom0().Mag();
-    Int_t charge = track -> GetCharge();
+    Double_t helix_mom = parent->GetMom0().Mag();
+    const Double_t min_mom = (parent->GetCharge() > 0) ? min_mom_positive : min_mom_negative;
+    if(TMath::Abs(helix_mom) < min_mom) continue;
 
-    if(TMath::Abs(slope)>0.1 || TMath::Abs(helixmom)<0.5) continue;
-    if(charge>0 && TMath::Abs(helixmom)<1.0) continue;
-
-    T *CopiedTrack = new T(track);
-    std::vector<TPCHit*> clusters_fortest;
-
+    T *merged_track = new T(parent);
+    std::vector<TPCHit*> clusters_added;
     Bool_t cl_added = false;
-    for(Int_t layer=0; layer<10; layer++){ //inner layers
-      for(Int_t ci=0, n=CandidateClCont[layer].size(); ci<n; ci++){
-        auto cl = CandidateClCont[layer][ci];
+    for(Int_t layer=0; layer<10; layer++){ //inner layers 0..9
+      for(Int_t ci=0, n=candidate_cl_cont[layer].size(); ci<n; ci++){
+        auto cl = candidate_cl_cont[layer][ci];
         TPCHit* hit = cl->GetMeanHit();
-        if(hit->GetHoughFlag()==GoodForTracking) continue; // maybe redundant, already checked
 
-        Double_t resi=0.;
-        Bool_t nolimitation = true;
-        if(track->IsGoodHitToAdd(hit, resi, nolimitation)){
-          CopiedTrack -> AddTPCHit(new TPCLTrackHit(hit));
-          clusters_fortest.push_back(hit);
+        Double_t resi = 0.;
+        Bool_t no_limitation = true;
+        if(parent->IsGoodHitToAdd(hit, resi, no_limitation)){
+          merged_track->AddTPCHit(new TPCLTrackHit(hit));
+          clusters_added.push_back(hit);
           cl_added = true;
         }
       }
-    } //inner layers
+    }
 
-    if(!cl_added) delete CopiedTrack;
-    else{ //clusters are added
-      CopiedTrack -> SetIsAccidental(); //it's needed to trun off VertexAtTarget()
+    if(!cl_added){
+      delete merged_track;
+      continue;
+    }
 
-      Int_t prev_size = TrackCont.size();
-      FitTrack(CopiedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+    merged_track->SetIsAccidental(); // needed to turn off VertexAtTarget()
 
-      Int_t post_size = TrackCont.size();
-      if(prev_size+1 == post_size){ //Fitting is succeeded
-        CopiedTrack = TrackCont[post_size-1];
-        if(Exclusive){
-          CopiedTrack -> DoFitExclusive();
-          CopiedTrack -> CalculateExclusive();
-        }
-        TrackCont.erase(TrackCont.begin() + post_size - 1);
-        CopiedTrack -> Calculate();
-        CopiedTrack -> CheckIsAccidental();
-        if(CopiedTrack -> GetNHit() > track -> GetNHit() &&
-           CopiedTrack -> GetIsAccidental()==1){
+    Int_t n_tracks_before = TrackCont.size();
+    FitTrack(merged_track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+    Int_t n_tracks_after = TrackCont.size();
 
-          TrackCont[trackid] = CopiedTrack;
-          delete track;
-          reassaign = true;
-        }
-        else{
-          for(Int_t cl=0; cl<clusters_fortest.size(); cl++) clusters_fortest[cl] -> SetHoughFlag(0);
-          track -> SetClustersHoughFlag(GoodForTracking);
-          delete CopiedTrack;
-        }
+    Bool_t accept = false;
+    if(n_tracks_before + 1 == n_tracks_after){
+      merged_track = TrackCont[n_tracks_after - 1];
+      TrackCont.pop_back();
+      if(Exclusive){
+        merged_track->DoFitExclusive();
+        merged_track->CalculateExclusive();
       }
-      else{ // Fitting is failed
-        for(Int_t cl=0; cl<clusters_fortest.size(); cl++) clusters_fortest[cl] -> SetHoughFlag(0);
-        track -> SetClustersHoughFlag(GoodForTracking);
+      merged_track->Calculate();
+      merged_track->CheckIsAccidental();
+      if(merged_track->GetNHit() > parent->GetNHit() &&
+         merged_track->GetIsAccidental()==1){
+        accept = true;
       }
-    } //clusters are added
+    }
+
+    if(accept){
+      TrackCont[trackid] = merged_track;
+      delete parent;
+      reassign = true;
+    }
+    else{
+      for(TPCHit *cl : clusters_added) cl->SetHoughFlag(0);
+      parent->SetClustersHoughFlag(GoodForTracking);
+      if(n_tracks_before + 1 == n_tracks_after) delete merged_track;
+    }
   }
 
-  if(reassaign){
+  if(reassign){
     //Vertex finding again with new tracks
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
-  } //reassaigning process
+  } //reassigning process
 }
 
-} //namespace tp
+} //namespace tpc

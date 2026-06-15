@@ -1,7 +1,5 @@
 // -*- C++ -*-
 
-#include <cmath>
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 
@@ -9,16 +7,15 @@
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
-#include "DCGeomMan.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
-#include "Kinematics.hh"
 #include "RootHelper.hh"
 #include "TPCAnalyzer.hh"
-#include "TPCEventAnalyzer.hh"
 #include "TPCCluster.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
@@ -49,7 +46,26 @@ namespace
   const auto& gGeom = DCGeomMan::GetInstance();
   const auto& gUser = UserParamMan::GetInstance();
   const auto& gCounter = debug::ObjectCounter::GetInstance();
-  const Double_t TRUNCATED_MEAN = 0.8; // 80%
+  const Double_t TRUNCATED_MEAN_RATIO = 0.8; // keep the lowest 80% of per-hit dE/dx
+
+  const std::vector<TString> kUserParamKeys = {
+    // Cluster building (ReCalcTPCHits / MakeUpTPCClusters)
+    "MinCDeTPC", "MaxYDifClusterTPC",
+    "MinClusterDeTPC", "MinClusterSizeTPC",
+    "MinClusterYPosTPC", "MaxClusterYPosTPC",
+
+    // Helix tracking
+    "MinLayerTPC", "MaxHoughWindow", "MaxHoughWindowY", "BeamThroughTPC",
+
+    // Helix-track error scaling (TPCLocalTrackHelix ctor)
+    "MomResScale", "dZResScale", "PhiResScale",
+    
+    // Vertex finding (TPCVertex)
+    "VertexScanRange",
+    
+    // Optional parameter (default value is provided in the code)
+    // "MaxCenterRowDiffTPC",
+  };
 }
 
 namespace dst
@@ -408,8 +424,6 @@ namespace
         if (!cl || !cl->IsGood())
           continue;
         TPCHit* center_hit = cl->GetCenterHit();
-        const TVector3& center_pos = center_hit->GetPosition();
-
         event.cluster_x.push_back(cl->GetX());
         event.cluster_y.push_back(cl->GetY());
         event.cluster_z.push_back(cl->GetZ());
@@ -418,11 +432,20 @@ namespace
         event.cluster_layer.push_back(layer);
         event.cluster_mrow.push_back(cl->MeanRow());
         event.cluster_houghflag.push_back(cl->GetHoughFlag());
-        event.cluster_de_center.push_back(center_hit->GetCDe());
-        event.cluster_x_center.push_back(center_pos.X());
-        event.cluster_y_center.push_back(center_pos.Y());
-        event.cluster_z_center.push_back(center_pos.Z());
-        event.cluster_row_center.push_back(center_hit->GetRow());
+        if (center_hit) {
+          const TVector3& center_pos = center_hit->GetPosition();
+          event.cluster_de_center.push_back(center_hit->GetCDe());
+          event.cluster_x_center.push_back(center_pos.X());
+          event.cluster_y_center.push_back(center_pos.Y());
+          event.cluster_z_center.push_back(center_pos.Z());
+          event.cluster_row_center.push_back(center_hit->GetRow());
+        } else {
+          event.cluster_de_center.push_back(TMath::QuietNaN());
+          event.cluster_x_center.push_back(TMath::QuietNaN());
+          event.cluster_y_center.push_back(TMath::QuietNaN());
+          event.cluster_z_center.push_back(TMath::QuietNaN());
+          event.cluster_row_center.push_back(-1);
+        }
         ++n_cl_tpc;
       }
     }
@@ -542,9 +565,10 @@ namespace
       Double_t cl_de = cl->GetDe();
       Double_t mrow = cl->MeanRow();
       TPCHit* center_hit = cl->GetCenterHit();
-      const TVector3& center_pos = center_hit->GetPosition();
-      Double_t center_de = center_hit->GetCDe();
-      Int_t center_row = center_hit->GetRow();
+      const TVector3 center_pos =
+        center_hit ? center_hit->GetPosition() : cl->GetPosition();
+      Double_t center_de = center_hit ? center_hit->GetCDe() : TMath::QuietNaN();
+      Int_t center_row = center_hit ? center_hit->GetRow() : -1;
 
       event.track_cluster_de[it][ih] = cl_de;
       event.track_cluster_size[it][ih] = cl_size;
@@ -590,7 +614,7 @@ namespace
     event.charge[it] = helix_track->GetCharge();
     event.path[it] = helix_track->GetPath();
     event.dE[it] = helix_track->GetTrackdE();
-    event.dEdx[it] = helix_track->GetdEdx(TRUNCATED_MEAN);
+    event.dEdx[it] = helix_track->GetdEdx(TRUNCATED_MEAN_RATIO);
 
 #if TruncatedMean
     std::sort(dedx_vec.begin(), dedx_vec.end());
@@ -619,16 +643,7 @@ namespace
 #endif
     HF1("TPCTrk_Num_TrackHits", n_hits);
     HF1("TPCTrk_Chisqr", chi_sqr);
-    HF1("Mom0", event.mom0[it]);
-    HF1("dEdx_PID", event.pid[it]);
-    HF2("PID_dEdx_vs_Mom", event.mom0[it], event.dEdx[it]);
-    const Double_t signed_p = static_cast<Double_t>(event.charge[it])*event.mom0[it];
-    HF2("PID_dEdx_vs_SignedMom", signed_p, event.dEdx[it]);
-    if (event.charge[it] > 0) HF2("PID_dEdx_vs_Mom_pos", event.mom0[it], event.dEdx[it]);
-    else HF2("PID_dEdx_vs_Mom_neg", event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x1) HF2("PID_dEdx_vs_Mom_Pi", event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x2) HF2("PID_dEdx_vs_Mom_K",  event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x4) HF2("PID_dEdx_vs_Mom_Proton", event.mom0[it], event.dEdx[it]);
+    event_ana.FillHelixPidHist(helix_track, track_pid, event.dEdx[it]);
   }
 
 #if EnableReconstructLambda
@@ -647,7 +662,7 @@ namespace
           continue;
         const TVector3 vtx = cand.GetVertex();
         const TVector3 mom = cand.GetMomentum();
-        const TVector3 target_to_vtx = vtx - TVector3(0., 0., -tpc::Z_TARGET);
+        const TVector3 target_to_vtx = vtx - TVector3(0., 0., tpc::Z_TARGET);
         const Double_t target_to_vtx_dot_mom =
           (target_to_vtx.Mag() > 0.0 && mom.Mag() > 0.0)
             ? target_to_vtx.Dot(mom)/(target_to_vtx.Mag()*mom.Mag())
@@ -685,7 +700,7 @@ namespace
           continue;
         const TVector3 vtx = cand.GetVertex();
         const TVector3 mom = cand.GetMomentum();
-        const TVector3 target_to_vtx = vtx - TVector3(0., 0., -tpc::Z_TARGET);
+        const TVector3 target_to_vtx = vtx - TVector3(0., 0., tpc::Z_TARGET);
         const Double_t target_to_vtx_dot_mom =
           (target_to_vtx.Mag() > 0.0 && mom.Mag() > 0.0)
             ? target_to_vtx.Dot(mom)/(target_to_vtx.Mag()*mom.Mag())
@@ -721,6 +736,8 @@ main(Int_t argc, char** argv)
   if (!DstOpen(arg))
     return EXIT_FAILURE;
   if (!gConf.Initialize(arg[kConfFile]))
+    return EXIT_FAILURE;
+  if (!dst::ValidateUserParams(gUser, kUserParamKeys))
     return EXIT_FAILURE;
   if (!gConf.InitializeHistograms())
     return EXIT_FAILURE;

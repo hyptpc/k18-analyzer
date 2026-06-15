@@ -1,27 +1,23 @@
 // -*- C++ -*-
 
-#include "TPCTrackSearch.hh"
+#include "HoughTransform.hh"
 
-#include <chrono>
-#include <stdio.h>
-#include <algorithm>
 #include <cmath>
-#include <iomanip>
+#include <cstdio>
 #include <iostream>
-#include <sstream>
-#include <string>
+
+#include <TMath.h>
 #include <TH2D.h>
 #include <TH3D.h>
 
-#include "DebugTimer.hh"
+#include "ConfMan.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
-#include "DeleteUtility.hh"
-#include "ConfMan.hh"
-#include "TPCPadHelper.hh"
 #include "TPCCluster.hh"
-#include "RootHelper.hh"
+#include "TPCPadHelper.hh"
+#include "TPCLocalTrackHelix.hh"
+#include "TPCTrackSearch.hh" // borrow tpc::ClassName() for FUNC_NAME (not a class)
 
 #define DebugDisp      0
 #define DebugEvDisp    0
@@ -212,7 +208,7 @@ HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     // distance from point (z0, x0) to line x = p0 + p2*z
     // d = |p2*z0 - x0 + p0| / sqrt(p2^2 + 1)
     Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z()-tpc::Z_TARGET) - gHitPos[i].X() + LinearPar[0])
-                    / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+                    / TMath::Hypot(LinearPar[2], 1.);
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histLinear->GetNbinsX(); ti++){
         Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
@@ -287,7 +283,7 @@ HoughTransformLineYX(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     // distance from point (z0, x0) to line x = p0 + p2*z
     // d = |p2*z0 - x0 + p0| / sqrt(p2^2 + 1)
     Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::Z_TARGET) - gHitPos[i].X() + LinearPar[0])
-                    / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+                    / TMath::Hypot(LinearPar[2], 1.);
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histLinear->GetNbinsX(); ti++){
         Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
@@ -364,14 +360,14 @@ HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     Double_t tmpx = -gHitPos[i].X();
     Double_t tmpy = gHitPos[i].Z() - tpc::Z_TARGET;
     Double_t tmpz = gHitPos[i].Y();
-    Double_t r_cal = TMath::Hypot(tmpx - HelixPar[0], tmpy - HelixPar[1]);
-    Double_t dist = TMath::Abs(r_cal - HelixPar[3]);
+    Double_t r_cal = TMath::Hypot(tmpx - HelixPar[kHelixCx], tmpy - HelixPar[kHelixCy]);
+    Double_t dist = TMath::Abs(r_cal - HelixPar[kHelixR]);
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
         Double_t theta = histY->GetXaxis()->GetBinCenter(ti+1);
         Double_t mtheta = theta*TMath::DegToRad();
-        Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
-        Double_t tmp_xval = HelixPar[3]*tmpt;
+        Double_t tmpt = TMath::ATan2(tmpy - HelixPar[kHelixCy], tmpx - HelixPar[kHelixCx]);
+        Double_t tmp_xval = HelixPar[kHelixR]*tmpt;
         Double_t mr = TMath::Cos(mtheta)*tmp_xval + TMath::Sin(mtheta)*tmpz;
 
         Double_t p2 = mr/TMath::Sin(mtheta);
@@ -397,8 +393,8 @@ HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
 
   Double_t mtheta = histY->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
   Double_t mr = histY->GetYaxis()->GetBinCenter(my);
-  HelixPar[2] = mr/TMath::Sin(mtheta);
-  HelixPar[4] = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+  HelixPar[kHelixZ0] = mr/TMath::Sin(mtheta);
+  HelixPar[kHelixDz] = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" (Y, phi) hough vote : "<<histY->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
@@ -428,8 +424,8 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 
   // Equation
   // (x - (r + rd)*cos(theta))^2 + (y - (r + rd)*sin(theta))^2 = r^2
-  // p = r * tpc::C_LIGHT * dMagneticField;
-  Double_t dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
+  // p = r * tpc::C_LIGHT * magnetic_field;
+  Double_t magnetic_field = HSfield_Calib * (HSfield_Hall / HSfield_Calc);
   Bool_t status = true;
 
 #if DebugEvDisp
@@ -442,15 +438,15 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 
   //for TPC circle track
   //Hough-transform
-  histCircle -> Reset();
+  histCircle->Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
     Double_t x = -gHitPos[i].X();
     Double_t y = gHitPos[i].Z() - tpc::Z_TARGET;
-    for(Int_t ird=0; ird<histCircle -> GetNbinsX(); ++ird){
+    for(Int_t ird=0; ird<histCircle->GetNbinsX(); ++ird){
       Double_t rd = histCircle->GetXaxis()->GetBinCenter(ird+1);
-      for(Int_t ip=0; ip<histCircle -> GetNbinsZ(); ++ip){
+      for(Int_t ip=0; ip<histCircle->GetNbinsZ(); ++ip){
         Double_t p = histCircle->GetZaxis()->GetBinCenter(ip+1);
-        Double_t r = p/(tpc::C_LIGHT*dMagneticField);
+        Double_t r = p / (tpc::C_LIGHT * magnetic_field);
 
         // a*sin(theta) + b*cos(theta) + c = 0
         // sin(theta + alpha) = -c/sqrt(a^2+b^2) = -c/r0
@@ -461,15 +457,15 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
         Double_t r0 = TMath::Hypot(a, b);
         if(r0 == 0. || !std::isfinite(r0)) continue;
 
-        Double_t sin_arg = -1.*c/r0;
-        if(!std::isfinite(sin_arg)) continue;
-        if(TMath::Abs(sin_arg) > 1.) continue;
+        Double_t sin_theta_plus_alpha = -1.*c/r0;
+        if(!std::isfinite(sin_theta_plus_alpha)) continue;
+        if(TMath::Abs(sin_theta_plus_alpha) > 1.) continue;
 
         // Phase offset from trigonometric synthesis
         Double_t alpha = TMath::ATan2(b, a);
 
         // Solving sin(theta + alpha) = -c/r0
-        Double_t theta_plus_alpha1 = TMath::ASin(sin_arg);
+        Double_t theta_plus_alpha1 = TMath::ASin(sin_theta_plus_alpha);
         Double_t theta_plus_alpha2 = (theta_plus_alpha1 > 0.) 
           ? TMath::Pi() - theta_plus_alpha1 : -TMath::Pi() - theta_plus_alpha1;
 
@@ -477,7 +473,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
         Double_t theta_c1 = TMath::ATan2(TMath::Sin(theta_plus_alpha1 - alpha), TMath::Cos(theta_plus_alpha1 - alpha));
         Double_t theta_c2 = TMath::ATan2(TMath::Sin(theta_plus_alpha2 - alpha), TMath::Cos(theta_plus_alpha2 - alpha));
 
-        // Validation: Calculate center coordinates and reconstruction radius
+        // Sanity check: hit distance to reconstructed center should equal r [mm]
         Double_t xcenter1 = (r+rd)*TMath::Cos(theta_c1);
         Double_t ycenter1 = (r+rd)*TMath::Sin(theta_c1);
         Double_t r_re1 = TMath::Hypot(x-xcenter1, y-ycenter1);
@@ -486,16 +482,24 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
         Double_t ycenter2 = (r+rd)*TMath::Sin(theta_c2);
         Double_t r_re2 = TMath::Hypot(x-xcenter2, y-ycenter2);
 
-        if(TMath::IsNaN(theta_c1)){
-          std::cout << "theta_c1=" << theta_c1 << ", x=" << x << ", y=" << y
-                    << "rd=" << rd << ", r" << r << std::endl;
+        if(!std::isfinite(theta_c1) || !std::isfinite(theta_c2)
+           || !std::isfinite(r_re1) || !std::isfinite(r_re2)){
+          std::cout << FUNC_NAME+" warning: non-finite circle solution"
+                    << " x=" << x << " y=" << y << " rd=" << rd << " r=" << r
+                    << " theta_c1=" << theta_c1 << " theta_c2=" << theta_c2
+                    << std::endl;
+          continue;
         }
 
-        if(TMath::Abs(r-r_re1) > 0.01 || TMath::Abs(r-r_re2) > 0.01){
-          std::cout << "r=" << r << ", r_re1=" << r_re1 << ", r_re2=" << r_re2 << std::endl;
-          std::cout << "x:" << x << ", y:" << y
-                    << ", theta_c1:" << theta_c1 << ", theta_c2:" << theta_c2
-                    << ", alpha:" << alpha << std::endl;
+        const Double_t tolerance = 0.01; // |r - r_re| [mm]
+        if(TMath::Abs(r - r_re1) > tolerance
+           || TMath::Abs(r - r_re2) > tolerance){
+          std::cout << FUNC_NAME+" warning: circle radius mismatch"
+                    << " r=" << r << " r_re1=" << r_re1 << " r_re2=" << r_re2
+                    << " x=" << x << " y=" << y
+                    << " theta_c1=" << theta_c1 << " theta_c2=" << theta_c2
+                    << " alpha=" << alpha << std::endl;
+          continue;
         }
 
         histCircle->Fill(rd, theta_c1, p);
@@ -521,9 +525,9 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   Double_t hough_rd    = histCircle->GetXaxis()->GetBinCenter(mx);
   Double_t hough_theta = histCircle->GetYaxis()->GetBinCenter(my);
   Double_t hough_p     = histCircle->GetZaxis()->GetBinCenter(mz);
-  HelixPar[3] = hough_p/(tpc::C_LIGHT*dMagneticField); //helix r
-  HelixPar[0] = (HelixPar[3] + hough_rd)*TMath::Cos(hough_theta); //helix cx
-  HelixPar[1] = (HelixPar[3] + hough_rd)*TMath::Sin(hough_theta); //helix cy
+  HelixPar[kHelixR]    = hough_p / (tpc::C_LIGHT * magnetic_field); //helix r
+  HelixPar[kHelixCx]   = (HelixPar[kHelixR] + hough_rd)*TMath::Cos(hough_theta); //helix cx
+  HelixPar[kHelixCy]   = (HelixPar[kHelixR] + hough_rd)*TMath::Sin(hough_theta); //helix cy
 
 #if DebugDisp
   std::cout <<FUNC_NAME+" XZ hough vote : "<<histCircle->GetMaximum()<<"/"<<gHitPos.size()<<std::endl;

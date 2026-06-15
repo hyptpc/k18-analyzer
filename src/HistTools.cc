@@ -2,8 +2,6 @@
 
 #include "HistTools.hh"
 
-#include <TString.h>
-
 #include "DetectorID.hh"
 #include "RootHelper.hh"
 #include "TPCPadHelper.hh"
@@ -1090,9 +1088,15 @@ BuildTPCHelixTracking(Bool_t calib_flag)
   HB1("TPCTrk_Chisqr;#chi^{2} (TPC Track);Counts", TPC_BINS_CHISQR);
   HB1("TPCTrk_Layer;Layer;Counts", TPC_BINS_LAYER);
   HB1("Mom0;p [GeV/c];Counts", TPC_BINS_MOM0);
+  HB1("Mom0_Beam;p [GeV/c];Counts", TPC_BINS_MOM0);
+  HB1("Mom0_Accidental;p [GeV/c];Counts", TPC_BINS_MOM0);
   HB1("dEdx_PID;dE/dx PID code;Counts", TPC_BINS_PID_CODE);
+  HB1("dEdx_PID_Beam;dE/dx PID code;Counts", TPC_BINS_PID_CODE);
+  HB1("dEdx_PID_Accidental;dE/dx PID code;Counts", TPC_BINS_PID_CODE);
   HB2("PID_dEdx_vs_Mom;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
   HB2("PID_dEdx_vs_SignedMom;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_SignedMom_Beam;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_SignedMom_Accidental;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
   HB2("PID_dEdx_vs_Mom_pos;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
   HB2("PID_dEdx_vs_Mom_neg;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
   HB2("PID_dEdx_vs_Mom_Pi;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);

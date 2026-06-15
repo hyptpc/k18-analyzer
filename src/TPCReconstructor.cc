@@ -4,16 +4,16 @@
 
 #include <iomanip>
 #include <iostream>
-#include <TPDGCode.h>
+
 #include <TLorentzVector.h>
+#include <TPDGCode.h>
 
 #include "DatabasePDG.hh"
 #include "DebugCounter.hh"
-#include "DetectorID.hh"
 #include "Kinematics.hh"
-#include "UserParamMan.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCVertex.hh"
+#include "UserParamMan.hh"
 
 #define TPC_RECO_ENABLE_LAMBDA_REFIT 0
 
@@ -83,20 +83,20 @@ namespace
 TPCRecoCandidate::TPCRecoCandidate(Int_t mother_pdg, Double_t mass,
                                    const TVector3& vertex, const TVector3& momentum,
                                    Double_t closest_dist,
-                                   Int_t track_id_1, Int_t track_id_2,
-                                   Int_t track_1_pid, Int_t track_2_pid,
-                                   Int_t track_1_charge, Int_t track_2_charge)
+                                   Int_t track1_id, Int_t track2_id,
+                                   Int_t track1_pid, Int_t track2_pid,
+                                   Int_t track1_charge, Int_t track2_charge)
   : m_mother_pdg(mother_pdg),
     m_mass(mass),
     m_vertex(vertex),
     m_momentum(momentum),
     m_closest_dist(closest_dist),
-    m_track_id_1(track_id_1),
-    m_track_id_2(track_id_2),
-    m_track_1_pid(track_1_pid),
-    m_track_2_pid(track_2_pid),
-    m_track_1_charge(track_1_charge),
-    m_track_2_charge(track_2_charge)
+    m_track1_id(track1_id),
+    m_track2_id(track2_id),
+    m_track1_pid(track1_pid),
+    m_track2_pid(track2_pid),
+    m_track1_charge(track1_charge),
+    m_track2_charge(track2_charge)
 {
 }
 
@@ -115,11 +115,11 @@ TPCRecoCandidate::Print(const TString& label) const
             << "   pdg   = " << m_mother_pdg << "\n"
             << "   mass  = " << m_mass << "\n"
             << "   dist  = " << m_closest_dist << "\n"
-            << "   trkId = (" << m_track_id_1
-            << (m_track_1_charge > 0 ? "+" : (m_track_1_charge < 0 ? "-" : "0")) << ","
-            << m_track_id_2
-            << (m_track_2_charge > 0 ? "+" : (m_track_2_charge < 0 ? "-" : "0")) << ")\n"
-            << "   pid   = (" << m_track_1_pid << "," << m_track_2_pid << ")\n"
+            << "   trkId = (" << m_track1_id
+            << (m_track1_charge > 0 ? "+" : (m_track1_charge < 0 ? "-" : "0")) << ","
+            << m_track2_id
+            << (m_track2_charge > 0 ? "+" : (m_track2_charge < 0 ? "-" : "0")) << ")\n"
+            << "   pid   = (" << m_track1_pid << "," << m_track2_pid << ")\n"
             << "   vtx   = (" << m_vertex.X() << "," << m_vertex.Y() << "," << m_vertex.Z() << ")\n"
             << "   mom   = (" << m_momentum.X() << "," << m_momentum.Y() << "," << m_momentum.Z() << ")\n"
             << "   |p|   = " << m_momentum.Mag()
@@ -229,63 +229,63 @@ TPCReconstructor::RefitLambdaWithVertex(const TPCVertex* vertex,
   if (!vertex || !helix_tracks || vertex->GetNTracks() < 2)
     return false;
 
-  const Int_t track_id_1 = vertex->GetTrackId(0);
-  const Int_t track_id_2 = vertex->GetTrackId(1);
-  if (track_id_1 < 0 || track_id_2 < 0 ||
-      track_id_1 >= static_cast<Int_t>(helix_tracks->size()) ||
-      track_id_2 >= static_cast<Int_t>(helix_tracks->size()))
+  const Int_t track1_id = vertex->GetTrackId(0);
+  const Int_t track2_id = vertex->GetTrackId(1);
+  if (track1_id < 0 || track2_id < 0 ||
+      track1_id >= static_cast<Int_t>(helix_tracks->size()) ||
+      track2_id >= static_cast<Int_t>(helix_tracks->size()))
     return false;
 
-  TPCLocalTrackHelix* base_track_1 = helix_tracks->at(track_id_1);
-  TPCLocalTrackHelix* base_track_2 = helix_tracks->at(track_id_2);
-  if (!base_track_1 || !base_track_2)
+  TPCLocalTrackHelix* base_track1 = helix_tracks->at(track1_id);
+  TPCLocalTrackHelix* base_track2 = helix_tracks->at(track2_id);
+  if (!base_track1 || !base_track2)
     return false;
 
-  auto* track_1 = new TPCLocalTrackHelix(base_track_1);
-  if (!track_1->DoFitTrackwVertex(vertex->GetVertex(), VERTEX_RES)) {
-    delete track_1;
+  auto* track1 = new TPCLocalTrackHelix(base_track1);
+  if (!track1->DoFitTrackwVertex(vertex->GetVertex(), VERTEX_RES)) {
+    delete track1;
     return false;
   }
-  auto* track_2 = new TPCLocalTrackHelix(base_track_2);
-  if (!track_2->DoFitTrackwVertex(vertex->GetVertex(), VERTEX_RES)) {
-    delete track_1;
-    delete track_2;
+  auto* track2 = new TPCLocalTrackHelix(base_track2);
+  if (!track2->DoFitTrackwVertex(vertex->GetVertex(), VERTEX_RES)) {
+    delete track1;
+    delete track2;
     return false;
   }
 
   const Double_t vertex_scan_range = UserParamMan::GetInstance().GetParameter("VertexScanRange");
-  Double_t par_1[5];
-  Double_t par_2[5];
-  track_1->GetParam(par_1);
-  track_2->GetParam(par_2);
-  const Double_t scan_theta_1 = vertex_scan_range/par_1[3];
-  const Double_t scan_theta_2 = vertex_scan_range/par_2[3];
-  const Double_t range_theta_1[2] = {track_1->GetMint() - scan_theta_1,
-                                     track_1->GetMaxt() + scan_theta_1};
-  const Double_t range_theta_2[2] = {track_2->GetMint() - scan_theta_2,
-                                     track_2->GetMaxt() + scan_theta_2};
+  Double_t par1[5];
+  Double_t par2[5];
+  track1->GetParam(par1);
+  track2->GetParam(par2);
+  const Double_t scan_theta1 = vertex_scan_range/par1[kHelixR];
+  const Double_t scan_theta2 = vertex_scan_range/par2[kHelixR];
+  const Double_t range_theta1[2] = {track1->GetMint() - scan_theta1,
+                                    track1->GetMaxt() + scan_theta1};
+  const Double_t range_theta2[2] = {track2->GetMint() - scan_theta2,
+                                    track2->GetMaxt() + scan_theta2};
 
-  Double_t theta_1 = 0.0;
-  Double_t theta_2 = 0.0;
+  Double_t theta1 = 0.0;
+  Double_t theta2 = 0.0;
   Double_t dist = 0.0;
   const TVector3 vertex_refit = Kinematics::VertexPointHelix(
-    par_1, par_2,
-    range_theta_1[0], range_theta_1[1],
-    range_theta_2[0], range_theta_2[1],
-    theta_1, theta_2, dist
+    par1, par2,
+    range_theta1[0], range_theta1[1],
+    range_theta2[0], range_theta2[1],
+    theta1, theta2, dist
   );
   if (!std::isfinite(dist) || dist > MIN_CLOSE_DIST_LAMBDA) {
-    delete track_1;
-    delete track_2;
+    delete track1;
+    delete track2;
     return false;
   }
 
   out_vertex = vertex_refit;
   out_dist = dist;
-  out_mom1 = track_1->CalcHelixMom(par_1, theta_1);
-  out_mom2 = track_2->CalcHelixMom(par_2, theta_2);
-  delete track_1;
-  delete track_2;
+  out_mom1 = track1->CalcHelixMom(par1, theta1);
+  out_mom2 = track2->CalcHelixMom(par2, theta2);
+  delete track1;
+  delete track2;
   return true;
 }
 

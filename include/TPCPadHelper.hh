@@ -13,10 +13,10 @@
 #define TPC_PAD_HELPER_HH
 
 #include <algorithm>
-#include <iomanip>
-#include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +43,7 @@ const Double_t TARGET_RADIUS = 40. + 10. + 10.;  // = 60 mm  (raw + holder + cle
 const Double_t TARGET_HALF_X = TARGET_RADIUS;    // xz plane is the cylindrical cross section
 const Double_t TARGET_HALF_Y = 50. + 10.;        // = 60 mm  (raw + clearance)
 const Double_t TARGET_HALF_Z = TARGET_RADIUS;    // xz plane is the cylindrical cross section
+const Int_t LAST_TGT_LAYER = 4; // layers 0..4 overlap target
 
 enum EPadParameter
 {

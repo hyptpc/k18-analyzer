@@ -15,38 +15,28 @@
 #include "TPCLocalTrack.hh"
 
 #include <algorithm>
-#include <set>
-#include <string>
-#include <vector>
 #include <cmath>
 #include <iostream>
-#include <iomanip>
-#include <cstring>
-#include <stdexcept>
-#include <sstream>
-#include <std_ostream.hh>
+#include <set>
+#include <vector>
 
 #include <TF2.h>
 #include <TGraph2D.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TMath.h>
-#include <TROOT.h>
-#include <Math/Functor.h>
-#include <Math/Vector3D.h>
+#include <TMinuit.h>
 #include <TPolyLine3D.h>
-#include <Fit/Fitter.h>
+#include <TROOT.h>
 
+#include "ConfMan.hh"
 #include "DebugCounter.hh"
-#include "DetectorID.hh"
 #include "FuncName.hh"
-#include "MathTools.hh"
-#include "PrintHelper.hh"
-#include "HoughTransform.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCPadHelper.hh"
 #include "UserParamMan.hh"
-#include "ConfMan.hh"
+
+#include <std_ostream.hh>
 
 #define DebugDisp 0
 #define IterativeResolution 1
@@ -58,7 +48,11 @@ namespace
   const Int_t ReservedNumOfHits = 32*10;
   const Double_t MaxGapBtwClusters = 100.; // [mm]
   const Int_t MaxLayerdiffBtwClusters = 32; // 32 means kind of off behaveier
+
+  // For SeparateTracksAtTarget() beam/scatter boundary
+  // Gate: m_v0 > MinSlope && gap > MinGap && beam-like flips.
   const Double_t MinGapForBeamScatterSep = 30.; // [mm]
+  const Double_t MinSlopeForBeamScatterSep = 0.01; // v0 > MinSlopeForBeamScatterSep
 
   // Beam-like hit box upstream of target (negative beam; asymmetric limits allowed)
   constexpr Double_t BeamLikeXMin = -30.; // [mm]
@@ -66,7 +60,7 @@ namespace
   constexpr Double_t BeamLikeYMin = -45.;
   constexpr Double_t BeamLikeYMax =  45.;
 
-  // IsBackward(): track-position |x| limit evaluated at z = -250 mm 
+  // IsBackward(): |x| at extrapolation plane z = -250 mm
   constexpr Double_t BackwardMaxAbsX = 75.; // [mm]
 
   // DoStraightTrackFit(): max number of iterations and max chi2 value
@@ -1207,7 +1201,9 @@ TPCLocalTrack::SeparateTracksAtTarget()
                 << " pos=(" << pos.x() << "," << pos.y() << "," << pos.z() << ")" 
                 << std::endl;
 #endif
-      if(m_v0 > 0.01 && i!=0 && gap.Mag() > MinGapForBeamScatterSep
+      if(m_v0 > MinSlopeForBeamScatterSep 
+         && i!=0 
+         && gap.Mag() > MinGapForBeamScatterSep
          && prev_is_beam_hit != is_beam_hit) flag = true;
       if(!flag) side1_hits.push_back(id);
       else side2_hits.push_back(id);
@@ -1414,8 +1410,11 @@ TPCLocalTrack::CheckIsAccidental()
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
-    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
-    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::Z_TARGET) nhit_downstream_tgt++;
+    const Bool_t in_beam_box = (pos.x() > BeamLikeXMin) && (pos.x() < BeamLikeXMax)
+                            && (pos.y() > BeamLikeYMin) && (pos.y() < BeamLikeYMax);
+    if(!in_beam_box) continue;
+    if(pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
+    else if(pos.z() > tpc::Z_TARGET) nhit_downstream_tgt++;
   }
   if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5) m_isAccidental=1;
 

@@ -4,20 +4,24 @@
 #define TPC_LOCAL_TRACK_HELIX_HH
 
 #include <vector>
-#include <functional>
 
-#include <std_ostream.hh>
-//#include "AbsTrackRep.h"
+#include <TMatrixD.h>
+#include <TString.h>
+#include <TVector3.h>
 
-#include "TVector3.h"
-#include "ThreeVector.hh"
-#include "DetectorID.hh"
-#include "TPCHit.hh"
-#include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
-#include "TMatrixD.h"
+
 class TPCHit;
-class TPCCluster;
+
+// Helix fit par[5]: x=cx+r*cos(t), y=cy+r*sin(t), z=z0+r*dz*t (track coords: x=-X, y=Z-Z_TARGET, z=Y)
+enum HelixParIndex : Int_t {
+  kHelixCx = 0,
+  kHelixCy = 1,
+  kHelixZ0 = 2,
+  kHelixR  = 3,
+  kHelixDz = 4,
+  kHelixNPar = 5,
+};
 
 //______________________________________________________________________________
 class TPCLocalTrackHelix
@@ -155,7 +159,10 @@ public:
   TVector3 GetMom0() const { return m_mom0; }// Momentum at Y = 0
   TVector3 CalcResidual(TVector3 position);
 
-  void GetParam(Double_t *par) const { par[0] = m_cx; par[1] = m_cy; par[2] = m_z0; par[3] = m_r; par[4] = m_dz; }
+  void GetParam(Double_t *par) const {
+    par[kHelixCx] = m_cx; par[kHelixCy] = m_cy; par[kHelixZ0] = m_z0;
+    par[kHelixR] = m_r; par[kHelixDz] = m_dz;
+  }
   Double_t Getcx() const { return m_cx; }
   Double_t Getcy() const { return m_cy; }
   Double_t Getz0() const { return m_z0; }
@@ -169,7 +176,7 @@ public:
   Double_t GetTransversePath() const { return m_transverse_path; }
   Int_t    GetCharge() const { return m_charge; }
   Double_t GetTrackdE();
-  Double_t GetdEdx(Double_t truncatedMean = 1.0);
+  Double_t GetdEdx(Double_t truncatedMeanRatio = 1.0);
   Int_t    GetNPad() const;
   Int_t    GetNDF() const;
   TVector3 GetPosition(const Double_t par[5], Double_t t) const;
@@ -181,7 +188,10 @@ public:
   Int_t GetIsAccidental() const { return m_isAccidental; } //Accidental tracks
   Int_t GetIsMultiloop() const { return m_is_multiloop; } //High p_T spiral-like tracks
 
-  void SetParam(Double_t *par){ m_cx = par[0]; m_cy = par[1]; m_z0 = par[2]; m_r = par[3]; m_dz = par[4]; }
+  void SetParam(Double_t *par){
+    m_cx = par[kHelixCx]; m_cy = par[kHelixCy]; m_z0 = par[kHelixZ0];
+    m_r = par[kHelixR]; m_dz = par[kHelixDz];
+  }
   void SetClustersHoughFlag(Int_t hough_flag);
 
   void SetFlag(Int_t flag);
@@ -203,6 +213,7 @@ public:
   Bool_t IsBackward();
   void IsMultiLoop();
   void CheckIsAccidental();
+  Bool_t IsBeamLikeHit(const TVector3& pos) const;
   Bool_t VertexAtTarget();
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();
@@ -238,7 +249,11 @@ public:
   void DoFitExclusive();
   Double_t GetHorizontalResidualExclusive(Int_t i);
   Double_t GetVerticalResidualExclusive(Int_t i);
-  void GetParamExclusive(Int_t i, Double_t *par) const { par[0] = m_cx_exclusive[i]; par[1] = m_cy_exclusive[i]; par[2] = m_z0_exclusive[i]; par[3] = m_r_exclusive[i]; par[4] = m_dz_exclusive[i]; }
+  void GetParamExclusive(Int_t i, Double_t *par) const {
+    par[kHelixCx] = m_cx_exclusive[i]; par[kHelixCy] = m_cy_exclusive[i];
+    par[kHelixZ0] = m_z0_exclusive[i]; par[kHelixR] = m_r_exclusive[i];
+    par[kHelixDz] = m_dz_exclusive[i];
+  }
   Double_t GetcxExclusive(Int_t i) const { return m_cx_exclusive[i]; }
   Double_t GetcyExclusive(Int_t i) const { return m_cy_exclusive[i]; }
   Double_t Getz0Exclusive(Int_t i) const { return m_z0_exclusive[i]; }

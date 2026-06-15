@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <TString.h>
-
 #include <TVector3.h>
 
 #include "TPCAnalyzer.hh"
@@ -79,11 +78,11 @@ Bool_t MakeLinearTrack(TPCLocalTrack *track, Bool_t &is_valid_after_sep,
 
 //HS-ON data
 //Make a track after Hough-transform
-Bool_t MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
+Bool_t MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &is_valid_after_sep,
 		      const std::vector<TPCClusterContainer>& ClCont,
 		      Double_t *HelixPar,
-		      Double_t MaxHoughWindow,
-		      Double_t MaxHoughWindowY);
+		      Double_t max_hough_window,
+		      Double_t max_hough_window_y);
 //Vertex finding
 template <typename T>
 void VertexSearch(std::vector<T*>& TrackCont,

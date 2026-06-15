@@ -2,45 +2,31 @@
 
 #include "TPCAnalyzer.hh"
 
-#include <algorithm>
-#include <iomanip>
 #include <iostream>
-#include <set>
-#include <sstream>
-#include <stdexcept>
-#include <string>
 
-#include "DCGeomMan.hh"
-#include "DCGeomRecord.hh"
 #include "DebugCounter.hh"
-#include "DebugTimer.hh"
-#include "FuncName.hh"
-#include "MathTools.hh"
-#include "TPCRawData.hh"
-#include "UserParamMan.hh"
 #include "DeleteUtility.hh"
-#include "TPCPadHelper.hh"
-#include "TPCRawHit.hh"
-#include "TPCHit.hh"
-#include "TRandom3.h"
+#include "DetectorID.hh"
+#include "FuncName.hh"
 #include "TPCCluster.hh"
-#include "TPCTrackSearch.hh"
+#include "TPCHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCPadHelper.hh"
+#include "TPCRawData.hh"
+#include "TPCRawHit.hh"
+#include "TPCTrackSearch.hh"
 #include "TPCVertex.hh"
+#include "UserParamMan.hh"
 
 /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
 
 namespace
 {
-TRandom3 RandGen;
-
 const auto& gUser   = UserParamMan::GetInstance();
-const auto& gGeom   = DCGeomMan::GetInstance();
-
-const double ztgt = tpc::Z_TARGET;
 }
+
 //_____________________________________________________________________________
 TPCAnalyzer::TPCAnalyzer()
   : m_is_decoded(n_type),

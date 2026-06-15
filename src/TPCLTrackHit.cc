@@ -2,24 +2,20 @@
 
 #include "TPCLTrackHit.hh"
 
-#include <string>
 #include <cmath>
-#include <cstring>
+#include <iomanip>
 #include <iostream>
-#include <sstream>
-#include <stdexcept>
+
 #include <TString.h>
-#include <TF1.h>
+
+#include "ConfMan.hh"
+#include "DebugCounter.hh"
+#include "FuncName.hh"
+#include "ThreeVector.hh"
+#include "TPCLocalTrackHelix.hh"
+#include "TPCPadHelper.hh"
 
 #include <std_ostream.hh>
-
-#include "DebugCounter.hh"
-#include "ConfMan.hh"
-#include "FuncName.hh"
-#include "TPCAnalyzer.hh"
-#include "MathTools.hh"
-#include "TPCPadHelper.hh"
-//#include "TPCParamMan.hh"
 
 namespace
 {
@@ -126,9 +122,9 @@ TVector3
 TPCLTrackHit::GetHelixPosition(const Double_t par[5], Double_t t) const
 {
   //This is the eqation of Helix
-  Double_t x = par[0] + par[3]*TMath::Cos(t);
-  Double_t y = par[1] + par[3]*TMath::Sin(t);
-  Double_t z = par[2] + (par[4]*par[3]*t);
+  Double_t x = par[kHelixCx] + par[kHelixR]*TMath::Cos(t);
+  Double_t y = par[kHelixCy] + par[kHelixR]*TMath::Sin(t);
+  Double_t z = par[kHelixZ0] + (par[kHelixDz]*par[kHelixR]*t);
 
   return TVector3(x, y, z);
 }

@@ -22,21 +22,21 @@ public:
   TPCRecoCandidate(Int_t mother_pdg, Double_t mass,
                    const TVector3& vertex, const TVector3& momentum,
                    Double_t closest_dist,
-                   Int_t track_id_1, Int_t track_id_2,
-                   Int_t track_1_pid, Int_t track_2_pid,
-                   Int_t track_1_charge, Int_t track_2_charge);
+                   Int_t track1_id, Int_t track2_id,
+                   Int_t track1_pid, Int_t track2_pid,
+                   Int_t track1_charge, Int_t track2_charge);
 
   Int_t GetMotherPdg() const { return m_mother_pdg; }
   Double_t GetMass() const { return m_mass; }
   TVector3 GetVertex() const { return m_vertex; }
   TVector3 GetMomentum() const { return m_momentum; }
   Double_t GetClosestDist() const { return m_closest_dist; }
-  Int_t GetTrackId1() const { return m_track_id_1; }
-  Int_t GetTrackId2() const { return m_track_id_2; }
-  Int_t GetTrack1Pid() const { return m_track_1_pid; }
-  Int_t GetTrack2Pid() const { return m_track_2_pid; }
-  Int_t GetTrack1Charge() const { return m_track_1_charge; }
-  Int_t GetTrack2Charge() const { return m_track_2_charge; }
+  Int_t GetTrackId1() const { return m_track1_id; }
+  Int_t GetTrackId2() const { return m_track2_id; }
+  Int_t GetTrack1Pid() const { return m_track1_pid; }
+  Int_t GetTrack2Pid() const { return m_track2_pid; }
+  Int_t GetTrack1Charge() const { return m_track1_charge; }
+  Int_t GetTrack2Charge() const { return m_track2_charge; }
   void Print(const TString& label="") const;
 
 private:
@@ -45,12 +45,12 @@ private:
   TVector3 m_vertex;
   TVector3 m_momentum;
   Double_t m_closest_dist{TMath::QuietNaN()};
-  Int_t m_track_id_1{-1};
-  Int_t m_track_id_2{-1};
-  Int_t m_track_1_pid{0};
-  Int_t m_track_2_pid{0};
-  Int_t m_track_1_charge{0};
-  Int_t m_track_2_charge{0};
+  Int_t m_track1_id{-1};
+  Int_t m_track2_id{-1};
+  Int_t m_track1_pid{0};
+  Int_t m_track2_pid{0};
+  Int_t m_track1_charge{0};
+  Int_t m_track2_charge{0};
 };
 
 //_____________________________________________________________________________

@@ -3,11 +3,13 @@
 #ifndef TPC_LTRACK_HIT_HH
 #define TPC_LTRACK_HIT_HH
 
+#include <vector>
+
+#include <TMath.h>
+#include <TString.h>
 #include <TVector3.h>
 
 #include "DCHit.hh"
-#include "MathTools.hh"
-#include "ThreeVector.hh"
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 
@@ -15,12 +17,23 @@ class TPCAnalyzer;
 
 namespace tpc
 {
-// Sentinel [mm]: SetResolution dummy / invalid hits use values above this on all axes.
+// Sentinel [mm]: dummy / invalid hits use values above this on all axes, or non-finite.
 const Double_t kResolutionDummyThreshold = 0.9e+10;
 inline Bool_t IsDummyResolutionVec(const TVector3& res)
 {
-  return res.x() > kResolutionDummyThreshold && res.y() > kResolutionDummyThreshold &&
-         res.z() > kResolutionDummyThreshold;
+  const Double_t x = res.x();
+  const Double_t y = res.y();
+  const Double_t z = res.z();
+
+  const Bool_t all_finite = TMath::Finite(x) && TMath::Finite(y) && TMath::Finite(z);
+
+  const Bool_t is_sentinel =
+    x > kResolutionDummyThreshold &&
+    y > kResolutionDummyThreshold &&
+    z > kResolutionDummyThreshold;
+
+  const Bool_t is_dummy = is_sentinel || !all_finite;
+  return is_dummy;
 }
 } // namespace tpc
 

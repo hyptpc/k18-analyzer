@@ -6,11 +6,10 @@
 #include <string>
 #include <vector>
 
+#include <TString.h>
 #include <TVector3.h>
 
 #include "DetectorID.hh"
-#include "Event.hh"
-#include "HistTools.hh"
 
 class TPCRawData;
 class TPCAnalyzer;
@@ -91,6 +90,9 @@ public:
     const TVector3& cl_res
   );
   void FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail, Int_t track_pid);
+  void FillHelixPidHist(const TPCLocalTrackHelix* track,
+                        Int_t pid_code,
+                        Double_t dedx);
   void FillHelixLambdaMassHist(const TPCVertex* vertex);
   void FillHelixK0ShortMassHist(const TPCVertex* vertex);
 

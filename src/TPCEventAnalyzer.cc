@@ -2,30 +2,26 @@
 
 #include "TPCEventAnalyzer.hh"
 
-#include <cmath>
-#include <iomanip>
 #include <sstream>
 
-#include <TLorentzVector.h>
+#include <TPDGCode.h>
 
-#include "DatabasePDG.hh"
 #include "DCGeomMan.hh"
+#include "DetectorID.hh"
 #include "RootHelper.hh"
 #include "ThreeVector.hh"
-#include "TPCCluster.hh"
 #include "TPCAnalyzer.hh"
-#include "TPCReconstructor.hh"
+#include "TPCCluster.hh"
 #include "TPCHit.hh"
-#include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
+#include "TPCLocalTrackHelix.hh"
+#include "TPCLTrackHit.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
-#include "TPCLocalTrackHelix.hh"
-#include "TPCVertex.hh"
-
-#include <TPDGCode.h>
 #include "TPCRawData.hh"
 #include "TPCRawHit.hh"
+#include "TPCReconstructor.hh"
+#include "TPCVertex.hh"
 #include "UserParamMan.hh"
 
 #include <spdlog/spdlog.h>
@@ -614,6 +610,47 @@ TPCEventAnalyzer::FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail
     const ThreeVector global_ref = gGeom.Local2GlobalPos("HypTPC", cal_pos);
     FillCoBoClockTime("TPCTrk", layer, center_row, center_hit->GetCTime(0),
                       center_hit->GetPosition(), global_ref.y());
+  }
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixPidHist(const TPCLocalTrackHelix* track,
+                                   Int_t pid_code,
+                                   Double_t dedx)
+{
+  if(!track)
+    return;
+
+  const Double_t mom0     = track->GetMom0().Mag();
+  const Int_t    charge   = track->GetCharge();
+  const Double_t signed_p = static_cast<Double_t>(charge) * mom0;
+
+  const Int_t is_beam       = track->GetIsBeam();
+  const Int_t is_accidental = track->GetIsAccidental();
+  const Int_t is_k18        = track->GetIsK18();
+  const Bool_t is_scatter  = (is_beam == 0 && is_accidental == 0 && is_k18 == 0);
+
+  if(is_scatter){
+    HF1("Mom0", mom0);
+    HF1("dEdx_PID", pid_code);
+    HF2("PID_dEdx_vs_Mom", mom0, dedx);
+    HF2("PID_dEdx_vs_SignedMom", signed_p, dedx);
+    if(charge > 0) HF2("PID_dEdx_vs_Mom_pos", mom0, dedx);
+    else HF2("PID_dEdx_vs_Mom_neg", mom0, dedx);
+    if(pid_code & 0x1) HF2("PID_dEdx_vs_Mom_Pi", mom0, dedx);
+    if(pid_code & 0x2) HF2("PID_dEdx_vs_Mom_K", mom0, dedx);
+    if(pid_code & 0x4) HF2("PID_dEdx_vs_Mom_Proton", mom0, dedx);
+  }
+  if(is_beam == 1){
+    HF1("Mom0_Beam", mom0);
+    HF1("dEdx_PID_Beam", pid_code);
+    HF2("PID_dEdx_vs_SignedMom_Beam", signed_p, dedx);
+  }
+  if(is_accidental == 1){
+    HF1("Mom0_Accidental", mom0);
+    HF1("dEdx_PID_Accidental", pid_code);
+    HF2("PID_dEdx_vs_SignedMom_Accidental", signed_p, dedx);
   }
 }
 
