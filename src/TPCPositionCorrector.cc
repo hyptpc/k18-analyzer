@@ -3,10 +3,11 @@
 #include "TPCPositionCorrector.hh"
 
 #include <fstream>
-#include <std_ostream.hh>
 
 #include "FuncName.hh"
 #include "TPCPadHelper.hh"
+
+#include <std_ostream.hh>
 
 //_____________________________________________________________________________
 TPCPositionCorrector::TPCPositionCorrector( void )

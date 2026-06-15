@@ -1,15 +1,13 @@
 // -*- C++ -*-
 // To Do: consider BcOut nhit (not important)
 
-#include <cmath>
-#include <cstdlib>
 #include <array>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "TVector3.h"
+#include <TVector3.h>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
@@ -19,7 +17,6 @@
 #include "DstHelper.hh"
 #include "HistTools.hh"
 #include "RootHelper.hh"
-#include "TPCCluster.hh"
 #include "TPCEventAnalyzer.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"

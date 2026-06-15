@@ -4,22 +4,13 @@
 #define TPC_LOCAL_TRACK_HH
 
 #include <vector>
-#include <functional>
 
-#include <TH2D.h>
-#include <TMinuit.h>
 #include <TString.h>
 #include <TVector3.h>
 
-#include <std_ostream.hh>
-
-#include "DetectorID.hh"
-#include "TPCHit.hh"
-#include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
 
 class TPCHit;
-class TPCCluster;
 
 //_____________________________________________________________________________
 class TPCLocalTrack

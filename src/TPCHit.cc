@@ -6,29 +6,30 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <iterator>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
+#include <TCanvas.h>
+#include <TF1.h>
+#include <TH1.h>
 #include <TMath.h>
 #include <TSpectrum.h>
-#include <spdlog/spdlog.h>
+#include <TStyle.h>
 
-#include <std_ostream.hh>
-
+#include "ConfMan.hh"
+#include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
-#include "DebugCounter.hh"
-#include "MathTools.hh"
-#include "RootHelper.hh"
-#include "TPCLTrackHit.hh"
+#include "ThreeVector.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
+#include "TPCLTrackHit.hh"
 #include "UserParamMan.hh"
-#include "ConfMan.hh"
+
+#include <spdlog/spdlog.h>
+#include <std_ostream.hh>
 
 //#define QuickAnalysis  1 // User EventSelectionTPCHits in RawData.cc
 //#define FitPedestal    1

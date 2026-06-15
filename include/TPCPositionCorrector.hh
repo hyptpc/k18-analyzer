@@ -5,8 +5,9 @@
 
 #include <string>
 #include <vector>
-#include <TVector3.h>
+
 #include <TString.h>
+#include <TVector3.h>
 
 typedef std::vector<std::vector<TVector3>> CorrectionMap;
 

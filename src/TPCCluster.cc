@@ -1,22 +1,21 @@
  // -*- C++ -*-
 
-#include <iostream>
-#include <iterator>
+#include "TPCCluster.hh"
 
-#include <escape_sequence.hh>
-#include <std_ostream.hh>
-#include <spdlog/spdlog.h>
+#include <iomanip>
+#include <iostream>
 
 #include "DebugCounter.hh"
-#include "DeleteUtility.hh"
-#include "Exception.hh"
 #include "FuncName.hh"
 #include "PrintHelper.hh"
-#include "TPCCluster.hh"
+#include "ThreeVector.hh"
 #include "TPCPadHelper.hh"
 #include "TPCPositionCorrector.hh"
-#include "ThreeVector.hh"
 #include "UserParamMan.hh"
+
+#include <escape_sequence.hh>
+#include <spdlog/spdlog.h>
+#include <std_ostream.hh>
 
 #define TPC_CLUSTER_WRAP_DEBUG 0
 

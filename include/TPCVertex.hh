@@ -7,9 +7,8 @@
 
 #include <TMath.h>
 #include <TString.h>
+#include <TVector3.h>
 
-#include "TPCLocalTrackHelix.hh"
-#include "TPCLocalTrack.hh"
 #include "TPCReconstructor.hh"
 
 class TPCLocalTrack;

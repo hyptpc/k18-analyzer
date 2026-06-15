@@ -3,13 +3,12 @@
 #include "TPCRawHit.hh"
 
 #include <iostream>
-#include <iterator>
-
-#include <std_ostream.hh>
 
 #include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "TPCPadHelper.hh"
+
+#include <std_ostream.hh>
 
 //_____________________________________________________________________________
 TPCRawHit::TPCRawHit(Int_t layer, Int_t row, Double_t* pars)

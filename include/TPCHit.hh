@@ -3,17 +3,14 @@
 #ifndef TPC_HIT_HH
 #define TPC_HIT_HH
 
-#include "DCHit.hh"
-
-#include <cmath>
-#include <deque>
-#include <numeric>
 #include <string>
 #include <vector>
 
-#include <std_ostream.hh>
-
 #include <TVector3.h>
+
+#include "DCHit.hh"
+
+#include <std_ostream.hh>
 
 class TPCCluster;
 class TPCLTrackHit;

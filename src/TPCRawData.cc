@@ -2,31 +2,28 @@
 
 #include "TPCRawData.hh"
 
-#include <algorithm>
 #include <iostream>
-#include <string>
-#include <vector>
-#include <TF1.h>
+
 #include <TCanvas.h>
+#include <TF1.h>
+#include <TMath.h>
+#include <TPad.h>
 #include <TStyle.h>
+
+#include "DebugCounter.hh"
+#include "DeleteUtility.hh"
+#include "Exception.hh"
+#include "FuncName.hh"
+#include "TPCPadHelper.hh"
+#include "TPCRawHit.hh"
+#include "UserParamMan.hh"
 
 #include <std_ostream.hh>
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
 
-#include "ConfMan.hh"
-//#include "DCRawHit.hh"
-#include "DebugCounter.hh"
-#include "DeleteUtility.hh"
-#include "DetectorID.hh"
-#include "Exception.hh"
-#include "FuncName.hh"
-//#include "HodoRawHit.hh"
-#include "TPCRawHit.hh"
-#include "MathTools.hh"
-#include "TPCPadHelper.hh"
-#include "UserParamMan.hh"
+#define DebugEvDisp    0
 
 namespace
 {
@@ -55,9 +52,6 @@ const auto& gUser         = UserParamMan::GetInstance();
       par[0] + par[1]*((1-frac)*val_left + frac*val_right);
   }
 }
-
-#define DebugEvDisp    0
-
 
 //_____________________________________________________________________________
 TPCRawData::TPCRawData()

@@ -6,20 +6,19 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 
-#include <spdlog/spdlog.h>
-
-#include <filesystem_util.hh>
-
 #include "DCAnalyzer.hh"
 #include "UserParamMan.hh"
+
+#include <filesystem_util.hh>
+#include <spdlog/spdlog.h>
 
 // if event number mismatch is found, exit process.
 #define CheckEventNumberMismatch 1

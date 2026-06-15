@@ -2,18 +2,16 @@
 
 #include "TPCParamMan.hh"
 
-#include <cstdio>
-#include <cstdlib>
-#include <iostream>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
-
-#include <std_ostream.hh>
 
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "TPCPadHelper.hh"
+
+#include <std_ostream.hh>
 
 namespace
 {

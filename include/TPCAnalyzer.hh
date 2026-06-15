@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <TString.h>
-#include <TVector3.h>
 
 #include "DetectorID.hh"
 #include "TPCReconstructor.hh"
@@ -18,11 +17,11 @@ class TPCLocalTrack;
 class TPCLocalTrackHelix;
 class TPCVertex;
 
-typedef std::vector<TPCHit*>        TPCHitContainer;
-typedef std::vector<TPCCluster*>    TPCClusterContainer;
-typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
+typedef std::vector<TPCHit*>             TPCHitContainer;
+typedef std::vector<TPCCluster*>         TPCClusterContainer;
+typedef std::vector<TPCLocalTrack*>      TPCLocalTrackContainer;
 typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
-typedef std::vector<TPCVertex*> TPCVertexContainer;
+typedef std::vector<TPCVertex*>          TPCVertexContainer;
 
 //_____________________________________________________________________________
 class TPCAnalyzer

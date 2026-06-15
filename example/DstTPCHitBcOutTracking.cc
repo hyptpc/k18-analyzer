@@ -1,7 +1,5 @@
 // -*- C++ -*-
 
-#include <cmath>
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 
