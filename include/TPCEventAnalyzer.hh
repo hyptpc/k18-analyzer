@@ -39,7 +39,7 @@ public:
 private:
 
 public:
-  void TPCRawHit(const TPCRawData& TPCrawData);
+  void TPCRawHit(const TPCRawData& TPCrawData, int event_number);
   TPCBaselineInfo TPCBaselineHit(const TPCRawData& TPCrawData);
   Int_t TPCCorHit(const TPCRawData& TPCrawData);
 

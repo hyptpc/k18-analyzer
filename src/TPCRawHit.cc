@@ -16,7 +16,8 @@ TPCRawHit::TPCRawHit(Int_t layer, Int_t row, Double_t* pars)
     m_detector_id(-1),
     m_layer_id(layer),
     m_row_id(row),
-    m_pars()
+    m_pars(),
+    m_raw_rms(-9999.)
 {
   if(pars){
     m_pars.push_back(pars[0]);

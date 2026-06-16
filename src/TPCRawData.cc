@@ -170,7 +170,7 @@ TPCRawData::DecodeTPCHits()
 
   bool is_baselinecorrected = true;
   if(BaselineCorrectionTPC) is_baselinecorrected = CorrectBaselineTPC();
-
+  
   /*
    * if correction is skipped or null baseline is found,
    * The TPCCorHC is deeply copied from the TPCRawHC.
@@ -275,6 +275,7 @@ TPCRawData::CorrectBaselineTPC()
 
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     TPCRawHit *hit = cont[i];
+
     double raw_rms = hit->RMS(0, NumOfTimeBucket);
     TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d;sample# ;ADC ch",
 			       hit->LayerId(), hit->RowId()),

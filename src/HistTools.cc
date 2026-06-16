@@ -5,6 +5,7 @@
 #include "DetectorID.hh"
 #include "RootHelper.hh"
 #include "TPCPadHelper.hh"
+#include "UserParamMan.hh"
 
 #include <DAQNode.hh>
 #include <Unpacker.hh>
@@ -14,6 +15,7 @@
 
 namespace
 {
+const auto& gUser = UserParamMan::GetInstance();
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 using namespace root; 
@@ -790,18 +792,23 @@ BuildTPCHit()
                          n_bin_adc,       min_adc,      max_adc);
   HB2("TPC_FADC_After",  n_time_bucket+1, 0.,           n_time_bucket+1.,
                          n_bin_adc,       min_adc-500., max_adc-500.);
+
+  //Histogram to check baseline correction result pad by pad
+#if 0  
+  int total_hist = gUser.GetParameter("FADCHistogramNum");
+  int pads_per_hist = (NumOfPadTPC + total_hist - 1) / total_hist;
+  int histnum = gUser.GetParameter("FADCHistogram");
+  int start_pad = histnum * pads_per_hist;
+  int end_pad   = std::min((histnum + 1) * pads_per_hist, NumOfPadTPC);
+  for(int i = start_pad; i < end_pad; i++){
+    HB2(Form("TPC_FADC_After_Pad%d",i),  n_time_bucket+1, 0.,           n_time_bucket+1.,
+	n_bin_adc,       min_adc-500., max_adc-500.);
+  }
+#endif
   HB2("TPC_FADC_Good",   n_time_bucket+1, 0.,           n_time_bucket+1., 
                          n_bin_adc,       min_adc-500.,  max_adc-500.);
-  HB2("TPC_FADC_Noise",  n_time_bucket+1, 0.,           n_time_bucket+1., 
-                         n_bin_adc,       min_adc,      max_adc);
   HB2("TPC_FADC_Frame",  n_time_bucket+1, 0.,           n_time_bucket+1., 
                          n_bin_adc,       min_adc,      max_adc);
-
-  HB1("TPC_FADC_Noise_Max",        n_bin_adc, min_adc, max_adc);
-  HB1("TPC_FADC_Noise_RMSfront",   n_bin_rms, min_rms, max_rms);
-  HB1("TPC_FADC_Noise_RMSmiddle",  n_bin_rms, min_rms, max_rms);
-  HB1("TPC_FADC_Noise_Adcdiff",    1000,      -100.,   900.);
-
   HB1("TPC_Clock_TDC",  200000, 0.,    2000000.);
   HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
@@ -811,7 +818,6 @@ BuildTPCHit()
   HB2Poly("TPC_Cor_Max_Poly", TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_Cor_ADC_Poly", TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_Cor_Mean_Poly",TPC_EVENT_DISPLAY_BINS);
-  HB2Poly("TPC_HitPat_Noise",    TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_HitPat_Baseline", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPC_Raw_Max_Poly");
   tpc::InitializeHistograms("TPC_Raw_ADC_Poly");
@@ -819,7 +825,6 @@ BuildTPCHit()
   tpc::InitializeHistograms("TPC_Cor_Max_Poly");
   tpc::InitializeHistograms("TPC_Cor_ADC_Poly");
   tpc::InitializeHistograms("TPC_Cor_Mean_Poly");
-  tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
 }
 

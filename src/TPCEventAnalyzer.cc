@@ -50,7 +50,7 @@ TPCEventAnalyzer::~TPCEventAnalyzer()
 
 //_____________________________________________________________________________
 void
-TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
+TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData, int event_number)
 {
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
@@ -62,6 +62,7 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
     auto hc = TPCrawData.GetTPCRawHits(layer);
     const auto nhit = hc.size();
     npadTpc_raw += nhit;
+
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean(0, NumOfTimeBucket);
       auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
@@ -81,7 +82,6 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
       double min_max = HG2Poly("TPC_Raw_Max_Poly",padid+1);
       if(min_max > max_adc && max_adc < 2000){
         HF2Poly("TPC_Raw_Max_Poly",padid+1,max_adc);
-        std::cout<<max_adc<<std::endl;
       }
       double fmin_adc = HG2Poly("TPC_Raw_ADC_Poly",padid+1);
       if(fmin_adc > (max_adc - mean) && (max_adc - mean) < 2000)
@@ -89,37 +89,9 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
       double min_mean = HG2Poly("TPC_Raw_Mean_Poly",padid+1);
       if(min_mean > mean && mean < 2000)
       	HF2Poly("TPC_Raw_Mean_Poly",padid+1,mean);
-      
-      auto gate_open_max_adc = rhit->MaxAdc(0,50);
-      auto gate_close_max_adc = rhit->MaxAdc(50,140);
-      auto middle_rms = rhit->RMS(50, 140);
-      auto open_rms = rhit->RMS(0,50);
-      auto nmax_adc = rhit->MaxAdc(50, 140);
-      auto nmin_adc = rhit->MinAdc(50, 140);
-
-      Bool_t IsNoise = false;
-      
-      if(gate_open_max_adc > 600 && gate_open_max_adc < 800 && middle_rms <30 && middle_rms >10 && open_rms > 35 && open_rms < 60 && gate_open_max_adc > nmax_adc && gate_close_max_adc < 800){
-        IsNoise = true;
-        HF1("TPC_FADC_Noise_Max", gate_open_max_adc);
-        HF1("TPC_FADC_Noise_RMSfront", open_rms);
-        HF1("TPC_FADC_Noise_RMSmiddle", middle_rms);
-        HF1("TPC_FADC_Noise_Adcdiff", nmax_adc - nmin_adc);
-      }
-      auto fadc = rhit->Fadc();
-      for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-        HF2("TPC_FADC_Before", tb, fadc.at(tb));
-        if(IsNoise){
-          HF2("TPC_FADC_Noise",tb,fadc.at(tb));
-        }
-      	if(tpc::Noise(padid)) HF2("TPC_FADC_Frame",tb, fadc.at(tb));
-      }
-      if(IsNoise){
-        Double_t bincont = HG2Poly("TPC_HitPat_Noise",padid+1);
-        HF2Poly("TPC_HitPat_Noise",padid+1,bincont+1.);
-      }
-    } 
+    }
   }
+  
   HF1("TPC_Multiplicity_Raw", npadTpc_raw);
 }
 
@@ -167,6 +139,13 @@ TPCEventAnalyzer::TPCBaselineHit(const TPCRawData &TPCrawData){
 Int_t
 TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
+#if 0
+  int total_hist = gUser.GetParameter("FADCHistogramNum");
+  int pads_per_hist = (NumOfPadTPC + total_hist - 1) / total_hist;
+  int histnum = gUser.GetParameter("FADCHistogram");
+  int start_pad = histnum * pads_per_hist;
+  int end_pad   = std::min((histnum + 1) * pads_per_hist, NumOfPadTPC);
+#endif
   Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = TPCrawData.GetTPCCorHits(layer);
@@ -204,10 +183,15 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
 	HF2Poly("TPC_Cor_Mean_Poly",padid+1,mean);
 
       // 2D FADC waveform after correction
+#if 0
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
         HF2("TPC_FADC_After", tb, fadc.at(tb));
+	
+	if(padid >= start_pad && padid < end_pad)
+	  HF2(Form("TPC_FADC_After_Pad%d",padid),tb,fadc.at(tb));
       }
+#endif
     }
   }
 

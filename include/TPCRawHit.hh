@@ -28,7 +28,7 @@ private:
   Int_t  m_layer_id;
   Int_t  m_row_id;
   FADC_t m_fadc;
-  Double_t m_raw_rms=0;
+  Double_t m_raw_rms=0.;
   // baseline correction
   PRM_t m_pars; // p0:adc_ofs, p1:scale, p2:tb_ofs
 

@@ -59,7 +59,6 @@ public:
 private:
   Bool_t AddTPCRawHit(const TString& name, Int_t plane, Int_t seg,
 		      Int_t ch, Int_t data, Double_t val, Double_t* par=nullptr, Double_t raw_rms=0); //plane: layer, ch: row
-
 };
 
 //_____________________________________________________________________________

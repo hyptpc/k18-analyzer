@@ -172,6 +172,8 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     return false;
   }
 
+  static const Bool_t NoiseOff = gUser.GetParameter("NoiseOffClusterTPC");
+  
   for(Int_t ih=0; ih<nhits; ih++){
     const Int_t layer  = tpc::getLayerID(pad[ih]);
     const Double_t row = tpc::getRowID(pad[ih]);
@@ -182,6 +184,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
       delete hit;
       return false; //No cobo input
     }
+    
 
     if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=min_cde && hit->IsGood()){
       m_TPCHitCont[layer].push_back(hit);

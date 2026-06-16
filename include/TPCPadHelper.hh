@@ -115,7 +115,7 @@ static const Int_t padOnCenterFrame[] =
 
 };
 
-//Pads on the gem supporting frame (No active area)
+//Pads on the gem supporting frame (E42 version)
 //_____________________________________________________________________________
 static const Int_t deadChannel[] =
 {
@@ -1824,11 +1824,7 @@ inline Bool_t IsDead(Int_t pad_id)
 
   Bool_t on_centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), pad_id) 
                           != std::end(padOnCenterFrame);
-  if (on_centerframe) return true;
-
-  Bool_t is_dead_channel = std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) 
-                           != std::end(deadChannel);
-  return is_dead_channel ? true : false;
+  return on_centerframe ? true : false;
 }
 
 //_____________________________________________________________________________
