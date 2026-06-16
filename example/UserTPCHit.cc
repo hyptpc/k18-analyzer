@@ -163,7 +163,7 @@ ProcessNormal()
 
   HF1("Status", 2);
 
-  tpcevAna.TPCRawHit(TPCrawData);
+  tpcevAna.TPCRawHit(TPCrawData, event_number);
   
   HF1("Status", 3);
 
