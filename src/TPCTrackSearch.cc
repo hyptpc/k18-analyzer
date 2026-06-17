@@ -176,6 +176,28 @@ namespace
     }
   }
 
+  //_____________________________________________________________________________
+  template <typename T> void
+  MarkingBeamTracks(std::vector<T*>& TrackCont)
+  {
+    static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
+    if(BeamThroughTPC) return;
+
+    static const Double_t default_max_abs_dz = 0.05;
+    const Double_t max_abs_dz =
+      gUser.Has("BeamLikeMaxAbsDzTPC")
+        ? gUser.GetParameter("BeamLikeMaxAbsDzTPC")
+        : default_max_abs_dz;
+
+    for(auto& track: TrackCont){
+      if(!track || track->GetIsBeam()==1 || track->GetIsK18()==1) continue;
+      if(track->GetCharge() < 0 &&
+         TMath::Abs(track->Getdz()) < max_abs_dz){
+        track->SetIsBeam(1);
+      }
+    }
+  }
+
   template <typename T> void
   MarkingClusteredAccidentalTracks(std::vector<T*>& TrackCont, std::vector<TPCVertex*>& ClusteredVertexCont)
   {
@@ -993,6 +1015,7 @@ LocalTrackSearchHelix(
 #endif
   CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
 
+  if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
   if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 
   //Vertex finding with tracks in the TrackCont.
@@ -1063,6 +1086,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 #endif
   CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
 
+  if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
   if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 
   //Vertex finding with tracks in the TrackCont.
@@ -1858,6 +1882,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     //Merged fragmented tracks
     RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+    if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
     if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
   } //reassigning process
 }
@@ -2070,6 +2095,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+  if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
   if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 
 }
