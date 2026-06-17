@@ -172,7 +172,9 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     return false;
   }
 
-  static const Bool_t NoiseOff = gUser.GetParameter("NoiseOffClusterTPC");
+  static const Bool_t NoiseOff = gUser.Has("NoiseOffClusterTPC")
+                              ? (gUser.GetParameter("NoiseOffClusterTPC") == 1.)
+                              : false;
   
   for(Int_t ih=0; ih<nhits; ih++){
     const Int_t layer  = tpc::getLayerID(pad[ih]);
