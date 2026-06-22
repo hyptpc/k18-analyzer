@@ -118,10 +118,13 @@ ProcessNormal()
   using root::HF2;
 
   static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
-  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
 
   RawData rawData;
   rawData.DecodeHits("COBO");
+
+  EventAnalyzer evAna;
+  rawData.DecodeHits("TriggerFlag");
+  evAna.TriggerFlag(rawData);
 
   TPCRawData TPCrawData;
   TPCrawData.DecodeTPCHits();

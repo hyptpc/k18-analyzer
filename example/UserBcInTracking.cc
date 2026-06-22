@@ -15,6 +15,7 @@
 #include "DCHit.hh"
 #include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
+#include "HodoRawHit.hh"
 #include "DCTdcCalibMan.hh"
 #include "DetectorID.hh"
 #include "EventAnalyzer.hh"
@@ -92,6 +93,11 @@ ProcessNormal()
   HF1("Status", 0);
   rawData.DecodeHits("TriggerFlag");
   evAna.TriggerFlag(rawData);
+
+  for(const auto& hit: rawData.GetHodoRawHC("TriggerFlag")){
+    event.trig_flag.push_back(hit->GetArrayTdc());
+    event.trig_pat.push_back(hit->SegmentId());
+  }
 
   HF1("Status", 1);
   rawData.DecodeHits("BAC"); // for beam_flag
