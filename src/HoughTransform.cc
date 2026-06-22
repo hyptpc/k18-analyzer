@@ -341,7 +341,7 @@ HoughTransformLineYX(const std::vector<TPCClusterContainer>& ClCont,
 //_____________________________________________________________________________
 void
 HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
-                         Double_t *HelixPar, Double_t MaxHoughWindowY)
+                         Double_t *HelixPar, Double_t MaxHoughWindow)
 {
 
 #if DebugEvDisp
@@ -362,7 +362,7 @@ HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     Double_t tmpz = gHitPos[i].Y();
     Double_t r_cal = TMath::Hypot(tmpx - HelixPar[kHelixCx], tmpy - HelixPar[kHelixCy]);
     Double_t dist = TMath::Abs(r_cal - HelixPar[kHelixR]);
-    if(dist < MaxHoughWindowY){
+    if(dist < MaxHoughWindow){
       for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
         Double_t theta = histY->GetXaxis()->GetBinCenter(ti+1);
         Double_t mtheta = theta*TMath::DegToRad();
@@ -406,12 +406,12 @@ HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
 //_____________________________________________________________________________
 void
 HoughTransformLineYTheta(const std::vector<TPCClusterContainer>& ClCont,
-		       Int_t *MaxBin, Double_t *HelixPar, Double_t MaxHoughWindowY)
+		       Int_t *MaxBin, Double_t *HelixPar, Double_t MaxHoughWindow)
 {
 
   std::vector<TVector3> gHitPos;
   HoughFlagCheck(ClCont, gHitPos);
-  HoughTransformLineYTheta(gHitPos, MaxBin, HelixPar, MaxHoughWindowY);
+  HoughTransformLineYTheta(gHitPos, MaxBin, HelixPar, MaxHoughWindow);
 
 }
 

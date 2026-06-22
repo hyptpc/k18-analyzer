@@ -46,10 +46,10 @@ Bool_t HoughTransformCircleXZ(const std::vector<TPCClusterContainer>& ClCont,
 			      Int_t MinNumOfHits=8);
 void HoughTransformLineYTheta(std::vector<TVector3> gHitPos,
 			      Int_t *MaxBin, Double_t *HelixPar,
-			      Double_t MaxHoughWindowY);
+			      Double_t MaxHoughWindow);
 void HoughTransformLineYTheta(const std::vector<TPCClusterContainer>& ClCont,
 			      Int_t *MaxBin, Double_t *HelixPar,
-			      Double_t MaxHoughWindowY);
+			      Double_t MaxHoughWindow);
 
 }
 
