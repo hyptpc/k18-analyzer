@@ -186,14 +186,23 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
       delete hit;
       return false; //No cobo input
     }
-    
 
-    if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=min_cde && hit->IsGood()){
+    //Remove Noise Pad (padAbnormalWaveform_E72)
+    bool noise_pad = false;
+    if(NoiseOff){
+      if(tpc::Noise(layer,row)){
+	noise_pad = true;
+      }
+    }
+    
+    
+    if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=min_cde && hit->IsGood() && !noise_pad){
       m_TPCHitCont[layer].push_back(hit);
     }else{
       delete hit;
     }
   }
+  
 
 #if 1
   // MaxYDifClusterTPC: max |dY| between hits merged into one cluster (per layer)

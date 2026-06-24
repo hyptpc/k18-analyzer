@@ -1833,13 +1833,14 @@ inline Bool_t IsDead(Int_t layer, Int_t row){
   return IsDead(pad_id);
 }
 
+
 //_____________________________________________________________________________
 inline Bool_t Noise(Int_t pad_id){
 #ifdef PAD_HELPER_DEBUG
   ValidatePadID(pad_id, __func__);
 #endif
 
-  Bool_t noise = std::find(std::begin(padOnSectionFrame_E72), std::end(padOnSectionFrame_E72), pad_id) != std::end(padOnSectionFrame_E72);
+  Bool_t noise = std::find(std::begin(padAbnormalWaveform_E72), std::end(padAbnormalWaveform_E72), pad_id) != std::end(padAbnormalWaveform_E72);
   if(noise) return true;
   else return false;
   
