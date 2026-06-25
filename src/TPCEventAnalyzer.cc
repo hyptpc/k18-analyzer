@@ -613,18 +613,22 @@ TPCEventAnalyzer::FillHelixPidHist(const TPCLocalTrackHelix* track,
   const Int_t is_beam       = track->GetIsBeam();
   const Int_t is_accidental = track->GetIsAccidental();
   const Int_t is_k18        = track->GetIsK18();
-  const Bool_t is_scatter  = (is_beam == 0 && is_accidental == 0 && is_k18 == 0);
+  const Bool_t is_no_flag   = (is_beam == 0 && is_accidental == 0 && is_k18 == 0);
 
-  if(is_scatter){
-    HF1("Mom0", mom0);
-    HF1("dEdx_PID", pid_code);
+  HF1("Mom0", mom0);
+  HF1("dEdx_PID", pid_code);
+  HF2("PID_dEdx_vs_SignedMom", signed_p, dedx);
+  if(charge > 0) HF2("PID_dEdx_vs_Mom_pos", mom0, dedx);
+  else HF2("PID_dEdx_vs_Mom_neg", mom0, dedx);
+  if(pid_code & 0x1) HF2("PID_dEdx_vs_Mom_Pi", mom0, dedx);
+  if(pid_code & 0x2) HF2("PID_dEdx_vs_Mom_K", mom0, dedx);
+  if(pid_code & 0x4) HF2("PID_dEdx_vs_Mom_Proton", mom0, dedx);
+
+  if(is_no_flag){
+    HF1("Mom0_NoFlag", mom0);
+    HF1("dEdx_PID_NoFlag", pid_code);
+    HF2("PID_dEdx_vs_SignedMom_NoFlag", signed_p, dedx);
     HF2("PID_dEdx_vs_Mom", mom0, dedx);
-    HF2("PID_dEdx_vs_SignedMom", signed_p, dedx);
-    if(charge > 0) HF2("PID_dEdx_vs_Mom_pos", mom0, dedx);
-    else HF2("PID_dEdx_vs_Mom_neg", mom0, dedx);
-    if(pid_code & 0x1) HF2("PID_dEdx_vs_Mom_Pi", mom0, dedx);
-    if(pid_code & 0x2) HF2("PID_dEdx_vs_Mom_K", mom0, dedx);
-    if(pid_code & 0x4) HF2("PID_dEdx_vs_Mom_Proton", mom0, dedx);
   }
   if(is_beam == 1){
     HF1("Mom0_Beam", mom0);

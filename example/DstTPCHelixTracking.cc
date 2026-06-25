@@ -65,6 +65,7 @@ namespace
     
     // Optional parameter (default value is provided in the code)
     // "MaxCenterRowDiffTPC",
+    // "BeamLikeMaxAbsDzTPC",  // |dz| threshold for post-fit is_beam tagging (TPCTrackSearch; default 0.05)
   };
 }
 
@@ -124,8 +125,10 @@ struct Event
 #endif
 
   Int_t ntTpc; // Number of Tracks
+  Int_t effective_ntTpc; // Number of tracks with no beam/accidental/k18 flag
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
-  std::vector<Int_t> is_beam; // 1 = Beam, 0 = Scat
+  std::vector<Int_t> is_beam; // 1 = beam-tagged, 0 = not
+  std::vector<Int_t> is_accidental; // 1 = accidental-tagged, 0 = not
   std::vector<Double_t> chisqr;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
@@ -257,8 +260,9 @@ struct Event
 
   void clearHelixTracks() {
     ntTpc = 0;
+    effective_ntTpc = 0;
     dst::clear_all(
-      nhtrack, is_beam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
+      nhtrack, is_beam, is_accidental, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
       helix_theta_min, helix_theta_max, dE, dEdx,
       
 #if TruncatedMean
@@ -318,7 +322,7 @@ struct Event
 
   void resizeTracks(Int_t nTracks) {
     dst::resize_all(nTracks,
-      nhtrack, is_beam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
+      nhtrack, is_beam, is_accidental, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
       helix_theta_min, helix_theta_max, dE, dEdx,
 
 #if TruncatedMean
@@ -510,10 +514,17 @@ namespace
     Double_t helix_z0 = helix_track->Getz0(), helix_r = helix_track->Getr();
     Double_t helix_dz = helix_track->Getdz();
     TVector3 mom0_vec = helix_track->GetMom0();
-    Int_t is_beam = helix_track->GetIsBeam();
+    const Int_t is_beam       = helix_track->GetIsBeam();
+    const Int_t is_accidental = helix_track->GetIsAccidental();
+    const Int_t is_k18        = helix_track->GetIsK18();
+    const Bool_t is_no_flag   = (is_beam == 0 && is_accidental == 0 && is_k18 == 0);
 
     event.nhtrack[it] = n_hits;
     event.is_beam[it] = is_beam;
+    event.is_accidental[it] = is_accidental;
+    if (is_no_flag) {
+      ++event.effective_ntTpc;
+    }
     event.chisqr[it] = chi_sqr;
     event.helix_cx[it] = helix_cx;
     event.helix_cy[it] = helix_cy;
@@ -855,6 +866,7 @@ dst::DstRead(Int_t ievent)
   HF1("NTracks_TPC", event.ntTpc);
   if (event.ntTpc == 0)
     return true;
+  event.effective_ntTpc = 0;
   event.resizeTracks(event.ntTpc);
 
   for (Int_t it = 0; it < event.ntTpc; ++it) {
@@ -987,8 +999,10 @@ ConfMan::InitializeHistograms()
 #endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
+  tree->Branch( "effective_ntTpc", &event.effective_ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "is_beam", &event.is_beam );
+  tree->Branch( "is_accidental", &event.is_accidental );
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
