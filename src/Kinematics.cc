@@ -62,7 +62,7 @@ const Double_t sigma_tof_em = 0.14181;
 const Double_t offset_tof_ep = -0.237853;
 */
 
-const Double_t conversion_factor = 12171.3; //HypTPC's ADC to <dE/dx>
+const Double_t conversion_factor = 7388.11; //HypTPC's ADC to <dE/dx>
 const Double_t sigma_dedx_pi[5] = {3.94842, 0.0138502, -0.110281, 12.6065, -10.9347};
 const Double_t sigma_dedx_k[5] = {6.24543, -3.21037, 1.52683, 127.099, -9.1004};
 const Double_t sigma_dedx_p[5] = {12.9717, -8.43799, 3.10608, 166.494, -6.56123};
@@ -1465,14 +1465,15 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
   Double_t sigma_pi = CalcTPCdEdxSigma(sigma_dedx_pi, poq);
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
-  Double_t window_pi[2] = {-3., 3.};
-
+  Double_t window_pi[2] = {-3., 3.}; //E42, E72
+  
   // 1 sigma of <dE/dx>_p
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   Double_t sigma_p = CalcTPCdEdxSigma(sigma_dedx_p, poq);
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
-  Double_t window_p[2] = {-4., 6.};
+  //Double_t window_p[2] = {-4., 6.}; //E42
+  Double_t window_p[2] = {-1.5, 6.}; //E72
 
   //p/pi separation power calculation
   Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
@@ -1481,7 +1482,8 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t ppi_separation_cut = dedx_pi < dedx_p ? dedx_pi + 0.5*separation_power*sigma_pi : dedx_p + 0.5*separation_power*sigma_p;
 
   Int_t pid[3] = {0};
-  if(separation_power < 6.){ // low pi-p separation: use nsigma windows (threshold 6 in code)
+  //if(separation_power < 6.){ // low pi-p separation: use nsigma windows (E42)
+  if(separation_power < 3.){ // low pi-p separation: use nsigma windows (E72)
     if(nsigma_pi > window_pi[0] && nsigma_pi < window_pi[1]) pid[0]=1;
     if(nsigma_p > window_p[0]) pid[2]=1;
   }
@@ -1493,7 +1495,8 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 
   //for Kaon candidate selection
   Double_t nsigma_k = HypTPCdEdxNsigmaKaon(dedx, poq);
-  Double_t window_k[2] = {-3., 3.};
+  //Double_t window_k[2] = {-3., 3.}; //E42
+  Double_t window_k[2] = {-2., 2.}; //E72
   if(nsigma_k>window_k[0] && nsigma_k<window_k[1]) pid[1] = 1;
 
   Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
