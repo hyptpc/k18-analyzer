@@ -46,9 +46,11 @@ private:
   TPCLocalTrackHelixContainer        m_TPCTCHelix;
   TPCLocalTrackHelixContainer        m_TPCTCHelixInverted;
   TPCLocalTrackHelixContainer        m_TPCTCHelixFailed;
+  TPCLocalTrackHelixContainer        m_TPCTCVP;
   TPCVertexContainer                 m_TPCVC; //vertex between two tracks
   TPCVertexContainer                 m_TPCVCClustered; //clusted position of multi-tracks
   TPCLocalTrackContainer             m_TPCK18TC;
+  
 
 
 public:
@@ -71,6 +73,8 @@ public:
   //HS-On
   Bool_t TrackSearchTPCHelix(Bool_t exclusive=false,
                              UInt_t reco_mode=TPCReconstructor::kRecoAll);
+  Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+			     Bool_t exclusive=false);
   Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
   TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const { return m_TPCTCHelix.at(l); }
   

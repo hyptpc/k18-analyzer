@@ -262,6 +262,27 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive, UInt_t reco_mode)
 }
 
 //_____________________________________________________________________________
+//HS-On: Track Searching with BcOut Track
+Bool_t
+TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+				 Bool_t exclusive)
+{
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
+  // MinLayerTPC: min cluster count for Hough/fit (not number of TPC layers)
+  static const Int_t min_num_of_hits = gUser.GetParameter("MinLayerTPC");
+  
+  tpc::LocalTrackSearchHelix(K18BRVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, min_num_of_hits);
+
+  m_is_decoded[kTPCTracking] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
 TPCVertex*
 TPCAnalyzer::FindVertexTPC(Int_t id1, Int_t id2) const
 {

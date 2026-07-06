@@ -44,7 +44,7 @@ Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 			    Int_t MinNumOfHits);
 
 //TPC tracking combined with other tracking devices (default)
-Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
+Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
 			    const std::vector<TPCClusterContainer>& ClCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,

@@ -193,6 +193,7 @@ const Int_t LayerMaxBcOut     = 1016;
 
 const Int_t PlOffsBc          = 100;
 const Int_t PlOffsBcOut       = 1000;
+const Int_t PlOffsVPHS        = 207; //K1.8BR w/ TPC Tracking (E42 value : 207)
 
 const Int_t NumOfLayersBcIn   = LayerMaxBcIn   - LayerMinBcIn   + 1;
 const Int_t NumOfLayersBcOut  = LayerMaxBcOut  - LayerMinBcOut  + 1;

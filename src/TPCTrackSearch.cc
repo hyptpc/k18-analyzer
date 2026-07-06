@@ -1053,7 +1053,7 @@ LocalTrackSearchHelix(
 
 //_____________________________________________________________________________
 Int_t
-LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
+LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
 		      const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
@@ -1075,7 +1075,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 
   //Track finding and fitting
   //for K1.8 track searching
-  if(!BeamThroughTPC) K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
+  if(!BeamThroughTPC) K18TrackSearch(K18BRVPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);

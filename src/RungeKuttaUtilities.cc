@@ -942,6 +942,21 @@ RK::MakeHPContainer()
 }
 
 //_____________________________________________________________________________
+//For K1.8BR beam track extrapolation to the TPC
+RKHitPointContainer
+RK::MakeHSHPContainer()
+{
+  static const auto& IdList = gGeom.GetDetectorIDList();
+  RKHitPointContainer cont;
+  
+  for(int i=0; i<NumOfLayersVPHS; i++){
+    cont.push_back(std::make_pair(i+PlOffsVPHS+1, RKcalcHitPoint()));
+  }
+  
+  return cont;
+}
+
+//_____________________________________________________________________________
 const RKcalcHitPoint&
 RKHitPointContainer::HitPointOfLayer(int lnum) const
 {
