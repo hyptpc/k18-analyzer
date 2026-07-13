@@ -803,6 +803,27 @@ TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B)
   }
   return TMatrixD(rowC,colC,elem);
 }
+TMatrixD MergeMatrices(TMatrixD A, TMatrixD B)
+{
+  int rowA = A.GetNrows();
+  int colA = A.GetNcols();
+  int rowB = B.GetNrows();
+  int colB = B.GetNcols();
+  double elem[500]={0};
+  int rowC = rowA+rowB;
+  int colC = colA+colB;
+  for(int r=0;r<rowA;++r){
+    for(int c=0;c<colA;++c){
+      elem[c+colC*r] = A(r,c);
+    }
+  }
+  for(int r=0;r<rowB;++r){
+    for(int c=0;c<colB;++c){
+      elem[colA+c+colC*(r+rowA)] = B(r,c);
+    }
+  }
+  return TMatrixD(rowC,colC,elem);
+}
 #if 0
 TMatrixD MergeOffdiagonals(TMatrixDSym A, TMatrixDSym B)
 {
@@ -920,13 +941,17 @@ cov_ZPh = <del_Z del_Ph>
   return TMatrixD(5,5,CovElem);
 }
 void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, double& phi){
+  //Convert the covariance of (th, ph) into the covariance of (-x, z) in the helix coordinate.
   double ElemThPh[4] = {
     VLd(1,1),VLd(1,2),VLd(2,1),VLd(2,2)
   };
   TMatrixD VThPh(2,2,ElemThPh);
-  TVector3 HPLd(PLd.X(),PLd.Z(),PLd.Y());
+  //TVector3 HPLd(PLd.X(),PLd.Z(),PLd.Y());
+  TVector3 HPLd(-PLd.X(),PLd.Z(),PLd.Y());
   double ThLd = HPLd.Theta();
   double PhLd = HPLd.Phi();
+  //x = sin(Th)*cos(Ph)
+  //y = sin(Th)*sin(Ph)
   double dXdTh = cos(ThLd)*cos(PhLd);
   double dXdPh = -sin(ThLd)*sin(PhLd);
   double dYdTh = cos(ThLd)*sin(PhLd);
@@ -938,7 +963,7 @@ void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, 
   TMatrixD J(2,2,ElemJacob);
   TMatrixD JT = J;
   JT.Transpose(J);
-  TMatrixD Vxz = J*VThPh*JT;
+  TMatrixD Vxz = J*VThPh*JT; // xy in helix coordinate is -x,z in global coordinate
   TMatrixDEigen VThPhEigen(Vxz);
   TVectorD eigenValues = VThPhEigen.GetEigenValuesRe();
   TMatrixD eigenVectors = VThPhEigen.GetEigenVectors();
@@ -951,18 +976,19 @@ void DecomposeResolutionUV(TMatrixD VXi, TVector3 PXi, double& resU, double& res
     VXi(1,1),VXi(1,2),VXi(2,1),VXi(2,2)
   };
   TMatrixD VThPh(2,2,ElemThPh);
-  TVector3 HTVXi(PXi.X(),PXi.Z(),PXi.Y());
+  //TVector3 HTVXi(PXi.X(),PXi.Z(),PXi.Y());
+  TVector3 HTVXi(-PXi.X(),PXi.Z(),PXi.Y());
   double Th = HTVXi.Theta();
   double Phi = HTVXi.Phi();
-  double U = HTVXi.X()/HTVXi.Y();//= tan(Phi);
-  double V = HTVXi.Z()/HTVXi.Y();//= cos(Th)/sin(Th)/sin(Phi);
-  double dUdPhi = 1 + tan(Phi)*tan(Phi);
+  double U = -HTVXi.X()/HTVXi.Y();// = -cotan(Phi); Note: Phi ~ pi/2 is forward. 0  < Phi < pi holds for most tracks.
+  double V = HTVXi.Z()/HTVXi.Y();//= cotan(Th)/sin(Phi);
+  double dUdPhi = 1 + U*U;// d (cotan(Phi))/dPhi = 1 + cotan^2(Phi) = 1 + U^2
   double dUdTh = 0.;
-  double dVdPhi = cos(Th)/sin(Th)*(-cos(Phi)/sin(Phi)/sin(Phi));
-  double dVdTh = -1./sin(Th)/sin(Th)/sin(Phi);
+  double dVdPhi = U*V;// d(cotan(Th)/sin(Phi))/dPhi = -cotan(Th)*cotan(Phi)/sin(Phi)
+  double dVdTh = -1./sin(Th)/sin(Th)/sin(Phi); // d(cotan(Th)/sin(Phi))/dTh = -1/sin^2(Th)/sin(Phi)
   double ElemJacob[4] = {
-    dUdPhi,dUdTh,
-    dVdPhi,dVdTh
+    dUdTh,dUdPhi,
+    dVdTh,dVdPhi
   };
   TMatrixD J(2,2,ElemJacob);
   TMatrixD JT = J;
