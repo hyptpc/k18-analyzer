@@ -97,8 +97,16 @@ DCDriftParamMan::Initialize(const TString& file_name)
 //_____________________________________________________________________________
 const TGraph*
 DCDriftParamMan::GetParameter(const TString& detector_name,
-                              Int_t plane_id, Int_t /* wire_id */) const
+                              Int_t plane_id, Int_t wire_id) const
 {
+  if (wire_id >= 0) {
+    const TString half_suffix = (wire_id < 16) ? "-w0-15" : "-w16-31";
+    auto it_half = m_container.find(
+        Form("%s_plane%d%s", detector_name.Data(), plane_id, half_suffix.Data()));
+    if (it_half != m_container.end())
+      return it_half->second;
+  }
+
   auto it = m_container.find(Form("%s_plane%d", detector_name.Data(), plane_id));
   if (it != m_container.end())
     return it->second;
