@@ -187,15 +187,14 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
       return false; //No cobo input
     }
 
-    //Remove Noise Pad (padAbnormalWaveform_E72)
-    bool noise_pad = false;
+    // Remove Noise Pad (padAbnormalWaveform_E72)
+    Bool_t noise_pad = false;
     if(NoiseOff){
       if(tpc::Noise(layer,row)){
-	noise_pad = true;
+      	noise_pad = true;
       }
     }
-    
-    
+        
     if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=min_cde && hit->IsGood() && !noise_pad){
       m_TPCHitCont[layer].push_back(hit);
     }else{
@@ -211,6 +210,57 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], max_y_dif);
   }
 #endif
+
+  m_is_decoded[kTPC] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
+// Geant4 version of ReCalcTPCHits:
+//   - Y position is set directly from ytpc_pad (no clock-based drift calculation)
+//   - dE is used as-is (no gain calibration assumed for Geant4)
+Bool_t
+TPCAnalyzer::ReCalcTPCHitsGeant4(const Int_t nhits,
+                                  const std::vector<Int_t>& pad,
+                                  const std::vector<Double_t>& de,
+                                  const std::vector<Double_t>& ytpc_pad)
+{
+  if(m_is_decoded[kTPC]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  static const Double_t min_cde = gUser.GetParameter("MinCDeTPC");
+
+  ClearTPCHits();
+  ClearTPCClusters();
+
+  if(nhits != (Int_t)pad.size() || nhits != (Int_t)de.size() || nhits != (Int_t)ytpc_pad.size()){
+    hddaq::cerr << FUNC_NAME << " vector size mismatch" << std::endl;
+    return false;
+  }
+
+  for(Int_t ih = 0; ih < nhits; ih++){
+    const Int_t layer = tpc::getLayerID(pad[ih]);
+    const Int_t row   = tpc::getRowID(pad[ih]);
+    auto hit = new TPCHit(layer, row);
+    hit->AddHit(de[ih], 0.);      // time=0 (unused); appends to m_de/m_cde/m_position
+    hit->SetDe(de[ih]);           // explicitly set m_cde[0] = de[ih]
+    TVector3 pad_pos = tpc::GetPosition(pad[ih]);  // (x, 0, z) from geometry
+    pad_pos.SetY(ytpc_pad[ih]);   // override Y with Geant4 drift position
+    hit->SetPosition(pad_pos);
+
+    if(hit->GetCDe() >= min_cde && hit->IsGood()){
+      m_TPCHitCont[layer].push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+
+  static const Double_t max_y_dif = gUser.GetParameter("MaxYDifClusterTPC");
+  for(Int_t layer = 0; layer < NumOfLayersTPC; ++layer){
+    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], max_y_dif);
+  }
 
   m_is_decoded[kTPC] = true;
   return true;

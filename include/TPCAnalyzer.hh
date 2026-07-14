@@ -62,6 +62,11 @@ public:
                        const std::vector<Double_t>& time,
                        const std::vector<Double_t>& de,
                        const std::vector<Double_t>& clock);
+  // Geant4 version: Y position set directly from ytpc_pad (no clock-based drift)
+  Bool_t ReCalcTPCHitsGeant4(const Int_t nhits,
+                             const std::vector<Int_t>& pad,
+                             const std::vector<Double_t>& de,
+                             const std::vector<Double_t>& ytpc_pad);
 
   //HS-Off
   Bool_t TrackSearchTPC(Bool_t exclusive=false);
