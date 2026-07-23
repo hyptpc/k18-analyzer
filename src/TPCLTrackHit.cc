@@ -206,7 +206,7 @@ TPCLTrackHit::GetMomentumHelix(Double_t charge) const
   Double_t pz = tmp_py*0.001;
 
   TVector3 p = TVector3(px,py,pz);
-  if(charge<0.) p *= -1.;
+  if(charge>0.) p *= -1.;
   return p;
 }
 

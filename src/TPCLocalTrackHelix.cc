@@ -1727,7 +1727,7 @@ TPCLocalTrackHelix::CalcHelixMomCenter(const Double_t par[5]) const
   Double_t pz_global =  py_local;
 
   TVector3 p = TVector3(px_global, py_global, pz_global);
-  if(m_charge < 0) p *= -1.;
+  if(m_charge > 0) p *= -1.;
   return p;
 }
 
@@ -1749,7 +1749,7 @@ TPCLocalTrackHelix::CalcHelixMom(const Double_t par[5], Double_t theta) const
   Double_t pz_global =  py_local;
 
   TVector3 p = TVector3(px_global, py_global, pz_global);
-  if(m_charge < 0) p *= -1.;
+  if(m_charge > 0) p *= -1.;
   return p;
 }
 
@@ -3136,10 +3136,10 @@ TPCLocalTrackHelix::FinalizeTrack(Int_t &delete_hit)
   const Double_t dtheta = m_max_t - m_min_t;
   m_path = dtheta*TMath::Hypot(m_r, m_r*m_dz);
   m_transverse_path = dtheta*m_r;
-  m_mom0 = CalcHelixMom(gPar, 0.);
   if(false_layer!=0 || m_chisqr > MaxChisqr) return false_layer;
 
   if(!DetermineCharge()) return -1;
+  m_mom0 = CalcHelixMom(gPar, 0.);
   IsMultiLoop();
 
 #if DebugDisp
