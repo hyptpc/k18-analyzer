@@ -77,7 +77,7 @@ FieldMan::Initialize()
 Bool_t
 FieldMan::Initialize(const TString& file_name_s2s)
 {
-  m_file_name_s2s = file_name_s2s;
+  m_file_name_shs = file_name_s2s;
   return Initialize();
 }
 
@@ -96,18 +96,15 @@ TVector3
 FieldMan::GetField(const TVector3& position) const
 {
   TVector3 field(0., 0., 0.);
-  if(m_s2s_map // && m_shs_map
-    ){
-    Double_t p[3], b_s2s[3]; //, b_shs[3];
+  if(m_shs_map){
+    Double_t p[3], b_shs[3];
     p[0] = position.x()*0.1;
     p[1] = position.y()*0.1;
     p[2] = position.z()*0.1;
-    if(m_s2s_map->GetFieldValue(p, b_s2s)//  &&
-       // m_shs_map->GetFieldValue(p, b_shs)
-      ){
-      field.SetX(b_s2s[0]);
-      field.SetY(b_s2s[1]);
-      field.SetZ(b_s2s[2]);
+    if(m_shs_map->GetFieldValue(p, b_shs)){
+      field.SetX(b_shs[0]);
+      field.SetY(b_shs[1]);
+      field.SetZ(b_shs[2]);
     }
   }
 

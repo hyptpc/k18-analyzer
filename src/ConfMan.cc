@@ -158,6 +158,9 @@ ConfMan::WriteParameters()
     gFile->mkdir("param");
     gFile->cd("param");
     for(const auto& itr: m_file){
+      // Numeric configuration entries (e.g. HSFLDCALC) are not files.
+      if(gSystem->AccessPathName(itr.second))
+        continue;
       TMacro paramfile;
       paramfile.SetName(itr.first);
       paramfile.SetTitle(itr.second);

@@ -2,10 +2,21 @@
 
 #include <string>
 #include <cstdio>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <new>
 #include "TransferMatrixMan.hh"
+
+namespace
+{
+// tracking frame: {x[mm], dx/dz, y[mm], dy/dz, dp(=Dp/p fraction)}
+// matrix frame:   {x[cm], x'[mrad], y[cm], y'[mrad], l, dp[%]}
+const double kMmToCm    = 0.1;
+const double kCmToMm    = 10.;
+const double kRadToMrad = 1000.;
+const double kToPercent = 100.;
+}
 
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
 TransferMatrixMan::TransferMatrixMan()
@@ -137,20 +148,34 @@ bool TransferMatrixMan::Initialize()
 }
 
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
+// parblc1/parblc2 = {x[mm], dx/dz, y[mm], dy/dz, dp} (tracking units,
+// dp = Dp/p fraction); conversion to/from the matrix frame is internal
 void TransferMatrixMan::CalcBLC1toBLC2(double *parblc1, double *parblc2,const int &order)
 {
-  //par x, x', y, y', mom
-  double parin[6]={parblc1[0]/10.,parblc1[1],parblc1[2]/10.,parblc1[3],0.,parblc1[4]};
-  //		   (parblc1[4]-CentralMomentum)/CentralMomentum*100.};
+  double parin[6]={parblc1[0]*kMmToCm, std::atan(parblc1[1])*kRadToMrad,
+                   parblc1[2]*kMmToCm, std::atan(parblc1[3])*kRadToMrad,
+                   0., parblc1[4]*kToPercent};
   TMatrixD in;
   in.Use(6,1,parin);
   TMatrixD out(6,1);
   out.Mult(D5Matrix,in);
-  parblc2[0]=out[0][0]*10;
-  parblc2[1]=out[1][0];
-  parblc2[2]=out[2][0]*10;
-  parblc2[3]=out[3][0];
-  parblc2[4]=out[4][0]*10;
+  double res[5];
+  for(int i=0;i<5;i++){
+    res[i]=out[i][0];
+    if(order>=2){
+      // 2nd-order: out2nd_i = sum_jk T[i][j][k] * in_j * in_k
+      double out2nd=0.;
+      for(int j=0;j<6;j++)
+	for(int k=0;k<6;k++)
+	  out2nd+=D5Matrix2nd[i][6*j+k]*parin[j]*parin[k];
+      res[i]+=out2nd;
+    }
+  }
+  parblc2[0]=res[0]*kCmToMm;
+  parblc2[1]=std::tan(res[1]/kRadToMrad);
+  parblc2[2]=res[2]*kCmToMm;
+  parblc2[3]=std::tan(res[3]/kRadToMrad);
+  parblc2[4]=res[4];
 }
 void TransferMatrixMan::CalcBLC2toBLC1(double *parblc2, double *parblc1,const int &order)
 {}
