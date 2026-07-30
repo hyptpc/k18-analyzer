@@ -1337,7 +1337,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_min_t(0.), m_max_t(0.),
     m_path(0.), m_transverse_path(0.),
     m_charge(0), m_fitflag(0), m_vtxflag(0),
-    m_isBeam(0), m_isK18(0), m_isAccidental(0),
+    m_isBeam(0), m_isK18(0), m_isAccidental(0), m_allow_target_crossing_merge(false),
     m_trackid(-1),
     m_ncl_beforetgt(-1),
     m_searchtime(0), m_fittime(0),
@@ -1402,6 +1402,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
   this -> m_isBeam = init -> m_isBeam ;
   this -> m_isK18 = init -> m_isK18 ;
   this -> m_isAccidental = init -> m_isAccidental ;
+  this -> m_allow_target_crossing_merge = init -> m_allow_target_crossing_merge ;
   this -> m_trackid = init -> m_trackid ;
   this -> m_ncl_beforetgt = init -> m_ncl_beforetgt ;
   this -> m_searchtime = init -> m_searchtime ; //millisec
@@ -3412,7 +3413,10 @@ TPCLocalTrackHelix::TestMergedTrack()
     }
 
     if(side1_hits.size() > 0 && side2_hits.size() > 0){
-      if(m_isAccidental!=1 || m_isBeam!=1) return false; //(case3) if it is not accidental beam
+      // The caller validates a geometry-selected fragment pair with a full
+      // refit. During that test only, target crossing is allowed before its
+      // final beam classification is assigned.
+      if(m_isBeam!=1 && !m_allow_target_crossing_merge) return false;
       /*
       if(TMath::Abs(m_closedist.x())<15. &&
          TMath::Abs(m_closedist.y())<10. &&

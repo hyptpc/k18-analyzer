@@ -67,6 +67,13 @@ public:
                              const std::vector<Int_t>& pad,
                              const std::vector<Double_t>& de,
                              const std::vector<Double_t>& ytpc_pad);
+  // Geant4 cluster-level input.  One input element is kept as one cluster;
+  // do not run the pad-hit clustering step.
+  Bool_t ReCalcTPCHitsGeant4(const std::vector<Int_t>& pad,
+                             const std::vector<Double_t>& de,
+                             const std::vector<Double_t>& x,
+                             const std::vector<Double_t>& y,
+                             const std::vector<Double_t>& z);
 
   //HS-Off
   Bool_t TrackSearchTPC(Bool_t exclusive=false);
@@ -78,10 +85,12 @@ public:
   //HS-On
   Bool_t TrackSearchTPCHelix(Bool_t exclusive=false,
                              UInt_t reco_mode=TPCReconstructor::kRecoAll);
-  Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+  Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 			     Bool_t exclusive=false);
   Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
   TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const { return m_TPCTCHelix.at(l); }
+  Int_t GetNTracksTPCHelixVP() const { return m_TPCTCVP.size(); }
+  TPCLocalTrackHelix* GetTrackTPCHelixVP(Int_t l) const { return m_TPCTCVP.at(l); }
   
   Int_t GetNVerticesTPC() const { return m_TPCVC.size(); }
   TPCVertex* GetVertexTPC(Int_t i) const { return m_TPCVC.at(i); }

@@ -1084,6 +1084,16 @@ BuildCoBoClockTime(UInt_t flags)
 
 //_____________________________________________________________________________
 void
+BuildTPCHSHelixResidual()
+{
+  HB1("TPCHS_DeltaX;X_{TPC helix}-X_{HS helix} [mm];Counts", 100, -100., 100.);
+  HB1("TPCHS_DeltaY;Y_{TPC helix}-Y_{HS helix} [mm];Counts", 100, -100., 100.);
+  HB1("TPCHS_Residual;#sqrt{#DeltaX^{2}+#DeltaY^{2}} [mm];Counts", 100, 0., 100.);
+  HB2("TPCHS_DeltaX_vs_Z;Z [mm];X_{TPC helix}-X_{HS helix} [mm]", 10, -250., -170., 100, -100., 100.);
+}
+
+//_____________________________________________________________________________
+void
 BuildTPCHelixTracking(Bool_t calib_flag)
 {
   HB1("HoughDist;Hough distance [mm];Counts", TPC_BINS_HOUGH);
@@ -1160,6 +1170,32 @@ BuildTPCHelixLambda()
   HB1("Lambda_TargetToVtxY;TargetCenter#rightarrowVertex Y [mm];Counts", TPC_BINS_POS_Y);
   HB1("Lambda_TargetToVtxZ;TargetCenter#rightarrowVertex Z [mm];Counts", TPC_BINS_POS_X);
   HB1("Lambda_TargetToVtxDotMom;cos#theta((TargetCenter#rightarrowVertex),P_{#Lambda});Counts", 200, -1.0, 1.0);
+}
+
+//_____________________________________________________________________________
+void
+BuildTPCLambdaEta()
+{
+  HB1("LambdaEta_Mass;M(p#pi^{-}) [GeV/c^{2}];Counts", 500, 1.05, 1.25);
+  HB1("LambdaEta_CloseDist;Closest distance [mm];Counts", 500, 0.0, 50.0);
+  HB1("LambdaEta_VtxX;Vertex X [mm];Counts", TPC_BINS_POS_X);
+  HB1("LambdaEta_VtxY;Vertex Y [mm];Counts", TPC_BINS_POS_Y);
+  HB1("LambdaEta_VtxZ;Vertex Z [mm];Counts", TPC_BINS_POS_X);
+
+  HB1("LambdaEta_Proton_MomX;Proton P_{x} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Proton_MomY;Proton P_{y} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Proton_MomZ;Proton P_{z} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Proton_Mom;Proton |P| at vertex [GeV/c];Counts", TPC_BINS_MOM0);
+
+  HB1("LambdaEta_Pion_MomX;#pi^{-} P_{x} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Pion_MomY;#pi^{-} P_{y} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Pion_MomZ;#pi^{-} P_{z} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Pion_Mom;#pi^{-} |P| at vertex [GeV/c];Counts", TPC_BINS_MOM0);
+
+  HB1("LambdaEta_Lambda_MomX;#Lambda P_{x} [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Lambda_MomY;#Lambda P_{y} [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Lambda_MomZ;#Lambda P_{z} [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("LambdaEta_Lambda_Mom;#Lambda |P| [GeV/c];Counts", TPC_BINS_MOM0);
 }
 
 //_____________________________________________________________________________

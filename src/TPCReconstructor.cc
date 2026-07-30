@@ -16,6 +16,7 @@
 #include "UserParamMan.hh"
 
 #define TPC_RECO_ENABLE_LAMBDA_REFIT 0
+#define TPC_RECO_PRINT_CANDIDATES 0
 
 namespace
 {
@@ -213,7 +214,9 @@ TPCReconstructor::ReconstructLambda(TPCVertex* vertex,
       vertex->GetTrackCharge(1)
     );
     vertex->AddRecoCandidate(cand);
+#if TPC_RECO_PRINT_CANDIDATES
     cand.Print("Lambda");
+#endif
   }
 }
 
@@ -351,7 +354,9 @@ TPCReconstructor::ReconstructK0Short(TPCVertex* vertex)
     vertex->GetTrackCharge(1)
   );
   vertex->AddRecoCandidate(cand);
+#if TPC_RECO_PRINT_CANDIDATES
   cand.Print("K0Short");
+#endif
 }
 
 //_____________________________________________________________________________

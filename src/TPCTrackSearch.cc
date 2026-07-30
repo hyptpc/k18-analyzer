@@ -67,24 +67,67 @@ namespace
   const auto& gCounter = debug::ObjectCounter::GetInstance();
   const Int_t MaxNumOfTrackTPC = 30;
 
-  const Double_t K18XZWindow = 10.5;
-  //const Double_t K18YWindow = 10.;
-  const Double_t K18YWindow = 15.;
+  Double_t
+  TuneCut(const char* name, Double_t fallback)
+  {
+    return gUser.Has(name) ? gUser.GetParameter(name) : fallback;
+  }
+
+  const tpc::tuning::K18TagCuts&
+  GetK18TagCuts()
+  {
+    const auto& d = tpc::tuning::kDefaultK18TagCuts;
+    static const tpc::tuning::K18TagCuts cuts{
+      TuneCut("K18MatchXZWindow", d.xz_window), TuneCut("K18MatchYWindow", d.y_window),
+      TuneCut("K18AssociationMeanResidualMax", d.association_mean_residual),
+      TuneCut("K18AssociationResidualMax", d.association_max_residual),
+      static_cast<Int_t>(TuneCut("K18NormalMinUpstreamHits", d.normal_min_upstream_hits)),
+      static_cast<Int_t>(TuneCut("K18DownstreamMinHits", d.downstream_min_hits)),
+      static_cast<Int_t>(TuneCut("K18DownstreamMaxUpstreamHits", d.downstream_max_upstream_hits)),
+      TuneCut("K18DownstreamResidualMax", d.downstream_residual_max),
+      TuneCut("K18MinMatchedFraction", d.min_matched_fraction)
+    };
+    return cuts;
+  }
+
+  const tpc::tuning::AccidentalExtensionCuts&
+  GetAccidentalExtensionCuts()
+  {
+    const auto& d = tpc::tuning::kDefaultAccidentalExtensionCuts;
+    static const tpc::tuning::AccidentalExtensionCuts cuts{
+      TuneCut("AccidentalExtensionMaxAbsDz", d.max_abs_dz),
+      TuneCut("AccidentalExtensionMeanResidualMax", d.mean_residual_max),
+      TuneCut("AccidentalExtensionResidualMax", d.residual_max),
+      static_cast<Int_t>(TuneCut("AccidentalExtensionMaxFragmentHits", d.max_fragment_hits)),
+      TuneCut("AccidentalExtensionMinMomNegative", d.min_mom_negative),
+      TuneCut("AccidentalExtensionMinMomPositive", d.min_mom_positive)
+    };
+    return cuts;
+  }
+
+  const tpc::tuning::BeamFragmentExtensionCuts&
+  GetBeamFragmentExtensionCuts()
+  {
+    const auto& d = tpc::tuning::kDefaultBeamFragmentExtensionCuts;
+    static const tpc::tuning::BeamFragmentExtensionCuts cuts{
+      TuneCut("BeamFragmentMergeMaxChi2NDF", d.max_chi2_ndf)
+    };
+    return cuts;
+  }
+
+  Double_t
+  BeamTagMaxAbsDz()
+  {
+    return TuneCut("BeamLikeMaxAbsDzTPC", tpc::tuning::kDefaultBeamTagMaxAbsDz);
+  }
 
   // Min helix radius [mm] to accept linear->helix conversion (HighMomHelixTrackSearch).
   // At B = 1 T, 200 mm corresponds to pT ~ 60 MeV/c (pT = 0.3 * B[T] * R[m]).
   const Double_t MIN_HELIX_RADIUS_LINEAR_CONVERT = 200.;
-
-  // Closest distance cut for vertex finding
+  // Generic vertex/fragment cuts (not K18-specific).
   const Double_t VertexDistCut = 30.;
-  const Double_t ppi_distcut = 10.; //Closest distance for p, pi at the vertex point
-
-  // RestoreFragmentedTracks: max closest distance [mm] for merging fragmented track pairs
+  const Double_t ppi_distcut = 10.;
   const Double_t FragmentMergeClosestDistMax = 20.;
-
-  // RestoreFragmentedAccidentalTracks: max |dz| for downstream parent-track candidates
-  // (same scale as beam-like |dz| cut in TPCLocalTrackHelix.cc)
-  const Double_t MaxCandidateAbsDz = 0.05;
 
   // Maximum number of fitting steps
   const Int_t MaxFitSteps = 10;
@@ -172,7 +215,7 @@ namespace
   MarkingAccidentalTracks(std::vector<T*>& TrackCont)
   {
     for(auto& track: TrackCont){
-      if(track->GetIsAccidental()!=1) track->CheckIsAccidental();
+      if(track && track->GetIsK18()!=1 && track->GetIsAccidental()!=1) track->CheckIsAccidental();
     }
   }
 
@@ -183,11 +226,7 @@ namespace
     static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
     if(BeamThroughTPC) return;
 
-    static const Double_t default_max_abs_dz = 0.05;
-    const Double_t max_abs_dz =
-      gUser.Has("BeamLikeMaxAbsDzTPC")
-        ? gUser.GetParameter("BeamLikeMaxAbsDzTPC")
-        : default_max_abs_dz;
+    const Double_t max_abs_dz = BeamTagMaxAbsDz();
 
     for(auto& track: TrackCont){
       if(!track || track->GetIsBeam()==1 || track->GetIsK18()==1) continue;
@@ -300,6 +339,164 @@ namespace
     } //layer
     return status;
   }
+  // Re-tag completed generic/restored tracks against K18 RK VP references.
+  void
+  RetagRestoredK18Tracks(const std::vector<std::vector<TVector3>>& VPs,
+                         std::vector<TPCLocalTrackHelix*>& TrackCont)
+  {
+    for (auto* track : TrackCont) {
+      if (!track || track->GetIsK18() == 1 || track->GetNHit() == 0) continue;
+      for (Int_t ivp = 0; ivp < static_cast<Int_t>(VPs.size()); ++ivp) {
+        TPCLocalTrackHelix trackref;
+        for (const auto& pos : VPs[ivp]) trackref.AddVPHit(pos);
+        if (!trackref.DoVPFit()) continue;
+
+        Int_t n_matched = 0, n_upstream = 0, n_downstream = 0;
+        Double_t sum_residual = 0., max_residual = 0.;
+        Double_t sum_downstream_residual = 0., max_downstream_residual = 0.;
+        for (Int_t ihit = 0; ihit < track->GetNHit(); ++ihit) {
+          TPCHit* hit = track->GetHitInOrder(ihit)->GetHit();
+          Double_t residual = 0.;
+          if (!trackref.ResidualCheck(hit->GetPosition(), GetK18TagCuts().xz_window, GetK18TagCuts().y_window, residual)) continue;
+          ++n_matched;
+          sum_residual += residual;
+          max_residual = TMath::Max(max_residual, residual);
+          if (hit->GetPosition().Z() < tpc::Z_TARGET - 10.) {
+            ++n_upstream;
+          }
+          else {
+            ++n_downstream;
+            sum_downstream_residual += residual;
+            max_downstream_residual = TMath::Max(max_downstream_residual, residual);
+          }
+        }
+
+        if (n_matched < GetK18TagCuts().min_matched_fraction*track->GetNHit()) continue;
+        const Double_t mean_residual = n_matched > 0
+          ? sum_residual/n_matched : std::numeric_limits<Double_t>::max();
+        const Double_t mean_downstream_residual = n_downstream > 0
+          ? sum_downstream_residual/n_downstream : std::numeric_limits<Double_t>::max();
+        const Bool_t normal_k18 = n_upstream >= GetK18TagCuts().normal_min_upstream_hits
+          && mean_residual < GetK18TagCuts().association_mean_residual
+          && max_residual < GetK18TagCuts().association_max_residual;
+        const Bool_t downstream_dominant_k18 = n_upstream <= GetK18TagCuts().downstream_max_upstream_hits
+          && n_downstream >= GetK18TagCuts().downstream_min_hits
+          && mean_downstream_residual < GetK18TagCuts().downstream_residual_max
+          && max_downstream_residual < GetK18TagCuts().downstream_residual_max;
+        if (!normal_k18 && !downstream_dominant_k18) continue;
+
+        track->SetIsK18();
+        track->SetIsBeam();
+        track->SetIsAccidental(0);
+        track->SetTrackID(ivp);
+        break;
+      }
+    }
+  }
+
+  // Merge duplicate K18 fragments only when both point to the same RK VP track.
+  Bool_t
+  MergeK18Fragments(const std::vector<std::vector<TVector3>>& VPs,
+                    std::vector<TPCLocalTrackHelix*>& TrackCont,
+                    Int_t MinNumOfHits)
+  {
+    Bool_t merged_any = false;
+    Bool_t merged_in_pass = true;
+    while (merged_in_pass) {
+      merged_in_pass = false;
+      for (Int_t i = 0; i < static_cast<Int_t>(TrackCont.size()) && !merged_in_pass; ++i) {
+        TPCLocalTrackHelix* parent = TrackCont[i];
+        if (!parent || parent->GetIsK18() != 1) continue;
+        const Int_t ivp = parent->GetTrackID();
+        if (ivp < 0 || ivp >= static_cast<Int_t>(VPs.size())) continue;
+
+        TPCLocalTrackHelix trackref;
+        for (const auto& pos : VPs[ivp]) trackref.AddVPHit(pos);
+        if (!trackref.DoVPFit()) continue;
+        Double_t RKHelixParam[5];
+        trackref.GetParam(RKHelixParam);
+
+        for (Int_t j = i + 1; j < static_cast<Int_t>(TrackCont.size()); ++j) {
+          TPCLocalTrackHelix* fragment = TrackCont[j];
+          if (!fragment || fragment->GetIsK18() != 1 || fragment->GetTrackID() != ivp) continue;
+
+          TPCLocalTrackHelix* merged = new TPCLocalTrackHelix(parent);
+          Int_t n_matched_fragment_hits = 0;
+          for (Int_t ihit = 0; ihit < fragment->GetNHit(); ++ihit) {
+            TPCHit* hit = fragment->GetHitInOrder(ihit)->GetHit();
+            Bool_t already_on_track = false;
+            for (Int_t iparent = 0; iparent < parent->GetNHit(); ++iparent)
+              if (parent->GetHitInOrder(iparent)->GetHit() == hit) { already_on_track = true; break; }
+            if (already_on_track) continue;
+            Double_t residual = 0.;
+            if (!trackref.ResidualCheck(hit->GetPosition(), GetK18TagCuts().xz_window, GetK18TagCuts().y_window, residual)) continue;
+            merged->AddTPCHit(new TPCLTrackHit(hit));
+            ++n_matched_fragment_hits;
+          }
+
+          if (n_matched_fragment_hits < GetK18TagCuts().min_matched_fraction*fragment->GetNHit() ||
+              !merged->DoFit(RKHelixParam, MinNumOfHits)) {
+            delete merged;
+            continue;
+          }
+
+          merged->SetIsK18();
+          merged->SetIsBeam();
+          merged->SetIsAccidental(0);
+          merged->SetTrackID(ivp);
+          merged->SetClustersHoughFlag(K18Tracks);
+          TrackCont[i] = merged;
+          TrackCont.erase(TrackCont.begin() + j);
+          delete parent;
+          delete fragment;
+          merged_any = true;
+          merged_in_pass = true;
+          break;
+        }
+      }
+    }
+    return merged_any;
+  }
+
+  // Keep one K18 tag per RK VP: the track with the smallest mean 3D residual wins.
+  void
+  KeepBestK18TrackPerVP(const std::vector<std::vector<TVector3>>& VPs,
+                        std::vector<TPCLocalTrackHelix*>& TrackCont)
+  {
+    std::vector<Int_t> best_track(VPs.size(), -1);
+    std::vector<Double_t> best_residual(VPs.size(), std::numeric_limits<Double_t>::max());
+    for (Int_t itrack = 0; itrack < static_cast<Int_t>(TrackCont.size()); ++itrack) {
+      TPCLocalTrackHelix* track = TrackCont[itrack];
+      if (!track || track->GetIsK18() != 1 || track->GetNHit() == 0) continue;
+      const Int_t ivp = track->GetTrackID();
+      if (ivp < 0 || ivp >= static_cast<Int_t>(VPs.size())) continue;
+
+      TPCLocalTrackHelix trackref;
+      for (const auto& pos : VPs[ivp]) trackref.AddVPHit(pos);
+      if (!trackref.DoVPFit()) continue;
+      Double_t sum_residual = 0.;
+      Int_t n_residual = 0;
+      for (Int_t ihit = 0; ihit < track->GetNHit(); ++ihit) {
+        Double_t residual = 0.;
+        if (!trackref.ResidualCheck(track->GetHitInOrder(ihit)->GetHit()->GetPosition(),
+                                    std::numeric_limits<Double_t>::max(),
+                                    std::numeric_limits<Double_t>::max(), residual)) continue;
+        sum_residual += residual;
+        ++n_residual;
+      }
+      if (n_residual == 0) continue;
+      const Double_t mean_residual = sum_residual/n_residual;
+      if (mean_residual < best_residual[ivp]) {
+        if (best_track[ivp] >= 0) TrackCont[best_track[ivp]]->SetIsK18(0);
+        best_track[ivp] = itrack;
+        best_residual[ivp] = mean_residual;
+      }
+      else {
+        track->SetIsK18(0);
+      }
+    }
+  }
+
 } //namespace
 
 namespace tpc{
@@ -862,6 +1059,12 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 #endif
 
     Int_t BeforeTGTHits = 0;
+    Double_t sum_k18_residual = 0.;
+    Double_t max_k18_residual = 0.;
+    Double_t sum_k18_downstream_residual = 0.;
+    Double_t max_k18_downstream_residual = 0.;
+    Int_t n_k18_downstream_hits = 0;
+    Int_t n_k18_matched_hits = 0;
     TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
     //set min, max theta for checking a closest distance and residual
     track -> SetMint(trackref->GetMint());
@@ -869,17 +1072,15 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 
     trackref->DoVPFit();
     std::vector<TPCClusterContainer> ClContK18(NumOfLayersTPC);
-    for(Int_t layer=0; layer<10; layer++){ //inner layers
+    for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){ // all layers: connect HS-matched beam fragments across target
       Double_t minresi = 1000.; Int_t id = -1;
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
 	auto cl = ClCont[layer][ci];
 	TPCHit* hit = cl->GetMeanHit();
 	if(hit->GetHoughFlag()>0) continue;
 	TVector3 pos = cl->GetPosition();
-	//if(pos.Z()>tpc::Z_TARGET) continue;
-	if(pos.Z()>tpc::Z_TARGET-10.) continue;
 	Double_t resi;
-	if(trackref->ResidualCheck(pos, K18XZWindow, K18YWindow, resi)){
+	if(trackref->ResidualCheck(pos, GetK18TagCuts().xz_window, GetK18TagCuts().y_window, resi)){
 	  ClContK18[layer].push_back(cl);
 	  if(minresi > resi){
 	    minresi = resi;
@@ -891,7 +1092,17 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 	TPCHit* hit = ClCont[layer][id]->GetMeanHit();
 	hit->SetHoughDist(qnan);
 	track->AddTPCHit(new TPCLTrackHit(hit));
-	BeforeTGTHits++;
+	sum_k18_residual += minresi;
+	max_k18_residual = TMath::Max(max_k18_residual, minresi);
+	++n_k18_matched_hits;
+	if (hit->GetPosition().Z() < tpc::Z_TARGET - 10.) {
+	  ++BeforeTGTHits;
+	}
+	else {
+	  sum_k18_downstream_residual += minresi;
+	  max_k18_downstream_residual = TMath::Max(max_k18_downstream_residual, minresi);
+	  ++n_k18_downstream_hits;
+	}
       }
     } //layer
 
@@ -905,7 +1116,26 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
     track->Print(FUNC_NAME+ " K18 track candidate");
 #endif
 
-    if(BeforeTGTHits<2){
+    const Double_t mean_k18_residual
+      = n_k18_matched_hits > 0 ? sum_k18_residual/n_k18_matched_hits
+                               : std::numeric_limits<Double_t>::max();
+    const Bool_t good_k18_association
+      = mean_k18_residual < GetK18TagCuts().association_mean_residual
+      && max_k18_residual < GetK18TagCuts().association_max_residual;
+
+    const Double_t mean_k18_downstream_residual
+      = n_k18_downstream_hits > 0
+      ? sum_k18_downstream_residual/n_k18_downstream_hits
+      : std::numeric_limits<Double_t>::max();
+
+    const Bool_t good_downstream_dominant_k18
+      = BeforeTGTHits <= GetK18TagCuts().downstream_max_upstream_hits
+      && n_k18_downstream_hits >= GetK18TagCuts().downstream_min_hits
+      && mean_k18_downstream_residual < GetK18TagCuts().downstream_residual_max
+      && max_k18_downstream_residual < GetK18TagCuts().downstream_residual_max;
+
+    if(!(good_k18_association || good_downstream_dominant_k18) ||
+       (BeforeTGTHits <= GetK18TagCuts().downstream_max_upstream_hits && !good_downstream_dominant_k18)){
       delete track;
       continue;
     }
@@ -932,8 +1162,24 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 #endif
 
       TPCLocalTrackHelix *ExtendedTrack = new TPCLocalTrackHelix(track);
+      Int_t n_upstream_extension_layers = 0;
+      for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+        Double_t best_resi = std::numeric_limits<Double_t>::max();
+        TPCHit *best_hit = nullptr;
+        for (const auto& cl : ClCont[layer]) {
+          TPCHit *hit = cl->GetMeanHit();
+          if (hit->GetHoughFlag() > 0 || hit->GetPosition().Z() >= tpc::Z_TARGET) continue;
+          Bool_t already_on_track = false;
+          for (Int_t ihit = 0; ihit < track->GetNHit(); ++ihit)
+            if (track->GetHitInOrder(ihit)->GetHit() == hit) { already_on_track = true; break; }
+          if (already_on_track) continue;
+          Double_t resi = 0.;
+          if (track->IsGoodHitToAdd(hit, resi, true) && resi < best_resi) { best_resi = resi; best_hit = hit; }
+        }
+        if (best_hit) { ExtendedTrack->AddTPCHit(new TPCLTrackHit(best_hit)); ++n_upstream_extension_layers; }
+      }
       //Residual check with other hits
-      if(!AddClusters(ExtendedTrack, ClContK18)){ //No more cluster to add
+      if(!AddClusters(ExtendedTrack, ClContK18) && n_upstream_extension_layers < 2){ //No more cluster to add
 	delete ExtendedTrack;
 	track->SetClustersHoughFlag(K18Tracks);
 	TrackCont.push_back(track);
@@ -1024,6 +1270,8 @@ LocalTrackSearchHelix(
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+  // Classify accepted merged tracks only after the merged helix is final.
+  if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
 #endif
 
 #if ReassignClusterTest
@@ -1053,7 +1301,7 @@ LocalTrackSearchHelix(
 
 //_____________________________________________________________________________
 Int_t
-LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
@@ -1075,7 +1323,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
 
   //Track finding and fitting
   //for K1.8 track searching
-  if(!BeamThroughTPC) K18TrackSearch(K18BRVPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
+  if(!BeamThroughTPC) K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
@@ -1095,6 +1343,8 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+  // Classify accepted merged tracks only after the merged helix is final.
+  if(!BeamThroughTPC) MarkingBeamTracks(TrackCont);
 #endif
 
 #if ReassignClusterTest
@@ -1111,6 +1361,14 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
+  if(!BeamThroughTPC) {
+    RetagRestoredK18Tracks(K18VPs, TrackCont);
+    if(MergeK18Fragments(K18VPs, TrackCont, MinNumOfHits)){
+      del::ClearContainer(VertexCont);
+      VertexSearch(TrackCont, VertexCont);
+    }
+    KeepBestK18TrackPerVP(K18VPs, TrackCont);
+  }
   CalcTracks(TrackContVP);
   DropFailedTracksBelowMinHits(TrackContFailed, MIN_HITS_FOR_FAILED_CALC);
   CalcTracks(TrackContFailed); //Tracking failed cases
@@ -1495,8 +1753,6 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
         break;
       }
     }
-    if(isbeam1) continue; //veto beam particle
-
     Bool_t isbeam2 = true;
     for(Int_t ihit=0; ihit<TrackCont[trackid2]->GetNHit(); ihit++){
       TPCHit *hit  = TrackCont[trackid2]->GetHitInOrder(ihit)->GetHit();
@@ -1506,7 +1762,12 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
         break;
       }
     }
-    if(isbeam2) continue; //veto beam particle
+    // A beam split at the target has two beam-like pieces.  It used to be
+    // vetoed here unconditionally, so Geant4 beam events could never be
+    // restored.  Keep mixed beam/non-beam pairs vetoed, but let a pair of
+    // beam-like pieces proceed through the usual merged-fit validation.
+    const Bool_t both_beamlike = isbeam1 && isbeam2;
+    if(isbeam1 != isbeam2) continue;
 
 
     //case1. accidental beam crossing the target is splitted into two tracks
@@ -1521,7 +1782,8 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 
     // closest point is not in the target.
     // without this, two scattered tracks with opposite direction frequently wrongly merged.
-    if(TMath::Hypot(vtx.x(), vtx.z() - tpc::Z_TARGET) < tpc::TARGET_RADIUS &&
+    if(!both_beamlike &&
+       TMath::Hypot(vtx.x(), vtx.z() - tpc::Z_TARGET) < tpc::TARGET_RADIUS &&
        TMath::Abs(vtx.y()) < tpc::TARGET_HALF_Y) continue;
 
 #if DebugDisp
@@ -1659,6 +1921,71 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     candidates.push_back(trackid1);
     candidates.push_back(trackid2);
   } // end of for(auto& vertex: candidates_VertexCont)
+
+  // A track may be split on the two target sides without producing a vertex:
+  // the two independently fitted pieces are almost collinear, so a unique
+  // closest-approach vertex is ill-defined.  Do not require a beam tag or
+  // beam-corridor preselection here; the full merged helix fit and chi2/NDF
+  // are the discriminator, as in the E42-style fragmented-track test.
+  const auto& beam_extension_cuts = GetBeamFragmentExtensionCuts();
+  const Int_t n_original_tracks = TrackCont.size();
+  for(Int_t id1 = 0; id1 < n_original_tracks; ++id1){
+    if(std::find(candidates.begin(), candidates.end(), id1) != candidates.end()) continue;
+    T *track1 = TrackCont[id1];
+    Int_t nup1 = 0, ndown1 = 0;
+    for(Int_t ihit = 0; ihit < track1->GetNHit(); ++ihit){
+      const TVector3 pos = track1->GetHitInOrder(ihit)->GetHit()->GetPosition();
+      if(pos.z() < tpc::Z_TARGET) ++nup1; else ++ndown1;
+    }
+    if(nup1 == ndown1) continue;
+
+    for(Int_t id2 = id1 + 1; id2 < n_original_tracks; ++id2){
+      if(std::find(candidates.begin(), candidates.end(), id2) != candidates.end()) continue;
+      T *track2 = TrackCont[id2];
+      Int_t nup2 = 0, ndown2 = 0;
+      for(Int_t ihit = 0; ihit < track2->GetNHit(); ++ihit){
+        const TVector3 pos = track2->GetHitInOrder(ihit)->GetHit()->GetPosition();
+        if(pos.z() < tpc::Z_TARGET) ++nup2; else ++ndown2;
+      }
+      if(nup2 == ndown2 || (nup1 > ndown1) == (nup2 > ndown2)) continue;
+
+      // E42-style fragment test: combine all hits, then let the complete
+      // helix refit and chi2/NDF decide.  A pre-fit per-hit residual gate is
+      // too restrictive for two independently fitted target-side pieces.
+      T *parent = track1->GetNHit() >= track2->GetNHit() ? track1 : track2;
+      T *fragment = parent == track1 ? track2 : track1;
+      T *merged_track = new T(parent);
+      merged_track->SetAllowTargetCrossingMerge();
+      fragment->SetClustersHoughFlag(0);
+      for(Int_t ihit = 0; ihit < fragment->GetNHit(); ++ihit){
+        TPCHit *hit = fragment->GetHitInOrder(ihit)->GetHit();
+        merged_track->AddTPCHit(new TPCLTrackHit(hit));
+      }
+      if(!merged_track->TestMergedTrack()){
+        fragment->SetClustersHoughFlag(GoodForTracking);
+        delete merged_track;
+        continue;
+      }
+
+      const Int_t n_before = TrackCont.size();
+      FitTrack(merged_track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+      if(TrackCont.size() == n_before + 1){
+        merged_track = TrackCont.back();
+        merged_track->Calculate();
+        if(Exclusive){ merged_track->DoFitExclusive(); merged_track->CalculateExclusive(); }
+        if(merged_track->GetNHit() > parent->GetNHit() &&
+           merged_track->GetChiSquare() < beam_extension_cuts.max_chi2_ndf){
+          candidates.push_back(id1);
+          candidates.push_back(id2);
+          break;
+        }
+        TrackCont.pop_back();
+        delete merged_track;
+      }
+      parent->SetClustersHoughFlag(GoodForTracking);
+      fragment->SetClustersHoughFlag(GoodForTracking);
+    }
+  }
 
   if(candidates.size()>0){
     // Sort track indices in descending order so erasing does not shift remaining indices.
@@ -2285,9 +2612,7 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
 
   Bool_t reassign = false;
 
-  const Int_t max_fragment_hits = 4;
-  const Double_t min_mom_negative = 0.5;
-  const Double_t min_mom_positive = 1.0;
+  const auto& accidental_cuts = GetAccidentalExtensionCuts();
 
   // case 1: merge a short upstream fragment with its downstream parent track at a vertex
   std::vector<Int_t> erase_trackid;
@@ -2315,15 +2640,15 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
 
     // parent: downstream body candidate (slope + charge-dependent mom cuts)
     if(parent->GetIsAccidental()==1 || parent->GetIsBeam()==1 || parent->GetIsK18()==1) continue;
-    if(TMath::Abs(parent->Getdz()) > MaxCandidateAbsDz) continue;
+    if(TMath::Abs(parent->Getdz()) > GetAccidentalExtensionCuts().max_abs_dz) continue;
 
     Double_t helix_mom = parent->GetMom0().Mag();
-    const Double_t min_mom = (parent->GetCharge() > 0) ? min_mom_positive : min_mom_negative;
+    const Double_t min_mom = (parent->GetCharge() > 0) ? accidental_cuts.min_mom_positive : accidental_cuts.min_mom_negative;
     if(TMath::Abs(helix_mom) < min_mom) continue;
 
     // fragment: short upstream stub
     if(fragment->GetIsK18()==1) continue;
-    if(fragment->GetNHit() > max_fragment_hits) continue;
+    if(fragment->GetNHit() > accidental_cuts.max_fragment_hits) continue;
 
     Bool_t cl_added = false;
     fragment->SetClustersHoughFlag(0);
@@ -2388,8 +2713,8 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
   }
 
   // case 2: accidental track is divided into clusters on the upstream of the target and a track on the downstream of the target
-  std::vector<TPCClusterContainer> candidate_cl_cont(10);
-  for(Int_t layer=0; layer<10; layer++){ //inner layers 0..9
+  std::vector<TPCClusterContainer> candidate_cl_cont(NumOfLayersTPC);
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
       auto cl = ClCont[layer][ci];
       TPCHit* hit = cl->GetMeanHit();
@@ -2398,39 +2723,47 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
       TVector3 pos = cl->GetPosition();
       // upstream orphan clusters: z gate + naive x-only transverse pre-filter
       if(pos.Z() > tpc::Z_TARGET) continue;
-      if(TMath::Abs(pos.x()) > tpc::TARGET_HALF_X) continue;
       candidate_cl_cont[layer].push_back(cl);
     } //ci
   } //layer
 
   for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
     T *parent = TrackCont[trackid];
-    if(parent->GetIsAccidental()==1 || parent->GetIsBeam()==1 || parent->GetIsK18()==1) continue;
-    if(TMath::Abs(parent->Getdz()) > MaxCandidateAbsDz) continue;
+    if(parent->GetIsBeam()==1 || parent->GetIsK18()==1) continue;
+    if(TMath::Abs(parent->Getdz()) > GetAccidentalExtensionCuts().max_abs_dz) continue;
 
     Double_t helix_mom = parent->GetMom0().Mag();
-    const Double_t min_mom = (parent->GetCharge() > 0) ? min_mom_positive : min_mom_negative;
+    const Double_t min_mom = (parent->GetCharge() > 0) ? accidental_cuts.min_mom_positive : accidental_cuts.min_mom_negative;
     if(TMath::Abs(helix_mom) < min_mom) continue;
 
     T *merged_track = new T(parent);
     std::vector<TPCHit*> clusters_added;
-    Bool_t cl_added = false;
-    for(Int_t layer=0; layer<10; layer++){ //inner layers 0..9
-      for(Int_t ci=0, n=candidate_cl_cont[layer].size(); ci<n; ci++){
-        auto cl = candidate_cl_cont[layer][ci];
-        TPCHit* hit = cl->GetMeanHit();
-
+    Int_t n_extension_layers = 0;
+    Double_t sum_extension_residual = 0.;
+    Double_t max_extension_residual = 0.;
+    for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+      Double_t best_resi = std::numeric_limits<Double_t>::max();
+      TPCHit *best_hit = nullptr;
+      for(Int_t ci=0, n=candidate_cl_cont[layer].size(); ci<n; ++ci){
+        TPCHit *hit = candidate_cl_cont[layer][ci]->GetMeanHit();
         Double_t resi = 0.;
-        Bool_t no_limitation = true;
-        if(parent->IsGoodHitToAdd(hit, resi, no_limitation)){
-          merged_track->AddTPCHit(new TPCLTrackHit(hit));
-          clusters_added.push_back(hit);
-          cl_added = true;
+        if(parent->IsGoodHitToAdd(hit, resi, true) && resi < best_resi){
+          best_resi = resi;
+          best_hit = hit;
         }
+      }
+      if(best_hit){
+        merged_track->AddTPCHit(new TPCLTrackHit(best_hit));
+        clusters_added.push_back(best_hit);
+        sum_extension_residual += best_resi;
+        max_extension_residual = TMath::Max(max_extension_residual, best_resi);
+        ++n_extension_layers;
       }
     }
 
-    if(!cl_added){
+    if(n_extension_layers < 2 ||
+       sum_extension_residual/n_extension_layers >= GetAccidentalExtensionCuts().mean_residual_max ||
+       max_extension_residual >= GetAccidentalExtensionCuts().residual_max){
       delete merged_track;
       continue;
     }

@@ -23,6 +23,47 @@ inline const TString& ClassName()
   static TString s_name("TPCTrackSearch");
   return s_name;
 }
+// Default cuts for K18 tagging and accidental-fragment recovery.
+// USER parameters override these defaults only when a scan requires it.
+namespace tuning
+{
+  struct K18TagCuts
+  {
+    double xz_window = 20.;
+    double y_window = 15.;
+    double association_mean_residual = 10.;
+    double association_max_residual = 15.;
+    int normal_min_upstream_hits = 2;
+    int downstream_min_hits = 5;
+    int downstream_max_upstream_hits = 1;
+    double downstream_residual_max = 20.;
+    double min_matched_fraction = 0.7;
+  };
+
+  struct AccidentalExtensionCuts
+  {
+    double max_abs_dz = 0.05;
+    double mean_residual_max = 10.;
+    double residual_max = 15.;
+    int max_fragment_hits = 4;
+    double min_mom_negative = 0.5;
+    double min_mom_positive = 1.0;
+  };
+
+  // Vertex-independent restoration of a beam split at the target.
+  // These are intentionally separate from accidental recovery: both pieces
+  // must already be beam-like and lie on opposite target sides.
+  struct BeamFragmentExtensionCuts
+  {
+    double max_chi2_ndf = 4.5;
+  };
+
+  inline constexpr K18TagCuts kDefaultK18TagCuts{};
+  inline constexpr AccidentalExtensionCuts kDefaultAccidentalExtensionCuts{};
+  inline constexpr BeamFragmentExtensionCuts kDefaultBeamFragmentExtensionCuts{};
+  inline constexpr double kDefaultBeamTagMaxAbsDz = 0.05;
+}
+
 
 //Functions for the TPCAnalyzer.
 //HS-OFF data
@@ -44,7 +85,7 @@ Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 			    Int_t MinNumOfHits);
 
 //TPC tracking combined with other tracking devices (default)
-Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 			    const std::vector<TPCClusterContainer>& ClCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,

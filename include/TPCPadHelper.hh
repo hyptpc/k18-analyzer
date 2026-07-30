@@ -1766,7 +1766,7 @@ inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
     Int_t dead_pads = 0;
     for (Int_t r = min_row + 1; r < max_row; ++r) {
       Int_t pad_id = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
+      if (std::find(std::begin(padAbnormalWaveform_E72), std::end(padAbnormalWaveform_E72), pad_id) != std::end(padAbnormalWaveform_E72)) {
         dead_pads++;
       }
     }
@@ -1786,7 +1786,7 @@ inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
     // Count dead pads between min_row and max_row
     for (Int_t r = min_row + 1; r < max_row; ++r) {
       Int_t pad_id = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
+      if (std::find(std::begin(padAbnormalWaveform_E72), std::end(padAbnormalWaveform_E72), pad_id) != std::end(padAbnormalWaveform_E72)) {
         dead_pads++;
       }
     }
@@ -1799,14 +1799,14 @@ inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
     // 1. [max_row+1, n_pad-1] (End of array)
     for (Int_t r = max_row + 1; r < n_pad; ++r) {
       Int_t pad_id = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
+      if (std::find(std::begin(padAbnormalWaveform_E72), std::end(padAbnormalWaveform_E72), pad_id) != std::end(padAbnormalWaveform_E72)) {
         dead_pads++;
       }
     }
     // 2. [0, min_row-1] (Start of array)
     for (Int_t r = 0; r < min_row; ++r) {
       Int_t pad_id = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
+      if (std::find(std::begin(padAbnormalWaveform_E72), std::end(padAbnormalWaveform_E72), pad_id) != std::end(padAbnormalWaveform_E72)) {
         dead_pads++;
       }
     }

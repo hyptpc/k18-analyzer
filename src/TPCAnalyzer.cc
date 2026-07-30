@@ -267,6 +267,58 @@ TPCAnalyzer::ReCalcTPCHitsGeant4(const Int_t nhits,
 }
 
 //_____________________________________________________________________________
+// Geant4 cluster-level input: keep detector-response cluster positions intact
+// and make a single-hit TPCCluster for each entry, so that the common helix
+// tracker starts from m_TPCClCont without re-clustering.
+Bool_t
+TPCAnalyzer::ReCalcTPCHitsGeant4(const std::vector<Int_t>& pad,
+                                 const std::vector<Double_t>& de,
+                                 const std::vector<Double_t>& x,
+                                 const std::vector<Double_t>& y,
+                                 const std::vector<Double_t>& z)
+{
+  if (m_is_decoded[kTPC]) {
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+  const auto nhits = pad.size();
+  if (de.size() != nhits || x.size() != nhits || y.size() != nhits || z.size() != nhits) {
+    hddaq::cerr << FUNC_NAME << " vector size mismatch" << std::endl;
+    return false;
+  }
+
+  ClearTPCHits();
+  ClearTPCClusters();
+  for (std::size_t ih = 0; ih < nhits; ++ih) {
+    // Geant4 pad IDs are zero-based.  Ignore only rare edge entries that are
+    // outside the active analyzer geometry before getLayerID can throw.
+    if (pad[ih] < 0 || pad[ih] >= NumOfPadTPC) continue;
+    const Int_t layer = tpc::getLayerID(pad[ih]);
+    const Int_t row = tpc::getRowID(pad[ih]);
+    if (layer < 0 || layer >= NumOfLayersTPC) continue;
+
+    auto* hit = new TPCHit(layer, row);
+    hit->AddHit(de[ih], 0.);
+    hit->SetDe(de[ih]);
+    hit->SetPad(pad[ih]);
+    hit->SetPosition(TVector3(x[ih], y[ih], z[ih]));
+    hit->SetIsGood(true);
+    m_TPCHitCont[layer].push_back(hit);
+
+    TPCHitContainer cluster_hits{hit};
+    auto* cluster = new TPCCluster(layer, cluster_hits);
+    if (cluster->Calculate()) {
+      cluster->SetClusterSizeG4(1);
+      m_TPCClCont[layer].push_back(cluster);
+    } else {
+      delete cluster;
+    }
+  }
+  m_is_decoded[kTPC] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
 //HS-OFF: Track searching
 Bool_t
 TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
@@ -314,7 +366,7 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive, UInt_t reco_mode)
 //_____________________________________________________________________________
 //HS-On: Track Searching with BcOut Track
 Bool_t
-TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18BRVPs,
+TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 				 Bool_t exclusive)
 {
   if(m_is_decoded[kTPCTracking]){
@@ -326,7 +378,7 @@ TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18BRVPs,
   // MinLayerTPC: min cluster count for Hough/fit (not number of TPC layers)
   static const Int_t min_num_of_hits = gUser.GetParameter("MinLayerTPC");
   
-  tpc::LocalTrackSearchHelix(K18BRVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, min_num_of_hits);
+  tpc::LocalTrackSearchHelix(K18VPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, min_num_of_hits);
 
   m_is_decoded[kTPCTracking] = true;
   return true;
@@ -398,4 +450,3 @@ TPCAnalyzer::ClearTPCK18Tracks()
 {
   del::ClearContainer(m_TPCK18TC);
 }
-

@@ -81,6 +81,7 @@ private:
   Int_t m_isBeam;
   Int_t m_isK18;
   Int_t m_isAccidental;
+  Bool_t m_allow_target_crossing_merge;
   Int_t m_trackid; //for beam track
   Int_t m_ncl_beforetgt; //for k18 track
   Int_t m_searchtime; //millisec
@@ -199,6 +200,9 @@ public:
   void SetFitFlag(Int_t flag) { m_fitflag = flag; }
   void SetVtxFlag(Int_t flag) { m_vtxflag = flag; }
   void SetIsBeam(Int_t flag=1) { m_isBeam = flag; }
+  // Scoped override used only while testing a target-crossing fragment merge.
+  // It does not set the persistent is_beam physics tag.
+  void SetAllowTargetCrossingMerge(Bool_t flag=true) { m_allow_target_crossing_merge = flag; }
   void SetIsK18(Int_t flag=1) { m_isK18 = flag; }
   void SetIsAccidental(Int_t flag=1) { m_isAccidental = flag; }
   void SetIsFitted(Bool_t flag=true) { m_is_fitted = flag; }
