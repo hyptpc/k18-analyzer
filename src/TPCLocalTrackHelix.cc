@@ -60,6 +60,7 @@ z = p[kHelixZ0] + p[kHelixDz]*p[kHelixR]*(theta);
 #include "MathTools.hh"
 #include "TPCPadHelper.hh"
 #include "UserParamMan.hh"
+#include "DetectorID.hh"
 
 #include <std_ostream.hh>
 
@@ -1728,7 +1729,8 @@ TPCLocalTrackHelix::CalcHelixMomCenter(const Double_t par[5]) const
   Double_t pz_global =  py_local;
 
   TVector3 p = TVector3(px_global, py_global, pz_global);
-  if(m_charge > 0) p *= -1.;
+
+  if(HSPolarity * m_charge > 0) p *= -1.;
   return p;
 }
 
@@ -1750,7 +1752,7 @@ TPCLocalTrackHelix::CalcHelixMom(const Double_t par[5], Double_t theta) const
   Double_t pz_global =  py_local;
 
   TVector3 p = TVector3(px_global, py_global, pz_global);
-  if(m_charge > 0) p *= -1.;
+  if(HSPolarity * m_charge > 0) p *= -1.;
   return p;
 }
 
@@ -1771,8 +1773,7 @@ TPCLocalTrackHelix::GetOrder(Int_t i) const
   Int_t size = m_hit_order.size();
   if(i>=size || i<0) return -1;
   Int_t id = i;
-  // E72 configuration.
-  if(m_charge > 0) id = size - i - 1;
+  if(HSPolarity * m_charge > 0) id = size - i - 1;
   Int_t order = m_hit_order[id];
   return order;
 }
@@ -1783,8 +1784,7 @@ TPCLocalTrackHelix::GetHitInOrder(std::size_t nth) const
 {
   Int_t size = m_hit_order.size();
   Int_t id = nth;
-  // E72 configuration.
-  if(m_charge > 0) id = size - nth - 1;
+  if(HSPolarity * m_charge > 0) id = size - nth - 1;
   Int_t order = m_hit_order[id];
   if(nth>=m_hit_array.size() || nth<0) return 0;
   return m_hit_array[order];
@@ -2983,8 +2983,8 @@ TPCLocalTrackHelix::DetermineCharge()
     }
   }
 
-  // For E72 conditions: the magnetic field direction is along the Z-axis (u = (0, 0, 1))
-  if(minlayer_t<maxlayer_t) m_charge = -1;
+
+  if(minlayer_t<maxlayer_t) m_charge = -1*HSPolarity;
   else m_charge = 1;
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};

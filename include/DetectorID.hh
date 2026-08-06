@@ -205,4 +205,7 @@ const Int_t NumOfAsadTPC      = 31;
 const Int_t NumOfLayersVPTPC  = 5;
 const Int_t NumOfLayersVPHS   = 4;
 
+// __ HS ______________________
+const Int_t HSPolarity = 1; //+y : 1, -y : -1
+
 #endif

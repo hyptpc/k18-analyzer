@@ -312,8 +312,9 @@ namespace
 
   void FillRaw(const GeantClusters& beam, const GeantClusters& reaction)
   {
-    const auto append = [](const GeantClusters& in, Int_t source) {
+    const auto append = [](const GeantClusters& in, Int_t source, Bool_t upstream_only) {
       for (std::size_t ih = 0; ih < in.pad.size(); ++ih) {
+        if (upstream_only && in.z[ih] >= tpc::Z_TARGET) continue;
         event.raw_source.push_back(source);
         event.raw_padid.push_back(in.pad[ih]); event.raw_layer.push_back(in.layer[ih]); event.raw_row.push_back(in.row[ih]);
         event.raw_trackid.push_back(in.trackid[ih]); event.raw_pid.push_back(in.pid[ih]);
@@ -323,8 +324,8 @@ namespace
         event.raw_truth_px.push_back(in.px[ih]); event.raw_truth_py.push_back(in.py[ih]); event.raw_truth_pz.push_back(in.pz[ih]);
       }
     };
-    append(beam, beam.generator);
-    append(reaction, reaction.generator);
+    append(beam, beam.generator, kGeant4InputMode == Geant4InputMode::kBeamAndReaction);
+    append(reaction, reaction.generator, false);
     event.nhTpc = event.raw_padid.size();
   }
 
@@ -551,7 +552,7 @@ Int_t main(Int_t argc, char** argv)
       beam.effective_evnum = src.effective_evnum;
       beam.trig_flag = src.trig_flag;
       beam.generator = src.generator;
-      beam.append(src, false); // retain the original beam across the full TPC z range
+      beam.append(src, false); // retain the full beam for beam momentum reconstruction
       if (kGeant4InputMode == Geant4InputMode::kBeamOnly) {
         if (ie >= skip) ProcessEvent(&beam, nullptr, tree);
       } else {
