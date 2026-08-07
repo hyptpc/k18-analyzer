@@ -12,8 +12,10 @@
 #include "BH2Hit.hh"
 #include "CherenkovHit.hh"
 #include "DCAnalyzer.hh"
+#include "DCExclusivePull.hh"
 #include "DCHit.hh"
 #include "DCLocalTrack.hh"
+#include "DCLTrackHit.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "FiberCluster.hh"
@@ -852,6 +854,28 @@ EventAnalyzer::BcInTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
 
 //_____________________________________________________________________________
 void
+EventAnalyzer::BcInPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+{
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  for(const auto& track : dcAna.GetBcInTrackContainer()){
+    const Int_t nh = track->GetNHit();
+    for(Int_t ih = 0; ih < nh; ++ih){
+      const auto* lthit = track->GetHit(ih);
+      if(!lthit) continue;
+      const Double_t pull = DCExclusivePull::Pull(*track, ih);
+      if(!TMath::Finite(pull)) continue;
+      const auto* hit = lthit->GetHit();
+      if(!hit || !hit->GetRawHit()) continue;
+      const auto name = hit->GetRawHit()->DetectorName().Data();
+      const auto plane = hit->PlaneId();
+      HF1(Form("%s_Track_Pull_plane%d%s", name, plane, b), pull);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
 EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
 {
   // static const auto& digit_info = gUConf.get_digit_info();
@@ -890,6 +914,28 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
       auto sign = (pos - wp > 0.) ? 1 : -1;
       HF1(Form("%s_Track_Residual_plane%d%s", name, plane, b), res);
       HF2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s", name, plane, b), sign*dl, res);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::BcOutPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+{
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  for(const auto& track : dcAna.GetBcOutTrackContainer()){
+    const Int_t nh = track->GetNHit();
+    for(Int_t ih = 0; ih < nh; ++ih){
+      const auto* lthit = track->GetHit(ih);
+      if(!lthit) continue;
+      const Double_t pull = DCExclusivePull::Pull(*track, ih);
+      if(!TMath::Finite(pull)) continue;
+      const auto* hit = lthit->GetHit();
+      if(!hit || !hit->GetRawHit()) continue;
+      const auto name = hit->GetRawHit()->DetectorName().Data();
+      const auto plane = hit->PlaneId();
+      HF1(Form("%s_Track_Pull_plane%d%s", name, plane, b), pull);
     }
   }
 }

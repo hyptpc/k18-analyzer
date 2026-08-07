@@ -36,6 +36,8 @@ public:
              beam::EBeamFlag beam_flag=beam::kAll);
   void BcInTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
   void BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
+  void BcInPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
+  void BcOutPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
 
   void TriggerFlag(const RawData& rawData);
   void DAQ(const RawData& rawData);

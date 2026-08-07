@@ -649,7 +649,7 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
     const Double_t nhit_bins[3]  = {20, -0.5, 19.5};
-    const Double_t chisq_bins[3] = {200, 0.0, 40.0};
+    const Double_t chisq_bins[3] = {500, 0.0, 20.0}; // was 200/40 (Δ=0.2); finer for scale fit
     const Double_t xy0_bins[3]   = {200, -500.0, 500.0};
     const Double_t uv0_bins[3]   = {200, -0.5, 0.5};
     HB1(Form("%sTrack_NHit%s; ; count", dcname.Data(), b), nhit_bins);
@@ -669,6 +669,7 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
       const Double_t dt_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dt_bins[0], dt_bins[1], dt_bins[2]};
       const Double_t dl_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dl_bins[0], dl_bins[1], dl_bins[2]};
       const Double_t res_bins[3] = {400, -2.0, 2.0};
+      const Double_t pull_bins[3] = {400, -10.0, 10.0};
       const Double_t res_dl_bins_2d[6] = {200, -3., 3., 200, -2.0, 2.0};
       for (Int_t plane = 0; plane < n_plane; ++plane) {
         HB1(Form("%s_Track_DriftTime_plane%d%s; ns; count", name, plane, b), dt_bins);
@@ -678,6 +679,8 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
         HB1(Form("%s_Track_HitPat_plane%d%s; wire; count", name, plane, b), pat_bins);
         HB1(Form("%s_Track_Residual_plane%d%s; mm; count", name, plane, b), res_bins);
         HB2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s; mm; count", name, plane, b), res_dl_bins_2d);
+        HB1(Form("%s_Track_Pull_plane%d%s; pull = (s_{hit} - s_{track}^{w/o hit}) / Res; count",
+                 name, plane, b), pull_bins);
       }
     }
     if(!flag_beam_particle) break;

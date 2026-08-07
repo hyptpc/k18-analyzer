@@ -28,6 +28,8 @@
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
 
+#define FillPullExclusive 1
+
 namespace
 {
 const auto& gUser = UserParamMan::GetInstance();
@@ -132,6 +134,9 @@ ProcessNormal()
   dcAna.TrackSearchBcOut();
   evAna.BcOutTracking(dcAna);
   evAna.BcOutTracking(dcAna, event.beam_flag);
+#if FillPullExclusive
+  evAna.BcOutPullExclusive(dcAna, event.beam_flag);
+#endif
 
   for(const auto& track : dcAna.GetBcOutTrackContainer()){
     track->Print();
