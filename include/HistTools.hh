@@ -43,6 +43,9 @@ void BuildTPCHelixLambda();
 void BuildTPCLambdaEta();
 void BuildTPCHelixK0Short();
 
+void BuildD5Tracking(Bool_t flag_beam_particle=false);
+void BuildD5WireResidual();
+
 enum CoBoClockTimeFlags : UInt_t {
   kCoBoClockTime_Hit     = 1u << 0,
   kCoBoClockTime_Cluster = 1u << 1,

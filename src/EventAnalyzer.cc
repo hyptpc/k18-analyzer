@@ -18,6 +18,7 @@
 #include "DCLTrackHit.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
+#include "D5Track.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
 #include "HodoAnalyzer.hh"
@@ -986,4 +987,110 @@ EventAnalyzer::DAQ(const RawData& rawData)
   auto node_id = gUnpacker.get_fe_id("k18breb");
   auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
   HF1("EB_DataSize", data_size);
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::D5WireResiduals(const D5Track& d5tr, Double_t z_out)
+{
+  const auto* blc1 = d5tr.GetTrkBlc1();
+  const auto* blc2 = d5tr.GetTrkBlc2();
+  if (!blc1 || !blc2) return;
+
+  // LocalFit: same as BcIn/BcOutTracking (GetResidual)
+  for (const auto& lthit : blc1->GetHitArray()) {
+    const auto* dchit = lthit->GetHit();
+    if (!dchit || !dchit->GetRawHit()) continue;
+    const char* det = dchit->GetRawHit()->DetectorName().Data();
+    const Int_t plane = dchit->PlaneId();
+    const Double_t resi = lthit->GetResidual();
+    HF1(Form("D5WireResi_%s_LocalFit_plane%d", det, plane), resi);
+    HF2(Form("D5WireResi_%s_LocalFit_vs_plane", det), plane, resi);
+  }
+  for (const auto& lthit : blc2->GetHitArray()) {
+    const auto* dchit = lthit->GetHit();
+    if (!dchit || !dchit->GetRawHit()) continue;
+    const char* det = dchit->GetRawHit()->DetectorName().Data();
+    const Int_t plane = dchit->PlaneId();
+    const Double_t resi = lthit->GetResidual();
+    HF1(Form("D5WireResi_%s_LocalFit_plane%d", det, plane), resi);
+    HF2(Form("D5WireResi_%s_LocalFit_vs_plane", det), plane, resi);
+  }
+
+  // D5Fit: same residual as D5Track::CalcChi2 / DoFit
+  //   scal = x_pred*cos(tilt) + y_pred*sin(tilt)
+  //   resi = LocalHitPos - scal
+  const Double_t fx0 = d5tr.GetFitX0();
+  const Double_t fu0 = d5tr.GetFitU0();
+  const Double_t fy0 = d5tr.GetFitY0();
+  const Double_t fv0 = d5tr.GetFitV0();
+  for (const auto& lthit : blc1->GetHitArray()) {
+    const auto* dchit = lthit->GetHit();
+    if (!dchit || !dchit->GetRawHit()) continue;
+    const char* det = dchit->GetRawHit()->DetectorName().Data();
+    const Int_t plane = dchit->PlaneId();
+    const Double_t z = lthit->GetZ();
+    const Double_t x_pred = fx0 + fu0 * z;
+    const Double_t y_pred = fy0 + fv0 * z;
+    const Double_t a = lthit->GetTiltAngle() * TMath::DegToRad();
+    const Double_t scal =
+      x_pred * TMath::Cos(a) + y_pred * TMath::Sin(a);
+    const Double_t resi = lthit->GetLocalHitPos() - scal;
+    const Double_t s_para = scal;
+    const Double_t s_perp =
+      -x_pred * TMath::Sin(a) + y_pred * TMath::Cos(a);
+    HF1(Form("D5WireResi_%s_D5Fit_plane%d", det, plane), resi);
+    HF2(Form("D5WireResi_%s_D5Fit_vs_plane", det), plane, resi);
+    HF2(Form("D5WireResi_%s_D5Fit_plane%d_vs_sperp", det, plane), s_perp, resi);
+    HF2(Form("D5WireResi_%s_D5Fit_plane%d_vs_spara", det, plane), s_para, resi);
+  }
+
+  const Double_t mx = d5tr.GetMtxoutX();
+  const Double_t mu = d5tr.GetMtxoutU();
+  const Double_t my = d5tr.GetMtxoutY();
+  const Double_t mv = d5tr.GetMtxoutV();
+  for (const auto& lthit : blc2->GetHitArray()) {
+    const auto* dchit = lthit->GetHit();
+    if (!dchit || !dchit->GetRawHit()) continue;
+    const char* det = dchit->GetRawHit()->DetectorName().Data();
+    const Int_t plane = dchit->PlaneId();
+    const Double_t z = lthit->GetZ();
+    const Double_t dz = z - z_out;
+    const Double_t x_pred = mx + mu * dz;
+    const Double_t y_pred = my + mv * dz;
+    const Double_t a = lthit->GetTiltAngle() * TMath::DegToRad();
+    const Double_t scal =
+      x_pred * TMath::Cos(a) + y_pred * TMath::Sin(a);
+    const Double_t resi = lthit->GetLocalHitPos() - scal;
+    const Double_t s_para = scal;
+    const Double_t s_perp =
+      -x_pred * TMath::Sin(a) + y_pred * TMath::Cos(a);
+    HF1(Form("D5WireResi_%s_D5Fit_plane%d", det, plane), resi);
+    HF2(Form("D5WireResi_%s_D5Fit_vs_plane", det), plane, resi);
+    HF2(Form("D5WireResi_%s_D5Fit_plane%d_vs_sperp", det, plane), s_perp, resi);
+    HF2(Form("D5WireResi_%s_D5Fit_plane%d_vs_spara", det, plane), s_para, resi);
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::D5Tracking(const D5Track& d5tr, beam::EBeamFlag /*beam_flag*/)
+{
+  const Char_t* b = beam::BeamFlagList.at(beam::kAll).Data();
+  HF1(Form("D5Track_Delta%s", b), d5tr.GetDelta());
+  HF1(Form("D5Track_Momentum%s", b), d5tr.GetMomentum());
+  HF1(Form("D5Track_D5Chi2%s", b), d5tr.GetD5Chi2());
+  HF1(Form("D5Track_D5Chi2NDF%s", b), d5tr.GetD5Chi2Ndf());
+  HF1(Form("D5Track_ResidualX%s", b), d5tr.GetResidualX());
+  HF1(Form("D5Track_ResidualY%s", b), d5tr.GetResidualY());
+  HF2(Form("D5Track_ResidualXY%s", b), d5tr.GetResidualX(), d5tr.GetResidualY());
+  HF1(Form("D5Track_MtxoutX%s", b), d5tr.GetMtxoutX());
+  HF1(Form("D5Track_MtxoutY%s", b), d5tr.GetMtxoutY());
+  HF1(Form("D5Track_FitX0%s", b), d5tr.GetFitX0());
+  HF1(Form("D5Track_FitY0%s", b), d5tr.GetFitY0());
+  const auto* blc1 = d5tr.GetTrkBlc1();
+  if (blc1) {
+    HF2(Form("D5Track_FitY0VsBLC1y%s", b), blc1->GetY0(), d5tr.GetFitY0());
+    HF2(Form("D5Track_FitX0VsBLC1x%s", b), blc1->GetX0(), d5tr.GetFitX0());
+  }
 }

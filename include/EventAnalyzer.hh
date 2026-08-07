@@ -12,6 +12,7 @@
 class DCAnalyzer;
 class HodoAnalyzer;
 class RawData;
+class D5Track;
 
 //_____________________________________________________________________________
 class EventAnalyzer
@@ -38,6 +39,8 @@ public:
   void BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
   void BcInPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
   void BcOutPullExclusive(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
+  void D5Tracking(const D5Track& d5tr, beam::EBeamFlag beam_flag=beam::kAll);
+  void D5WireResiduals(const D5Track& d5tr, Double_t z_out);
 
   void TriggerFlag(const RawData& rawData);
   void DAQ(const RawData& rawData);

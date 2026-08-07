@@ -728,6 +728,70 @@ BuildDAQ()
 
 //_____________________________________________________________________________
 void
+BuildD5Tracking(Bool_t flag_beam_particle)
+{
+  for(const auto& beam: beam::BeamFlagList){
+    const Char_t* b = beam.Data();
+    HB1(Form("D5Track_Delta%s; delta [%%]; Counts", b), 200, -10.0, 10.0);
+    HB1(Form("D5Track_Momentum%s; Momentum [GeV/c]; Counts", b), 200, 0.5, 1.5);
+    HB1(Form("D5Track_D5Chi2%s; D5 fit #chi^{2}; Counts", b), 100, 0.0, 100.0);
+    HB1(Form("D5Track_D5Chi2NDF%s; D5 fit #chi^{2}/NDF; Counts", b), 100, 0.0, 10.0);
+    HB1(Form("D5Track_ResidualX%s; Residual X [mm]; Counts", b), 200, -50.0, 50.0);
+    HB1(Form("D5Track_ResidualY%s; Residual Y [mm]; Counts", b), 200, -150.0, 50.0);
+    HB2(Form("D5Track_ResidualXY%s; Residual X [mm]; Residual Y [mm]", b),
+        100, -50.0, 50.0, 100, -150.0, 50.0);
+    HB1(Form("D5Track_MtxoutX%s; mtxout x [mm]; Counts", b), 200, -100.0, 100.0);
+    HB1(Form("D5Track_MtxoutY%s; mtxout y [mm]; Counts", b), 200, -100.0, 100.0);
+    HB1(Form("D5Track_FitX0%s; fit x_{0} [mm]; Counts", b), 200, -50.0, 50.0);
+    HB1(Form("D5Track_FitY0%s; fit y_{0} [mm]; Counts", b), 200, -50.0, 50.0);
+    HB2(Form("D5Track_FitY0VsBLC1y%s; BLC1 y_{0} [mm]; fit y_{0} [mm]", b),
+        100, -50.0, 50.0, 100, -50.0, 50.0);
+    HB2(Form("D5Track_FitX0VsBLC1x%s; BLC1 x_{0} [mm]; fit x_{0} [mm]", b),
+        100, -50.0, 50.0, 100, -50.0, 50.0);
+    if(!flag_beam_particle) break;
+  }
+  BuildD5WireResidual();
+}
+
+//_____________________________________________________________________________
+void
+BuildD5WireResidual()
+{
+  const auto& digit_info = gUConf.get_digit_info();
+  // D5WireResi (layer / vs_plane) only — wider so D5Fit tails are not clipped
+  const Double_t res_bins[3] = {400, -5.0, 5.0};
+  for (const auto& dcname : {TString("BcIn"), TString("BcOut")}) {
+    for (const auto& name_str : DCNameList.at(dcname)) {
+      const auto name = name_str.Data();
+      const auto detector_id = digit_info.get_device_id(name);
+      const Int_t n_plane = digit_info.get_n_plane(detector_id);
+      const Double_t vs_plane_bins[6] = {
+        static_cast<Double_t>(n_plane), -0.5, static_cast<Double_t>(n_plane) - 0.5,
+        res_bins[0], res_bins[1], res_bins[2]};
+      // s (track) vs residual: same r as D5Fit 1D; for z-rotation / secondary checks
+      const Double_t vs_s_bins[6] = {
+        100.0, -150.0, 150.0,
+        res_bins[0], res_bins[1], res_bins[2]};
+      for (Int_t plane = 0; plane < n_plane; ++plane) {
+        HB1(Form("D5WireResi_%s_LocalFit_plane%d; mm; count", name, plane), res_bins);
+        HB1(Form("D5WireResi_%s_D5Fit_plane%d; mm; count", name, plane), res_bins);
+        HB2(Form("D5WireResi_%s_D5Fit_plane%d_vs_sperp; s_perp [mm]; residual [mm]",
+                 name, plane),
+            vs_s_bins);
+        HB2(Form("D5WireResi_%s_D5Fit_plane%d_vs_spara; s_para [mm]; residual [mm]",
+                 name, plane),
+            vs_s_bins);
+      }
+      HB2(Form("D5WireResi_%s_LocalFit_vs_plane; plane; residual [mm]", name),
+          vs_plane_bins);
+      HB2(Form("D5WireResi_%s_D5Fit_vs_plane; plane; residual [mm]", name),
+          vs_plane_bins);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
 BuildTPCHit()
 {
   const Int_t    n_bin_adc     = 4096;
