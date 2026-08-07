@@ -22,7 +22,7 @@ dst_build_dir		= $(dst_dir)/build
 # ROOT
 root_config	= root-config
 root_include	= $(shell $(root_config) --cflags)
-root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lGeom -lGui -lSpectrum
+root_libs	= $(shell $(root_config) --libs) -lMinuit -lMinuit2 -lEG -lGeom -lGui -lSpectrum
 #
 # HDDAQ Unpacker
 unpacker_config		= /group/had/sks/software/unpacker/e70/bin/unpacker-config
