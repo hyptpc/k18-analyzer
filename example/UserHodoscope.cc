@@ -84,6 +84,7 @@ std::map<TString, adc_t> de_b;
 std::map<TString, adc_t> de_c;
 
 Double_t time0;
+Double_t time0_seg;
 Double_t btof0;
 Double_t ftof0;
 }
@@ -135,6 +136,7 @@ ProcessBegin()
   for(auto& p: de_c) p.second.clear();
 
   time0 = TMath::QuietNaN();
+  time0_seg = TMath::QuietNaN();
   btof0 = TMath::QuietNaN();
   ftof0 = TMath::QuietNaN();
 
@@ -328,6 +330,7 @@ ProcessNormal()
   }
 
   time0 = hodoAna.Time0();
+  time0_seg = hodoAna.Time0Seg();
   btof0 = hodoAna.Btof0();
   ftof0 = hodoAna.Ftof0();
 
@@ -492,6 +495,7 @@ ConfMan::InitializeHistograms()
   }
 
   tree->Branch("time0", &time0);
+  tree->Branch("time0_seg", &time0_seg);
   tree->Branch("btof0", &btof0);
   tree->Branch("ftof0", &ftof0);
 
