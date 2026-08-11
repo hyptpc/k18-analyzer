@@ -36,6 +36,14 @@ const auto& gUser         = UserParamMan::GetInstance();
 
   ///// for CorrectBaselineTPC()
   TH1D* h_baseline = nullptr;
+  Bool_t IsBaselineSectionFramePad(Int_t layer, Int_t row)
+  {
+    const Int_t pad_id = tpc::GetPadId(layer, row);
+    return std::find(std::begin(tpc::padOnSectionFrame_E72),
+                     std::end(tpc::padOnSectionFrame_E72),
+                     pad_id) != std::end(tpc::padOnSectionFrame_E72);
+  }
+
   Double_t f_baseline(Double_t* x, Double_t* par)
   {
     // par[0]: adc offset, par[1]: scale, par[2]: time offset
@@ -248,7 +256,7 @@ TPCRawData::CorrectBaselineTPC()
     auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
       - hit->Mean(MinTimeBucket, MaxTimeBucket);
     double rms = hit -> RMS(MinTimeBucket, MaxTimeBucket);
-    if(ref < min_ref && rms > MinRms && !tpc::IsDead(tpc::GetPadId(hit->LayerId(),hit->RowId())) && !tpc::Noise(hit->LayerId(),hit->RowId())){
+    if(ref < min_ref && rms > MinRms && !tpc::IsDead(tpc::GetPadId(hit->LayerId(),hit->RowId())) && !IsBaselineSectionFramePad(hit->LayerId(), hit->RowId())){
       min_ref = ref;
       m_baseline = hit;
     }
