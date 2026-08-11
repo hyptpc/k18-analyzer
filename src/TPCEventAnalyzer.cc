@@ -3,6 +3,7 @@
 #include "TPCEventAnalyzer.hh"
 
 #include <sstream>
+#include <cmath>
 
 #include <TPDGCode.h>
 
@@ -31,6 +32,9 @@ namespace
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gTpcParam = TPCParamMan::GetInstance();
+constexpr Double_t kTpcGemLocalY = 304.2; // mm: local y=0 is 30.42 cm from GEM
+constexpr Double_t kDriftBinWidth = 100.; // mm
+constexpr Int_t kNumDriftBins = 7;
 using root::HF1;
 using root::HF2;
 using root::HF2Poly;
@@ -383,7 +387,18 @@ TPCEventAnalyzer::FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track)
     const Double_t trans_dist = (hit_pos.x() - pos.x() < 0.) ? -dummy : dummy;
     const Double_t ratio = de / clde;
     HF2("Transverse_Diffusion", trans_dist, ratio);
+    if (cl_size == 1) HF2("Transverse_Diffusion_ClusterSize01", trans_dist, ratio);
+    if (cl_size == 2) HF2("Transverse_Diffusion_ClusterSize02", trans_dist, ratio);
+    if (cl_size > 2) HF2("Transverse_Diffusion_ClusterSize03plus", trans_dist, ratio);
     HF2(Form("Transverse_Diffusion_Layer%02d", layer), trans_dist, ratio);
+    const Int_t drift_bin = static_cast<Int_t>(std::abs(hit_pos.y() - kTpcGemLocalY) / kDriftBinWidth);
+    if (drift_bin >= 0 && drift_bin < kNumDriftBins) {
+      HF2(Form("Transverse_Diffusion_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)),
+          trans_dist, ratio);
+      if (cl_size == 1) HF2(Form("Transverse_Diffusion_ClusterSize01_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+      if (cl_size == 2) HF2(Form("Transverse_Diffusion_ClusterSize02_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+      if (cl_size > 2) HF2(Form("Transverse_Diffusion_ClusterSize03plus_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+    }
   }
 
   if (center_hit->GetCTimeSize() > 0) {
@@ -587,7 +602,18 @@ TPCEventAnalyzer::FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail
     if (hit_pos.x() < pos.x()) trans_dist = -1.*trans_dist;
     const Double_t ratio = pad_de/cl_de;
     HF2("Transverse_Diffusion", trans_dist, ratio);
+    if (cl_size == 1) HF2("Transverse_Diffusion_ClusterSize01", trans_dist, ratio);
+    if (cl_size == 2) HF2("Transverse_Diffusion_ClusterSize02", trans_dist, ratio);
+    if (cl_size > 2) HF2("Transverse_Diffusion_ClusterSize03plus", trans_dist, ratio);
     HF2(Form("Transverse_Diffusion_Layer%02d", layer), trans_dist, ratio);
+    const Int_t drift_bin = static_cast<Int_t>(std::abs(hit_pos.y() - kTpcGemLocalY) / kDriftBinWidth);
+    if (drift_bin >= 0 && drift_bin < kNumDriftBins) {
+      HF2(Form("Transverse_Diffusion_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)),
+          trans_dist, ratio);
+      if (cl_size == 1) HF2(Form("Transverse_Diffusion_ClusterSize01_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+      if (cl_size == 2) HF2(Form("Transverse_Diffusion_ClusterSize02_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+      if (cl_size > 2) HF2(Form("Transverse_Diffusion_ClusterSize03plus_Drift%02d_%02dcm", 10 * drift_bin, 10 * (drift_bin + 1)), trans_dist, ratio);
+    }
   }
 
   if (GetDstCalibFlag() && center_hit) {

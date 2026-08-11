@@ -38,6 +38,7 @@ const auto qnan = TMath::QuietNaN();
 using hddaq::unpacker::GUnpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser     = UserParamMan::GetInstance();
+const auto& gHodo     = HodoParamMan::GetInstance();
 
 using seg_t = std::vector<Double_t>;
 using adc_t = std::vector<Double_t>;
@@ -143,22 +144,21 @@ ProcessNormal()
 
   { ///// COBO
     static const TString n("COBO");
-    for(const auto& hit: rawData.GetHodoRawHC(n)){
-      for(const auto& tdc: hit->GetArrayTdc()){
-        //hit->Print();
-        HF1("TPC_Clock_TDC", tdc);
-      }
-    }
-
     clkTpc.resize(NumOfSegCOBO, TMath::QuietNaN());
     for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
       const auto& hit = hodoAna.GetHit(n, i);
       Int_t seg = hit->SegmentId();
       if(seg >= 0 && seg < NumOfSegCOBO){
         // Use earliest (min) of all clock edges in gate; HodoHit sorts so at(0)=min
-        Double_t clock_timing = hit->GetArrayTime().at(0);
-        clkTpc[seg] = clock_timing;
+	Double_t clock_timing = hit->GetArrayTime().at(0);
+	clkTpc[seg] = clock_timing;
         cobo_id.push_back(seg);
+        const Double_t offset = gHodo.GetOffset(DetIdCOBO, 0, seg, 0);
+        const Double_t gain   = gHodo.GetGain(DetIdCOBO, 0, seg, 0);
+        if(std::isfinite(offset) && std::isfinite(gain) && gain != 0.0){
+          const Double_t selected_tdc = clock_timing/gain + offset;
+          HF1("TPC_Clock_TDC", selected_tdc);
+        }
         HF1("TPC_Clock_Time", clock_timing);
       }
     }

@@ -948,6 +948,14 @@ BuildTPCTracking(Bool_t calib_flag)
   HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
   HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
   HB2("Transverse_Diffusion;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize01;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 1)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize02;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize03plus;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} > 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
+    HB2(Form("Transverse_Diffusion_Drift%02d_%02dcm;X_{cluster}-X_{pad} [mm];A/A_{sum}",
+             10 * drift_bin, 10 * (drift_bin + 1)),
+        TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  }
 
   HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPCTrk_HitPat");
@@ -1198,6 +1206,22 @@ BuildTPCHelixTracking(Bool_t calib_flag)
   HB1("TPCCl_dE_Pion;Cluster dE (pion PID);Counts", TPC_BINS_DE);
   HB2("TPCCl_dE_vs_Layer;Layer;Cluster dE", TPC_BINS_LAYER, TPC_BINS_DE);
   HB2("Transverse_Diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize01;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 1)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize02;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion_ClusterSize03plus;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} > 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
+    HB2(Form("Transverse_Diffusion_Drift%02d_%02dcm;X_{cluster_center}-X_{pad};A/A_{sum}",
+             10 * drift_bin, 10 * (drift_bin + 1)),
+        TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  }
+  const char* cluster_size_names[] = {"01", "02", "03plus"};
+  for (const auto* cluster_size_name : cluster_size_names) {
+    for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
+      HB2(Form("Transverse_Diffusion_ClusterSize%s_Drift%02d_%02dcm;X_{cluster_center}-X_{pad};A/A_{sum}",
+               cluster_size_name, 10 * drift_bin, 10 * (drift_bin + 1)),
+          TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+    }
+  }
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
     HB1(Form("TPCHit_HitPat_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
