@@ -107,12 +107,17 @@ static void fcn_smearZvertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
   Double_t const_disty2 = gconst0[2]*gconst0[2];
   Double_t dchi2 = 0;
   double val = 0;
+  int par_cnt = 0;
   for(Int_t i = 0; i < gdr.size(); ++i){
     double dsig = gsigr[i];
-    double dr = par[i];
     double dw = gdw[i];
+    double dr;
     if(i == fixed_index){
-      double dr = gdr[i];
+      dr = gdr[i];
+    }
+    else{
+      dr = par[par_cnt];
+      par_cnt++;
     }
     if(i%2== 0){
       distx2 += dr*dr;
@@ -2419,9 +2424,15 @@ TVector3 SmearedVertex(double z0, double dz, double dist_x, double dist_y,
     Double_t grad[3]; Double_t chi;
     minuit -> Eval(3, grad, chi, par, 0);
     std::vector<Double_t> dr_fitted;
+    int par_cnt = 0;
     for(int i = 0; i < 4; ++i){
-      if(i == fixed_index) dr_fitted.push_back(gdr[i]);
-      else dr_fitted.push_back(par[i]);
+      if(i == fixed_index){
+        dr_fitted.push_back(gdr[i]);
+      }  
+      else{
+        dr_fitted.push_back(par[i]);
+        par_cnt++;
+      }
     }
 
     std::vector<Double_t> pos;
