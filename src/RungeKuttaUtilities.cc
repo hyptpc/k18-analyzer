@@ -767,8 +767,9 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
   static const Double_t MaxPathLength  = 100000.; // mm
   static const Double_t NormalStepSize = -10.;   // mm
   Double_t MinStepSize = 2.;     // mm
-  /*for EventDisplay*/
-  std::vector<TVector3> StepPoint(MaxStep);
+  /* for EventDisplay: allocate only when it is actually used */
+  const Bool_t evDispReady = gEvDisp.IsReady();
+  std::vector<TVector3> StepPoint(evDispReady ? MaxStep : 0);
 
   Int_t iStep = 0;
   while(++iStep < MaxStep){
@@ -777,7 +778,8 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
     RKTrajectoryPoint nextPoint = RK::TraceOneStep(StepSize, prevPoint);
 
     /* for EventDisplay */
-    StepPoint[iStep-1] = nextPoint.PositionInGlobal();
+    if(evDispReady)
+      StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
     while(RK::CheckCrossing(hitContainer[iPlane].first,
                             prevPoint, nextPoint,
@@ -884,12 +886,15 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
 
   iPlane += 1;
 
-  std::vector<TVector3> StepPoint(MaxStep);
+  /* for EventDisplay: allocate only when it is actually used */
+  const Bool_t evDispReady = gEvDisp.IsReady();
+  std::vector<TVector3> StepPoint(evDispReady ? MaxStep : 0);
   Int_t iStep = 0;
   while(++iStep < MaxStep){
     RKTrajectoryPoint nextPoint = RK::TraceOneStep(StepSize, prevPoint);
 
-    StepPoint[iStep-1] = nextPoint.PositionInGlobal();
+    if(evDispReady)
+      StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
     while(RK::CheckCrossing(hitContainer[iPlane].first,
                             prevPoint, nextPoint,
