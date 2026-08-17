@@ -288,9 +288,9 @@ RK::TraceOneStep(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
     RK::CalcDeltaFieldIntegral(prevPoint, f1);
 
   ThreeVector Z2 = Z1 +
-    ThreeVector(0.5*dr,
-                0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
-                0.5*dr*pre_v + 0.125*dr*dr*f1.ky);
+    ThreeVector(0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
+                0.5*dr*pre_v + 0.125*dr*dr*f1.ky,
+                0.5*dr);
   ThreeVector B2 = gField.GetField(Z2);
 #ifdef ExactFFTreat
   ThreeVector dBdX2 = gField.GetdBdX(Z2);
@@ -323,9 +323,9 @@ RK::TraceOneStep(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
     RK::CalcDeltaFieldIntegral(prevPoint, f3, df2, df1, 0.5*dr);
 
   ThreeVector Z4 = Z1 +
-    ThreeVector(dr,
-                dr*pre_u + 0.5*dr*dr*f3.kx,
-                dr*pre_v + 0.5*dr*dr*f3.ky);
+    ThreeVector(dr*pre_u + 0.5*dr*dr*f3.kx,
+                dr*pre_v + 0.5*dr*dr*f3.ky,
+                dr);
   ThreeVector B4 = gField.GetField(Z4);
 #ifdef ExactFFTreat
   ThreeVector dBdX4 = gField.GetdBdX(Z4);
@@ -478,9 +478,9 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
     RK::CalcDeltaFieldIntegral(prevPoint, f1);
 
   ThreeVector Z2 = Z1 +
-    ThreeVector(0.5*dr,
-                0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
-                0.5*dr*pre_v + 0.125*dr*dr*f1.ky);
+    ThreeVector(0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
+                0.5*dr*pre_v + 0.125*dr*dr*f1.ky,
+                0.5*dr);
   ThreeVector B2 = gField.GetField(Z2);
   ThreeVector dBdX2 = gField.GetdBdX(Z2);
   ThreeVector dBdY2 = gField.GetdBdY(Z2);
@@ -499,9 +499,9 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
     RK::CalcDeltaFieldIntegral(prevPoint, f3, df2, df1, 0.5*dr);
 
   ThreeVector Z4 = Z1 +
-    ThreeVector(dr,
-                dr*pre_u + 0.5*dr*dr*f3.kx,
-                dr*pre_v + 0.5*dr*dr*f3.ky);
+    ThreeVector(dr*pre_u + 0.5*dr*dr*f3.kx,
+                dr*pre_v + 0.5*dr*dr*f3.ky,
+                dr);
   ThreeVector B4 = gField.GetField(Z4);
 
   ThreeVector dBdX4 = gField.GetdBdX(Z4);
