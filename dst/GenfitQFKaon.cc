@@ -40,6 +40,8 @@
 #include "HypTPCTask.hh"
 
 #include "TF1.h"
+#include "TH1.h"
+#include "TH2.h"
 #include "PidCommon.hh"
 
 #define MakePidFig 1
@@ -170,6 +172,9 @@ const double maxMM = 0.58;
 
 const double minThetaKP = 3.5;
 const double maxThetaKP = 4.5;
+  
+const double minThetaKPCH2 = 1.5;
+const double maxThetaKPCH2 = 10.5;
 
   //const Int_t MaxHits = 2000;
 
@@ -195,7 +200,8 @@ const auto& psTrigB = ConfMan::Get<Int_t>("PSTRGB");
     if(bin>nbins) bin = nbins;
     return bin;
   }
-  
+  //static TH2* gAcceptance = nullptr;
+  static TH1* gAcceptance = nullptr;
 }
 
 namespace dst
@@ -234,8 +240,7 @@ struct DstG4
   // std::vector<Double_t> pz;
 
   void clear( void )
-  {
-    
+  {    
     ich = -1;
     bpx = qnan;
     bpy = qnan;
@@ -386,7 +391,9 @@ struct Event
   std::vector<Double_t> km_mom_z;
   std::vector<Double_t> kp_mom_x;
   std::vector<Double_t> kp_mom_y;
-  std::vector<Double_t> kp_mom_z;  
+  std::vector<Double_t> kp_mom_z;
+  Double_t kp_phi;
+  Double_t kp_theta;      
   
   Int_t nhTpc;
   std::vector<Double_t> raw_hitpos_x;
@@ -413,6 +420,7 @@ struct Event
   std::vector<Int_t> cluster_houghflag;
 
   Int_t ntTpc; // Number of Tracks
+  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)  
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> isBeam;
   std::vector<Int_t> isKurama;
@@ -538,6 +546,11 @@ struct Event
   std::vector<std::vector<Double_t>> GFresidual_py;
   std::vector<std::vector<Double_t>> GFresidual_pz;
 
+  Int_t IncFlag;
+  Int_t EscFlag;
+  Int_t PSfacTrigA;
+  Int_t PSfacTrigB;  
+
   Int_t kmflag;
   Int_t kminc;    
   Int_t    GFkmid;  
@@ -545,7 +558,7 @@ struct Event
   Double_t GFkmmom_x;
   Double_t GFkmmom_y;
   Double_t GFkmmom_z;
-  Double_t GFkmtheta;
+  Double_t GFkmtheta;  
   Double_t GFkmphi;    
   Double_t GFkmtarget_dist;
   Double_t GFkmtargetvtx_x;
@@ -679,6 +692,7 @@ struct Event
     cluster_houghflag.clear();
 
     ntTpc = 0;
+    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)     
     nhtrack.clear();
     isBeam.clear();
     isKurama.clear();
@@ -775,7 +789,7 @@ struct Event
     MissMassNuclCorrDETPC.clear();
     BEkaonTPC.clear();
 
-        pOrg.clear();
+    pOrg.clear();
     pCalc.clear();
     pCorr.clear();
     pCorrDE.clear();
@@ -876,6 +890,14 @@ struct Event
     GFresidual_py.clear();
     GFresidual_pz.clear();
 
+    IncFlag = false;
+    EscFlag = false;
+    PSfacTrigA = 0;
+    PSfacTrigB = 0;
+
+    kp_phi = qnan;
+    kp_theta = qnan;    
+    
     kmflag = false;
     kminc = false;    
     GFkmid = -1;    
@@ -1111,6 +1133,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* cluster_houghflag;
 
   TTreeReaderValue<Int_t>* ntTpc; // Number of Tracks
+  TTreeReaderValue<Int_t>* ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)    
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of Hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
   TTreeReaderValue<std::vector<Int_t>>* isKurama;
@@ -1306,6 +1329,12 @@ dst::DstOpen( std::vector<std::string> arg )
 
   TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
 
+  if (!TFileCont[kOutFile] || !TFileCont[kOutFile]->IsOpen()) {
+      std::cerr << "!!! DstOpen: Failed to create output file: " << arg[kOutFile] << std::endl;
+      return false;
+  }
+  TFileCont[kOutFile]->cd();
+
   return true;
 }
 
@@ -1338,10 +1367,8 @@ dst::DstRead( int ievent )
   static const auto mindEdxSigKaon = gUser.GetParameter("MindEdXSigKaon");
   static const auto maxdEdxSigKaon = gUser.GetParameter("MaxdEdXSigKaon");
   static const auto minM2Km = gUser.GetParameter("MinM2Kaon");
-  static const auto maxM2Km = gUser.GetParameter("MaxM2Kaon");    
-  //const Double_t& mindEdxSigKaon = ConfMan::Get<Double_t>("MindEdXSigKaon");
-  //const Double_t& maxdEdxSigKaon = ConfMan::Get<Double_t>("MaxdEdXSigKaon");    
-  
+  static const auto maxM2Km = gUser.GetParameter("MaxM2Kaon");
+    
   Double_t vtx_scan_range = gUser.GetParameter("VertexScanRange"); 
   
   if( ievent%1000==0 ){
@@ -1378,9 +1405,6 @@ dst::DstRead( int ievent )
   event.nKp = **src.nKp;
   event.nKK = **src.nKK;
   event.inside = **src.inside;
-  event.vtx = **src.vtx;
-  event.vty = **src.vty;
-  event.vtz = **src.vtz;
   event.closeDist = **src.closeDist;  
   //  event.MissMass = **src.MissMass;
   event.MissMassCorr = **src.MissMassCorr;
@@ -1549,65 +1573,107 @@ dst::DstRead( int ievent )
 
   Int_t psfac = 0;  
   bool trigA = (event.trigflag[20]>0);
-  bool trigB = (event.trigflag[21]>0);  
+  bool trigB = (event.trigflag[21]>0);
+  event.PSfacTrigA = psTrigA;
+  event.PSfacTrigB = psTrigB;
+  
   if(!trigA&&!trigB) return false;
-  if(trigA) psfac = psTrigA;
-  if(trigB) psfac = psTrigB;
-
+  
   for(int ips=0; ips<psfac; ips++){
     HF1( 1, event.status ); // debug 0    
   }
   event.status++;
-    
+  
   if(event.nKK != 1) return true;
   double BE = 0.;
   double thetaTPC = 0.;  
   for(Int_t iKK=0; iKK<event.nKK; iKK++){
-    //BE = event.MissMassNuclCorrDETPC[iKK] - KaonMass - Boron11Mass - 0.075;
     BE = event.MissMassNuclCorrDETPC[iKK] - KaonMass - Boron11Mass;
     thetaTPC = event.thetaTPC[0];
   }
-  if( !(event.runnum >= 5641 && event.runnum <= 5666) ){// not CH2
-    if(!(thetaTPC>minThetaKP && thetaTPC<maxThetaKP)) return true;
+  HF1(500,thetaTPC);
+  event.ntKuramaCandidate = **src.ntKuramaCandidate;
+  if(event.Pflag[0] != 1) return true;
+  {
+    std::cout << __FILE__ << " " << __LINE__ << " ntKuramaCandidate:" << event.ntKuramaCandidate << std::endl;
+    double vtx = event.vtx[0];
+    double vty = event.vty[0];
+    double vtz = event.vtz[0]; // = vertexZ - targetZ
+    HF1(600,vtx); HF1(601,vty); HF1(602,vtz); 
+    HF2(700,vtx,vty); HF2(701,vty,vtz); HF2(702,vtz,vtx); 
+    for(int i=0; i<12; i++){
+      if(double(i)*2.0<thetaTPC&&double(i+1)*2.0>thetaTPC) HF1(610+i,vtz);
+      {
+	TVector3 km(event.ubTPC[0], event.vbTPC[0], 1.);
+	TVector3 kp(event.us[0], event.vs[0], 1.);
+	double cos_kp = km*kp;
+	cos_kp /= (km.Mag()*kp.Mag());
+	double theta_kp = TMath::ACos(cos_kp)*TMath::RadToDeg();
+	if(double(i)*2.0<theta_kp&&double(i+1)*2.0>theta_kp){
+	  if(event.ntKuramaCandidate==0) HF1(800+i,vtz);
+	  if(event.ntKuramaCandidate==1) HF1(820+i,vtz); 
+	  if(event.ntKuramaCandidate==2) HF1(840+i,vtz);
+	  if(event.ntKuramaCandidate>0)  HF1(860+i,vtz);	  
+	}
+      }
+    }
+    if(3.5<thetaTPC&&4.5>thetaTPC){
+      HF1(630,vtx);
+      HF1(631,vty);
+      HF1(632,vtz);            
+    }
   }
-  if( event.isgoodTPCKurama.size()!=1 ) return false;
-  if( event.isgoodTPCKurama[0]!=1 ) return false;
-  if( event.insideTPC[0] != 1) return false;
-  
-  //  if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
-  // if(KKEvent && event.Kflag[0] != 1){
-  //   if(event.kflagTPCKurama[0]!=1) return false;
-  //   return true; //precut with Kurama tracking
-  // }
+  if( event.isgoodTPCKurama.size()!=1 ) return false; 
+  if( event.isgoodTPCKurama[0]!=1 ) return false; 
+  {
+    double vtxtpc = event.vtxTPC[0];
+    double vtytpc = event.vtyTPC[0];
+    double vtztpc = event.vtzTPC[0];  // = vertexZ - targetZ
+    HF1(650,vtxtpc); HF1(651,vtytpc); HF1(652,vtztpc); 
+    HF2(750,vtxtpc,vtytpc); HF2(751,vtytpc,vtztpc); HF2(752,vtztpc,vtxtpc); 
+    for(int i=0; i<12; i++){ 
+      if(double(i)*2.0<thetaTPC&&double(i+1)*2.0>thetaTPC) HF1(660+i,vtztpc);
+      // if(double(i)*2.0<thetaTPC&&double(i+1)*2.0>thetaTPC){
+      // 	if(event.ntKuramaCandidate==0) HF1(800+i,vtz); 
+      // 	if(event.ntKuramaCandidate==1) HF1(820+i,vtz); 
+      // 	if(event.ntKuramaCandidate==2) HF1(840+i,vtz);
+      // 	if(event.ntKuramaCandidate>0)  HF1(860+i,vtz); 	
+      // }
+    }
+    if(3.5<thetaTPC&&4.5>thetaTPC){
+      HF1(680,vtxtpc);
+      HF1(681,vtytpc);
+      HF1(682,vtztpc);            
+    }    
+  }
+  if( event.insideTPC[0] != 1) return false;  
   if(KPEvent && event.Pflag[0] != 1){
     if(event.pflagTPCKurama[0]!=1) return false;    
     return true; //precut with Kurama tracking
-  }
-  // if(KHeavyEvent && event.Heavyflag[0] != 1){
-  //   return true; //precut with Kurama tracking
-  // }
-
-  // TVector3 kkvtxTPC(event.vtxTPC[0], event.vtyTPC[0], event.vtzTPC[0] + tpc::ZTarget);
-  // event.BE[0] = 1000.*binding_energy; //MeV/c2
-  // Double_t binding_energy_LL = m10Be + 2.*LambdaMass - mm_12C; //GeV/c2
-  // event.BE_LL[0] = 1000.*binding_energy_LL; //MeV/c2
-
+  }  
+  if( !(event.runnum >= 5641 && event.runnum <= 5666) ){// not CH2
+    if(!(thetaTPC>minThetaKP && thetaTPC<maxThetaKP)) return true;
+  } else {
+    if(!(thetaTPC>minThetaKPCH2 && thetaTPC<maxThetaKPCH2)) return true;
+  }  
+  event.IncFlag = true;
+  // beam
   TLorentzVector LvRcTPC;
   TVector3 km_unit = TVector3(event.utgtK18[0], event.vtgtK18[0], 1.).Unit();
   TVector3 km_momTPC = km_unit*event.pK18[0];
-
+  // scat
   TVector3 kp_unit = TVector3(event.usTPC[0], event.vsTPC[0], 1.).Unit();
   TVector3 kp_momTPC = kp_unit*event.pCorrDETPC[0];
-
-  TVector3 miss_momTPC = km_momTPC - kp_momTPC;
+  event.kp_phi = kp_momTPC.Phi();
+  event.kp_theta = kp_momTPC.Theta();
   
-  //Double_t thetaTPC = event.thetaTPC[0];
+  // missing
+  TVector3 miss_momTPC = km_momTPC - kp_momTPC;  
 
   TLorentzVector LvKmTPC(km_momTPC, TMath::Hypot(km_momTPC.Mag(), KaonMass));
   TLorentzVector LvScatPTPC(kp_momTPC, TMath::Hypot(kp_momTPC.Mag(), ProtonMass));
   TLorentzVector LvCTPC(0., 0., 0., Carbon12Mass);
   TLorentzVector LvPTPC(0., 0., 0., ProtonMass);
-  //std::cout << "m12C:" << m12C << " ProtonMass:" << ProtonMass << std::endl;
   TLorentzVector LvScatKmTPC = LvKmTPC + LvPTPC - LvScatPTPC;
   LvRcTPC = LvKmTPC + LvCTPC - LvScatPTPC;
 
@@ -1624,12 +1690,13 @@ dst::DstRead( int ievent )
     for(int ips=0; ips<psfac; ips++) HF1( 1, event.status ); // debug 1
   }
   event.status++;
-  
-  for(int ips=0; ips<psfac; ips++){
-    HF1(3900,event.MissMassCorrDETPC[0]);
-    HF1(13900,-event.BETPC[0]);
-  }
 
+  if(trigA){    
+    for(int ips=0; ips<event.PSfacTrigA; ips++){
+      HF1(3900,event.MissMassCorrDETPC[0]);
+      HF1(13900,-event.BETPC[0]);
+    }
+  }
   // for Geant4
   Double_t pKp = event.pCorrDETPC[0];
   Double_t uKp = event.utgtTPCKurama[0];  
@@ -1654,16 +1721,8 @@ dst::DstRead( int ievent )
   TVector3 missmom = bmom - smom;
   dstg4.px[0] = missmom.X();
   dstg4.py[0] = missmom.Y();
-  dstg4.pz[0] = missmom.Z();
-  // std::cout << " debug: " << __FILE__ << " " << __LINE__ << " "
-  // 	    << " bmom(" << bmom[0] << "," << bmom[1] << "," << bmom[2] << ") "
-  // 	    << " smom(" << smom[0] << "," << smom[1] << "," << smom[2] << ") "
-  // 	    << " px[0],py[0],pz[0]:" << dstg4.px[0] << " " << dstg4.py[0] << " " << dstg4.pz[0] << std::endl;
-  // std::cout << " debug: " << __FILE__ << " " << __LINE__ << " "
-  // 	    << " LvScatKmTPC.M():" << LvScatKmTPC.M() << " LvScatKmTPC.P():" << LvScatKmTPC.P()
-  // 	    << " LvRcTPC.M():" << LvRcTPC.M() << " LvRcTPC.P():" << LvRcTPC.P() << std::endl;
-      
-
+  dstg4.pz[0] = missmom.Z();      
+  
   int ntTpc = **src.ntTpc;  
   if( ntTpc == 0 )
     return true;
@@ -1853,7 +1912,7 @@ dst::DstRead( int ievent )
 	event.GFpos_x[igf][ihit] = hit.x();
 	event.GFpos_y[igf][ihit] = hit.y();
 	event.GFpos_z[igf][ihit] = hit.z();
-
+	
 	event.GFresidual_x[igf][ihit] = hit.x() - event.hitpos_x[igf][ihit];
 	event.GFresidual_y[igf][ihit] = hit.y() - event.hitpos_y[igf][ihit];
 	event.GFresidual_z[igf][ihit] = hit.z() - event.hitpos_z[igf][ihit];
@@ -1862,23 +1921,23 @@ dst::DstRead( int ievent )
 	event.GFresidual_p[igf][ihit] = mom.Mag() - event.mom0[igf];
 	event.GFresidual_px[igf][ihit] = mom.x() - chargetest*event.mom_x[igf][ihit];
 	event.GFresidual_py[igf][ihit] = mom.y() - chargetest*event.mom_y[igf][ihit];
-	event.GFresidual_pz[igf][ihit] = mom.z() - chargetest*event.mom_z[igf][ihit];
-	if(ihit==0) HF1( genfitHid+7, event.GFmom[igf][0]);
-	HF1( genfitHid+8, event.GFlayer[igf][ihit]);
-	HF1( genfitHid+10, event.GFresidual_x[igf][ihit]);
-	HF1( genfitHid+11, event.GFresidual_y[igf][ihit]);
-	HF1( genfitHid+12, event.GFresidual_z[igf][ihit]);
-	HF1( genfitHid+13, event.GFresidual_p[igf][ihit]);
-	HF1( genfitHid+14, event.GFresidual_px[igf][ihit]);
-	HF1( genfitHid+15, event.GFresidual_py[igf][ihit]);
-	HF1( genfitHid+16, event.GFresidual_pz[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1), event.GFresidual_x[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+1, event.GFresidual_y[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+2, event.GFresidual_z[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+3, event.GFresidual_p[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+4, event.GFresidual_px[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+5, event.GFresidual_py[igf][ihit]);
-	HF1( genfitHid+1000*(layer+1)+6, event.GFresidual_pz[igf][ihit]);
+	event.GFresidual_pz[igf][ihit] = mom.z() - chargetest*event.mom_z[igf][ihit]; 
+	if(ihit==0) HF1( genfitHid+7, event.GFmom[igf][0]); 
+	// HF1( genfitHid+8, event.GFlayer[igf][ihit]); 
+	// HF1( genfitHid+10, event.GFresidual_x[igf][ihit]);
+	// HF1( genfitHid+11, event.GFresidual_y[igf][ihit]);
+	// HF1( genfitHid+12, event.GFresidual_z[igf][ihit]);
+	// HF1( genfitHid+13, event.GFresidual_p[igf][ihit]);
+	// HF1( genfitHid+14, event.GFresidual_px[igf][ihit]);
+	// HF1( genfitHid+15, event.GFresidual_py[igf][ihit]);
+	// HF1( genfitHid+16, event.GFresidual_pz[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1), event.GFresidual_x[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+1, event.GFresidual_y[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+2, event.GFresidual_z[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+3, event.GFresidual_p[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+4, event.GFresidual_px[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+5, event.GFresidual_py[igf][ihit]);
+	// HF1( genfitHid+1000*(layer+1)+6, event.GFresidual_pz[igf][ihit]);
       } //ihit  
       //Extrapolation
       if( event.isBeam[igf]==1 || event.isK18[igf]==1 || event.isAccidental[igf]==1 ) continue;      
@@ -1971,7 +2030,6 @@ dst::DstRead( int ievent )
 	event.GFprodvtx_y = vertex.y();
 	event.GFprodvtx_z = vertex.z();    
 	//TVector3 vertex(event.vtxTPC[igf],event.vtyTPC[igf],event.vtzTPC[igf]+tpc::ZTarget);
-	Double_t mom = event.GFmom[igf][0];
 	Int_t repid=-1;
 	Int_t hitid_htof; Double_t tof; Double_t len;
 	TVector3 pos_htof; Double_t track2tgt_dist;
@@ -1995,19 +2053,21 @@ dst::DstRead( int ievent )
 	  event.GFinvbeta[igf] = 1./beta;
 	  Double_t mass2 = Kinematics::MassSquare(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
 	  event.GFm2[igf] = mass2;
+	  double GFmom = event.GFmom[igf][0];
 	  event.nsigma_tritonHtof[igf] = Kinematics::HypTPCHTOFNsigmaTriton(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
 	  event.nsigma_deutronHtof[igf] = Kinematics::HypTPCHTOFNsigmaDeutron(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);                                                                          
 	  event.nsigma_protonHtof[igf] = Kinematics::HypTPCHTOFNsigmaProton(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);                                                                            
 	  event.nsigma_kaonHtof[igf] = Kinematics::HypTPCHTOFNsigmaKaon(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
 	  event.nsigma_pionHtof[igf] = Kinematics::HypTPCHTOFNsigmaPion(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
 	  event.nsigma_electronHtof[igf] = Kinematics::HypTPCHTOFNsigmaElectron(event.GFmom[igf][0], len, event.tHtof[hitid_htof]); 	  
-	}	
+	} 	
       } else {
 	event.GFinside[igf] = 0;
       }
     } else {
       event.GFnhtrack[igf] = 0;
       event.GFpdgcode[igf] = -9999;
+      event.GFm2[igf] = TMath::QuietNaN();
         
       event.GFchisqr[igf] = TMath::QuietNaN();
       event.GFcharge[igf] = TMath::QuietNaN();
@@ -2052,6 +2112,7 @@ dst::DstRead( int ievent )
   Int_t numK18=0; Int_t numKurama=0; Int_t numBeam=0; Int_t numAcc=0;
   Int_t numKm=0; Int_t numPim=0; Int_t numPip=0; Int_t numP=0; Int_t numPPip=0;
   Int_t numEp=0; Int_t numEm=0;
+  Int_t numOutside=0;  
   Int_t idKm=-1;
   bool kmflag_dedxpid = false;    
   {
@@ -2065,13 +2126,27 @@ dst::DstRead( int ievent )
       } else if( event.isAccidental[it]==1 ) {
 	numAcc++;
       }
-      if(event.isElectron[it]==1) continue;
+      if(event.isElectron[it]==1){
+	if(event.charge[it]==1){
+	  numEp++;
+	  continue;
+	} else {
+	  numEm++;
+	  continue;
+	}
+	continue;
+      }
       if(event.isK18[it]==1) continue;
       if(event.isKurama[it]==1) continue;
       if(event.isBeam[it]==1) continue;
       if(event.isAccidental[it]==1) continue;
-      if(event.GFinside[it]!=1) continue;
-      
+      if(event.GFinside[it]!=1){
+	numOutside++;
+	continue;
+      }
+      if(event.charge[it]==-1&&event.mom0[it]<0.5) HF1(15, -1.*event.GFm2[it]);
+      if( event.charge[it]==-1 && event.mom0[it]<0.5 && event.GFinvbeta[it]>0.
+	  && event.nsigma_kaon[it]>-3 && event.nsigma_kaon[it]<3 ) HF1(18,-1.*event.GFm2[it]);
       //if((event.pid[it]&2)==2 && event.charge[it]==-1){ //k-
       if(event.charge[it]==-1){ //k-
 	if( event.nsigma_kaon[it]>mindEdxSigKaon && event.nsigma_kaon[it]<maxdEdxSigKaon ){ 
@@ -2080,19 +2155,10 @@ dst::DstRead( int ievent )
 	  continue; 
 	}
       }
-      if(event.isElectron[it]==1){ //e+, e-
-	if(event.charge[it]==1){
-	  numEp++;
-	  continue;
-	} else {
-	  numEm++;
-	  continue;
-	}
-      }    
-      else if((event.pid[it]&4)==4 && (event.pid[it]&1)!=1 && event.charge[it]==1){ //proton
+      if((event.pid[it]&4)==4 && (event.pid[it]&1)!=1 && event.charge[it]==1){ //proton 
 	numP++;
 	continue;      
-      }
+      } 
       else if((event.pid[it]&1)==1 && event.charge[it]==-1){ //pi-
 	Double_t slope = event.helix_dz[it];
 	Double_t helixmom = event.mom0[it];
@@ -2106,20 +2172,20 @@ dst::DstRead( int ievent )
 	double pi_vertex_dist=-999.;
 	if(TMath::Abs(slope)<0.05 && TMath::Abs(helixmom)>0.5 &&
 	   !(Kinematics::HelixDirection(tgtpos,pi_start,pi_end,pi_vertex_dist))&&
-	   (pi_start.x()-pi_end.x())>-10 && (pi_start.x()-pi_end.x())<50.){
-	  event.isAccidental[it] = 1;
-	  numAcc++;
-	  //target_accidental_id_container.push_back(it); //Accidental beam on the target
-	  continue; //Accidental K-
-	}      
-	numPim++;
-	continue;
-      }
-      else if((event.pid[it]&4)!=4 && (event.pid[it]&1)==1 && event.charge[it]==1){ //pi+
-	numPip++;
-	continue;
-      }
-      else if(((event.pid[it]&4)==4 || (event.pid[it]&1)==1) && event.charge[it]==1){ //p or pi+ with high-mom
+	   (pi_start.x()-pi_end.x())>-10 && (pi_start.x()-pi_end.x())<50.){ 
+	  event.isAccidental[it] = 1; 
+	  numAcc++; 
+	  // target_accidental_id_container.push_back(it); //Accidental beam on the target 
+	  continue; //Accidental K- 
+	} 
+	numPim++; 
+	continue; 
+      } 
+      else if((event.pid[it]&4)!=4 && (event.pid[it]&1)==1 && event.charge[it]==1){ //pi+ 
+	numPip++; 
+	continue; 
+      } 
+      else if(((event.pid[it]&4)==4 || (event.pid[it]&1)==1) && event.charge[it]==1){ //p or pi+ with high-mom 
 	numPPip++;
 	continue;
       }
@@ -2146,9 +2212,10 @@ dst::DstRead( int ievent )
   std::vector<Double_t> GFk_invbeta_container(l_candidates, qnan);  
 
   if(numKm>0){
-    // std::cout << " debug " << __FILE__ << " " << __LINE__
-    // 	      << " numKm:" << numKm << " numPPip:" << numPPip << " numPip:" << numPip << " numPim:" << numPim << " numP:" << numP
-    // 	      << " numEm:" << numEm << " numEp:" << numEp << std::endl;
+    std::cout << " debug " << __FILE__ << " " << __LINE__
+	      << " TotalTrack:" << event.ntTpc << " ntK18:" << numK18 << " ntBeam:" << numBeam << " nuKurama:" << numKurama << " ntAcc:" << numAcc << " ntOutTarget:" << numOutside
+	      << " numKm:" << numKm << " numPPip:" << numPPip << " numPip:" << numPip << " numPim:" << numPim << " numP:" << numP
+	      << " numEm:" << numEm << " numEp:" << numEp << std::endl;
     event.kminc = true;
   }
   if( numPPip==0&&numPip==0&&numPim==0&&numP==0&&numEm==0&&numEp==0 ){
@@ -2181,25 +2248,25 @@ dst::DstRead( int ievent )
 	
       }
 
-      Int_t hitid_htof; Double_t tof_htof; Double_t tracklen_htof; TVector3 pos_htof; Double_t track2tgt_dist; Int_t htofseg;
-      Bool_t km_htofextrap =
+      Int_t hitid_htof; Double_t tof_htof; Double_t tracklen_htof; TVector3 pos_htof; Double_t track2tgt_dist; Int_t htofseg; 
+      Bool_t km_htofextrap = 
 	GFtrackCont.TPCHTOFTrackMatching(it, repid_km, tgtpos,
 					 event.HtofSeg, event.posHtof,
 					 hitid_htof, tof_htof,
 					 tracklen_htof, pos_htof, track2tgt_dist);
-      if(km_htofextrap){
-	GFk_htofhitid_container[0] = hitid_htof;
-	GFk_htofseg_container[0] = event.HtofSeg[hitid_htof];
-	GFk_tracklen_container[0] = tracklen_htof;
-	GFk_poshtof_container[0] = pos_htof;		
-	GFk_tof_container[0] = event.tHtof[hitid_htof];
-	GFk_mass2_container[0] =
-	  Kinematics::MassSquare(km_mom.Mag(), tracklen_htof, event.tHtof[hitid_htof])+0.05;
+      if(km_htofextrap){ 
+	GFk_htofhitid_container[0] = hitid_htof; 
+	GFk_htofseg_container[0] = event.HtofSeg[hitid_htof]; 
+	GFk_tracklen_container[0] = tracklen_htof; 
+	GFk_poshtof_container[0] = pos_htof; 	
+	GFk_tof_container[0] = event.tHtof[hitid_htof]; 
+	GFk_mass2_container[0] = 
+	  Kinematics::MassSquare(km_mom.Mag(), tracklen_htof, event.tHtof[hitid_htof])+0.05; 
 	GFk_invbeta_container[0] =
-	  MathTools::C()*event.tHtof[hitid_htof]/tracklen_htof;
-      }
-      GFk_id_container[0]=idKm;
-      GFk_repid_container[0]=repid_km;
+	  MathTools::C()*event.tHtof[hitid_htof]/tracklen_htof; 
+      } 
+      GFk_id_container[0]=idKm; 
+      GFk_repid_container[0]=repid_km; 
       GFk_mom_container[0]=km_mom;
       GFk_targetvtx_container[0]=post;
       GFk_targetcentervtx_container[0]=post-tgtpos;
@@ -2209,11 +2276,11 @@ dst::DstRead( int ievent )
     }
   }
 
-  if(kmflag_dedxpid){
-    for(int ips=0; ips<psfac; ips++){
+  if(kmflag_dedxpid&&trigB){
+    for(int ips=0; ips<event.PSfacTrigB; ips++){
       HF2(10, event.charge[idKm]*event.mom0[idKm], event.dEdx[idKm]);    
       HF1(3950,event.MissMassCorrDETPC[0]);
-      HF1(13950,-event.BETPC[0]);      
+      HF1(13950,-event.BETPC[0]);
     }
   }
   
@@ -2231,33 +2298,37 @@ dst::DstRead( int ievent )
     event.GFkmphi   = scat_km_mom.Phi();   // rad
     double GFkmCosTheta = scat_km_mom.CosTheta();
     
-    event.GFkmtarget_dist = GFk_targetdist_container[id];
-    event.GFkmtargetvtx_x = GFk_targetvtx_container[id].x();
-    event.GFkmtargetvtx_y = GFk_targetvtx_container[id].y();
-    event.GFkmtargetvtx_z = GFk_targetvtx_container[id].z();
-    event.GFkmtargetcenter_dist = GFk_targetcenterdist_container[id];
-    event.GFkmtargetcenter_x = GFk_targetcentervtx_container[id].x();
-    event.GFkmtargetcenter_y = GFk_targetcentervtx_container[id].y();
-    event.GFkmtargetcenter_z = GFk_targetcentervtx_container[id].z();
+    event.GFkmtarget_dist = GFk_targetdist_container[id]; 
+    event.GFkmtargetvtx_x = GFk_targetvtx_container[id].x(); 
+    event.GFkmtargetvtx_y = GFk_targetvtx_container[id].y(); 
+    event.GFkmtargetvtx_z = GFk_targetvtx_container[id].z(); 
+    event.GFkmtargetcenter_dist = GFk_targetcenterdist_container[id]; 
+    event.GFkmtargetcenter_x = GFk_targetcentervtx_container[id].x(); 
+    event.GFkmtargetcenter_y = GFk_targetcentervtx_container[id].y(); 
+    event.GFkmtargetcenter_z = GFk_targetcentervtx_container[id].z(); 
   
-    event.GFkmhtofid = GFk_htofhitid_container[id];
-    event.GFkmhtofseg = GFk_htofseg_container[id];
-    event.GFkmposHtof.push_back(GFk_poshtof_container[id].x());
-    event.GFkmposHtof.push_back(GFk_poshtof_container[id].y());
-    event.GFkmposHtof.push_back(GFk_poshtof_container[id].z());
+    event.GFkmhtofid = GFk_htofhitid_container[id]; 
+    event.GFkmhtofseg = GFk_htofseg_container[id]; 
+    event.GFkmposHtof.push_back(GFk_poshtof_container[id].x()); 
+    event.GFkmposHtof.push_back(GFk_poshtof_container[id].y()); 
+    event.GFkmposHtof.push_back(GFk_poshtof_container[id].z()); 
     event.GFkmmass2 = GFk_mass2_container[id];
     event.GFkmtracklen = GFk_tracklen_container[id];
     event.GFkminvbeta = GFk_invbeta_container[id];
     event.GFkmtof = GFk_tof_container[id];
     
-    if(event.GFkmmom>0.01){
-      for(int ips=0; ips<psfac; ips++){
+    if(trigB&&event.GFkmmom>0.01){      
+      for(int ips=0; ips<event.PSfacTrigB; ips++){	
 	HF1(20, event.GFkmmass2);
+	if(event.GFkmmom<0.5) HF1(19, -1.*event.GFkmmass2);
 	for(int i=0; i<5; i++){
 	  if(double(i)*0.2<event.GFkmmom && double(i+1)*0.2>event.GFkmmom) HF1(121+i, event.GFkmmass2);
 	}
-	if(0.2<event.GFkmmom && event.GFkmmom<0.7) HF1(126, event.GFkmmass2);
-	if(0.7<event.GFkmmom) HF1(127, event.GFkmmass2);
+	if(0.2<event.GFkmmom && event.GFkmmom<0.7) HF1(126, event.GFkmmass2); 
+	if(0.7<event.GFkmmom) HF1(127, event.GFkmmass2); 
+	for(int i=0; i<10; i++){ 
+	  if(double(i)*0.1<event.GFkmmom && double(i+1)*0.1>event.GFkmmom && event.charge[id]<0) HF1(130+i, event.charge[id]*event.GFkmmass2);
+	}		
 	
 	HF1(21, event.GFkmtracklen);
 	HF1(22, event.GFkmtof);
@@ -2273,7 +2344,29 @@ dst::DstRead( int ievent )
 	for(int i=0; i<numbinbek; i++){
 	  if(-event.BETPC[0]>minbek+i*onebinbek && -event.BETPC[0]<minbek+(i+1)*onebinbek) HF1(201+i,event.GFkmmass2);
 	}
+
 	if(event.GFkmmom>0.01&&event.GFkmmass2>minM2Km&&event.GFkmmass2<maxM2Km){
+	  {
+	    double thetaTPC = event.thetaTPC[0];
+	    double vtx = event.vtx[0];
+	    double vty = event.vty[0];
+	    double vtz = event.vtz[0];  // = vertexZ - targetZ
+	    HF1(10600,vtx); HF1(10601,vty); HF1(10602,vtz); 
+	    HF2(10700,vtx,vty); HF2(10701,vty,vtz); HF2(10702,vtz,vtx); 
+	    for(int i=0; i<12; i++){
+	      if(double(i)*2.0<thetaTPC&&double(i+1)*2.0>thetaTPC) HF1(10610+i,vtz);
+	    }
+	    double vtxtpc = event.vtxTPC[0];
+	    double vtytpc = event.vtyTPC[0];
+	    double vtztpc = event.vtzTPC[0]; // = vertexZ - targetZ
+	    HF1(10650,vtxtpc); HF1(10651,vtytpc); HF1(10652,vtztpc); 
+	    HF2(10750,vtxtpc,vtytpc); HF2(10751,vtytpc,vtztpc); HF2(10752,vtztpc,vtxtpc); 
+	    for(int i=0; i<12; i++){
+	      if(double(i)*2.0<thetaTPC&&double(i+1)*2.0>thetaTPC) HF1(10660+i,vtztpc);
+	    }	    
+	  }
+
+	  event.EscFlag = true;
 	  if(event.GFkmmom<1.0){
 	    HF1(3951, event.MissMassCorrDETPC[0]);
 	    HF1(13951, -event.BETPC[0]);
@@ -2300,9 +2393,10 @@ dst::DstRead( int ievent )
 	    HF1(4110, GFkmCosTheta);
 	    HF1(4120, event.GFkmphi);      
 	    HF1(4121, event.GFkmphi*TMath::RadToDeg());
-	    HF2(4500, event.GFkmtheta*TMath::RadToDeg(), event.GFkmmom);
-	    HF2(4510, event.GFkmphi*TMath::RadToDeg(), event.GFkmmom);
-	    HF2(4520, event.GFkmphi*TMath::RadToDeg(), event.GFkmtheta*TMath::RadToDeg());
+	    HF2(4500, event.GFkmtheta*TMath::RadToDeg(), event.GFkmmom); 
+	    HF2(4510, event.GFkmphi*TMath::RadToDeg(), event.GFkmmom); 
+	    HF2(4520, event.GFkmphi*TMath::RadToDeg(), event.GFkmtheta*TMath::RadToDeg()); 
+	    HF2(5100, bek, event.GFkmmom);
 	  }
 	}
       }
@@ -2360,6 +2454,13 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
+
+  if (TFileCont[kOutFile]) {
+      TFileCont[kOutFile]->cd();
+  } else {
+      std::cerr << "!!! ConfMan::InitializeHistograms: Output file (TFileCont[kOutFile]) is not open!" << std::endl;
+  }
+  
   Int_t nbinpoq = 1000;
   Int_t minpoq = -1.5;
   Int_t maxpoq = 1.5;
@@ -2377,20 +2478,61 @@ ConfMan::InitializeHistograms( void )
   static const auto KKEvent = gUser.GetParameter("KKEvent");
   HB1(1, "Status", 21, 0., 21. );
   HB2(10, "AnalysisKm <dE/dx>;p/q [GeV/#font[12]{c}];<dE/dx> [arb.]",nbinpoq,minpoq,maxpoq,nbindedx,mindedx,maxdedx);
+  HB1(15, "M2 [<1.0GeV/c];  #it{M^{2}} [GeV]; counts ", nbinmass2, minmass2, maxmass2);
+  HB1(18, "Kaon M2 [<1.0GeV/c][3.0#sigma dEdx cut];  #it{M^{2}} [GeV]; counts ", nbinmass2, minmass2, maxmass2);    
+  HB1(19, "Kaon M2 [<1.0GeV/c][1.7#sigma dEdx cut];  #it{M^{2}} [GeV]; counts ", nbinmass2, minmass2, maxmass2);  
   HB1(20, "Kaon M2; MassSquare [GeV]; counts ", nbinmass2, minmass2, maxmass2);
   HB1(21, "Kaon tracklen; tracklen [mm]; counts ", 1000, 0, 1000);
   HB1(22, "Kaon tof; tof [nsec]; counts ", 500, 0, 10);
   HB1(23, "Kaon dEdx; dEdx [arb.unit]; counts ", 1000, 0, 350);
-  HB1(50, "Mom of beam K- [total] ; momenutm [GeV/c]; counts", 500, 1.50, 2.0);
+  HB1(50, "Mom of beam K- [total] ; momenutm [GeV/c]; counts", 500, 1.50, 2.0);  
 
   for(int i=0; i<5; i++){
     HB1(121+i, Form("Kaon M2 (%f<mom<%f [GeV/c]); MassSquare [GeV]; counts ",double(i)*0.2, double(i+1)*0.2), nbinmass2, minmass2, maxmass2);
   }
   HB1(126, "Kaon M2 (0.2<mom<0.7 [GeV/c]); MassSquare [GeV]; counts ", nbinmass2, minmass2, maxmass2);
   HB1(127, "Kaon M2 (0.7<mom<1.0 [GeV/c]); MassSquare [GeV]; counts ", nbinmass2, minmass2, maxmass2);
+  for(int i=0; i<10; i++){
+    HB1(130+i, Form("Kaon M2*charge (%f<mom<%f [GeV/c]); #it{M^{2}} [GeV/#it{c^{2}}]; counts ",double(i)*0.1, double(i+1)*0.1), nbinmass2, minmass2, maxmass2);
+  }
 
   for(int i=0; i<numbinbek; i++){
     HB1(201+i, Form("M2 (%.2f<-BEk<%.2f [GeV]); MassSquare [GeV]; counts ",double(i)*onebinbek+minbek, double(i+1)*onebinbek+minbek), nbinmass2, minmass2, maxmass2);
+  }
+
+  HB1(500, " Theta of KP [deg]; #theta [deg]; counts", 300, 0, 30);
+
+  HB1(600, "[Inc] Vtx [mm]; vertex X [mm]; counts", 300, -150, 150);
+  HB1(601, "[Inc] Vty [mm]; vertex Y [mm]; counts", 300, -150, 150);
+  HB1(602, "[Inc] Vtz [mm]; vertex Z [mm]; counts", 800, -300, 500);
+  for(int i=0; i<12; i++){
+    HB1(610+i, Form("[Inc] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+  }
+  HB1(630, "[Inc] Vtx [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex X [mm]; counts", 600, -300, 300);
+  HB1(631, "[Inc] Vty [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex Y [mm]; counts", 600, -300, 300);    
+  HB1(632, "[Inc] Vtz [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex Z [mm]; counts", 800, -300, 500);
+  HB1(650, "[Inc][TPC] Vtx [mm]; vertex X [mm]; counts", 300, -150, 150);
+  HB1(651, "[Inc][TPC] Vty [mm]; vertex Y [mm]; counts", 300, -150, 150);
+  HB1(652, "[Inc][TPC] Vtz [mm]; vertex Z [mm]; counts", 800, -300, 500);
+  for(int i=0; i<12; i++){
+    HB1(660+i, Form("[Inc][TPC] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+  }
+  HB1(680, "[Inc][TPC] Vtx [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex X [mm]; counts", 600, -300, 300);
+  HB1(681, "[Inc][TPC] Vty [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex Y [mm]; counts", 600, -300, 300);    
+  HB1(682, "[Inc][TPC] Vtz [mm] (3.5< #theta_{#it{Kp}} <4.5); vertex Z [mm]; counts", 800, -300, 500);  
+
+  HB2(700, "[Inc] Vtx [mm] vs Vty [mm]; vertex X [mm]; vertex Y [mm]", 300, -150, 150, 300, -150, 150);
+  HB2(701, "[Inc] Vty [mm] vs Vtz [mm]; vertex Y [mm]; vertex Z [mm]", 300, -150, 150, 800, -300, 500);
+  HB2(702, "[Inc] Vtz [mm] vs Vtx [mm]; vertex Z [mm]; vertex X [mm]", 800, -300, 500, 300, -150, 150);  
+  HB2(750, "[Inc][TPC] Vtx [mm] vs Vty [mm]; vertex X [mm]; vertex Y [mm]", 300, -150, 150, 300, -150, 150);
+  HB2(751, "[Inc][TPC] Vty [mm] vs Vtz [mm]; vertex Y [mm]; vertex Z [mm]", 300, -150, 150, 800, -300, 500);
+  HB2(752, "[Inc][TPC] Vtz [mm] vs Vtx [mm]; vertex Z [mm]; vertex X [mm]", 800, -300, 500, 300, -150, 150);
+
+  for(int i=0; i<12; i++){
+    HB1(800+i, Form("[Inc][TPC][N=0] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+    HB1(820+i, Form("[Inc][TPC][N=1] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+    HB1(840+i, Form("[Inc][TPC][N=2] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+    HB1(860+i, Form("[Inc][TPC][N>0] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);    
   }  
   
   HB1(1050, " Mom of scatP ; momentum [GeV/c]; coutns", 500, 1.50, 2.0);
@@ -2435,15 +2577,39 @@ ConfMan::InitializeHistograms( void )
 
   HB1(4100, "[M2] Theta of scatK- [deg]; #theta [deg]; counts", 1800, 0, 180); 
   HB1(4110, "[M2] CosTheta of scatK- ; Cos(#theta); counts", 200, -1, 1);
-  HB1(4120, "[M2] Phi of scatK- [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
-  HB1(4121, "[M2] Phi of scatK- [deg]; #phi [deg]; counts", 3600, -180, 180);
-  HB2(4500, "[M2] Mom vs Theta scatK-; #theta [deg]; momentum [GeV/c]", 1800, 0, 180, 500, 0, 1.0);
-  HB2(4510, "[M2] Mom vs Phi scatK-; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 0, 1.0);
-  HB2(4520, "[M2] Theta vs Phi scatK-; #phi [deg]; #theta [deg]", 3600, -180, 180, 1800, 0, 180);
+  HB1(4120, "[M2] Phi of scatK- [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi()); 
+  HB1(4121, "[M2] Phi of scatK- [deg]; #phi [deg]; counts", 3600, -180, 180); 
+  HB2(4500, "[M2] Mom vs Theta scatK-; #theta [deg]; momentum [GeV/c]", 1800, 0, 180, 500, 0, 1.0); 
+  HB2(4510, "[M2] Mom vs Phi scatK-; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 0, 1.0); 
+  HB2(4520, "[M2] Theta vs Phi scatK-; #phi [deg]; #theta [deg]", 3600, -180, 180, 1800, 0, 180); 
 
-  HB1(13900, " BE KP inclusive; MissingMass [GeV]; Counts", 120, -0.3, 0.3);
-  HB1(13950, " BE KP exclusive [dEdxPID]; MissingMass [GeV]; Counts", 120, -0.3, 0.3);
-  HB1(13951, " BE KP exclusive [M2PID]; MissingMass [GeV]; Counts", 120, -0.3, 0.3);
+  HB2(5100, "[M2] Mom vs -B_{K} scatK-; -#it{B_{K}} [GeV]; #it{P_{Scat K^{-}}} [GeV/c]", 120, -0.3, 0.3, 500, 0, 1.0);
+
+  HB1(10600, "[Exc] Vtx [mm]; vertex X [mm]; counts", 300, -150, 150);
+  HB1(10601, "[Exc] Vty [mm]; vertex Y [mm]; counts", 300, -150, 150);
+  HB1(10602, "[Exc] Vtz [mm]; vertex Z [mm]; counts", 800, -300, 500);
+  for(int i=0; i<12; i++){
+    HB1(10610+i, Form("[Exc] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+  }
+  
+  HB2(10700, "[Exc] Vtx [mm] vs Vty [mm]; vertex X [mm]; vertex Y [mm]", 300, -150, 150, 300, -150, 150);
+  HB2(10701, "[Exc] Vty [mm] vs Vtz [mm]; vertex Y [mm]; vertex Z [mm]", 300, -150, 150, 800, -300, 500);
+  HB2(10702, "[Exc] Vtz [mm] vs Vtx [mm]; vertex Z [mm]; vertex X [mm]", 800, -300, 500, 300, -150, 150);    
+
+  HB1(10650, "[Exc] Vtx [mm]; vertex X [mm]; counts", 300, -150, 150);
+  HB1(10651, "[Exc] Vty [mm]; vertex Y [mm]; counts", 300, -150, 150);
+  HB1(10652, "[Exc] Vtz [mm]; vertex Z [mm]; counts", 800, -300, 500);
+  for(int i=0; i<12; i++){
+    HB1(10660+i, Form("[Exc] Vtz [mm] (%.1f<#theta_{#it{Kp}}<%.1f); vertex Z [mm]; counts",double(i)*2.0,double(i+1)*2.0), 800, -300, 500);
+  }  
+  HB2(10750, "[Exc] Vtx [mm] vs Vty [mm]; vertex X [mm]; vertex Y [mm]", 300, -150, 150, 300, -150, 150);
+  HB2(10751, "[Exc] Vty [mm] vs Vtz [mm]; vertex Y [mm]; vertex Z [mm]", 300, -150, 150, 800, -300, 500);
+  HB2(10752, "[Exc] Vtz [mm] vs Vtx [mm]; vertex Z [mm]; vertex X [mm]", 800, -300, 500, 300, -150, 150);    
+  
+  HB1(13900, " BE KP inclusive; #minusB_{K} [GeV]; Counts", 120, -0.3, 0.3);
+  HB1(13910, " BE KP inclusive (all angle); #minusB_{K} [GeV]; Counts", 120, -0.3, 0.3);
+  HB1(13950, " BE KP exclusive [dEdxPID]; #minusB_{K} [GeV]; Counts", 120, -0.3, 0.3);
+  HB1(13951, " BE KP exclusive [M2PID]; #minusB_{K} [GeV]; Counts", 120, -0.3, 0.3);
 
   for(int i=0; i<120; i++){
     HB1(14000+i, Form("[M2][bek] (MissMom - Mom) of scatK- (%.3f<-BE_K<%.3f); momentum [GeV/c]; coutns", double(i)*0.005-0.300, double(i+1)*0.005-0.300), 500, 0., 1.0);
@@ -2490,6 +2656,7 @@ ConfMan::InitializeHistograms( void )
   treetpc->Branch( "cluster_z_center", &event.cluster_z_center );
   treetpc->Branch( "cluster_houghflag", &event.cluster_houghflag );
   treetpc->Branch( "ntTpc", &event.ntTpc );
+  treetpc->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );  
   treetpc->Branch( "nhtrack", &event.nhtrack );
   treetpc->Branch( "isBeam", &event.isBeam );
   treetpc->Branch( "isK18", &event.isK18 );
@@ -2688,6 +2855,12 @@ ConfMan::InitializeHistograms( void )
   treetpc->Branch("GFresidual_px", &event.GFresidual_px);
   treetpc->Branch("GFresidual_py", &event.GFresidual_py);
   treetpc->Branch("GFresidual_pz", &event.GFresidual_pz);
+  treetpc->Branch("PSTrigA", &event.PSfacTrigA);  
+  treetpc->Branch("PSTrigB", &event.PSfacTrigB);
+  treetpc->Branch("ScatPPhi", &event.kp_phi);
+  treetpc->Branch("ScatPTheta", &event.kp_theta);    
+  treetpc->Branch("InclusiveFlag", &event.IncFlag);      
+  treetpc->Branch("EscapeFlag", &event.EscFlag);    
   treetpc->Branch("KmFlag", &event.kmflag);
   treetpc->Branch("KmIncFlag", &event.kminc);    
   treetpc->Branch("GFKmTrackId", &event.GFkmid);  
@@ -2812,6 +2985,7 @@ ConfMan::InitializeHistograms( void )
   src.cluster_houghflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_houghflag" );
 
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
+  src.ntKuramaCandidate = new TTreeReaderValue<Int_t>( *reader, "ntKuramaCandidate" );  
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );
   src.isK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isK18" );

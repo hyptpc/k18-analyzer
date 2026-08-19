@@ -37,6 +37,7 @@
 #include "PidLikelihoodMan.hh"
 
 #define SaveHistograms 1
+#define SavePidHistograms 0
 #define RawCluster 1
 #define UsePidLH 1
 
@@ -1893,28 +1894,28 @@ dst::DstRead( int ievent )
 	    HF1(4213, kkvertz);
 	    HF1(4214, MissMassCorr);
 	    HF1(4215, MissMassCorrDE);
-	    //HF2(4216, us, pScat - ProtonMom);
-	    //HF2(4217, us, pScatCorr - ProtonMom);
-	    //HF2(4218, us, pScatCorrDE - ProtonMom);
+	    HF2(4216, us, pScat - KaonMom);
+	    HF2(4217, us, pScatCorr - KaonMom);
+	    HF2(4218, us, pScatCorrDE - KaonMom);
 	    HF2(4219, us, MissMass);
 	    HF2(4220, us, MissMassCorr);
 	    HF2(4221, us, MissMassCorrDE);
-	    //HF2(4222, vs, pScat - ProtonMom);
-	    //HF2(4223, vs, pScatCorr - ProtonMom);
-	    //HF2(4224, vs, pScatCorrDE - ProtonMom);
+	    HF2(4222, vs, pScat - KaonMom);
+	    HF2(4223, vs, pScatCorr - KaonMom);
+	    HF2(4224, vs, pScatCorrDE - KaonMom);
 	    HF2(4225, vs, MissMass);
 	    HF2(4226, vs, MissMassCorr);
 	    HF2(4227, vs, MissMassCorrDE);
 
-	    //HFProf(4316, us, pScat - ProtonMom);
-	    //HFProf(4317, us, pScatCorr - ProtonMom);
-	    //HFProf(4318, us, pScatCorrDE - ProtonMom);
+	    HFProf(4316, us, pScat - KaonMom);
+	    HFProf(4317, us, pScatCorr - KaonMom);
+	    HFProf(4318, us, pScatCorrDE - KaonMom);
 	    HFProf(4319, us, MissMass);
 	    HFProf(4320, us, MissMassCorr);
 	    HFProf(4321, us, MissMassCorrDE);
-	    //HFProf(4322, vs, pScat - ProtonMom);
-	    //HFProf(4323, vs, pScatCorr - ProtonMom);
-	    //HFProf(4324, vs, pScatCorrDE - ProtonMom);
+	    HFProf(4322, vs, pScat - KaonMom);
+	    HFProf(4323, vs, pScatCorr - KaonMom);
+	    HFProf(4324, vs, pScatCorrDE - KaonMom);
 	    HFProf(4325, vs, MissMass);
 	    HFProf(4326, vs, MissMassCorr);
 	    HFProf(4327, vs, MissMassCorrDE);
@@ -2157,43 +2158,43 @@ dst::DstRead( int ievent )
 	    HF1(8213, kkvertz);
 	    HF1(8214, MissMassCorr);
 	    HF1(8215, MissMassCorrDE);
-	    HF2(8216, us, pScat - ProtonMom);
-	    HF2(8217, us, pScatCorr - ProtonMom);
-	    HF2(8218, us, pScatCorrDE - ProtonMomCorrDE);
+	    HF2(8216, us, pScat - KaonMom);
+	    HF2(8217, us, pScatCorr - KaonMom);
+	    HF2(8218, us, pScatCorrDE - KaonMomCorrDE);
 	    HF2(8219, us, MissMass);
 	    HF2(8220, us, MissMassCorr);
 	    HF2(8221, us, MissMassCorrDE);
-	    HF2(8222, vs, pScat - ProtonMom);
-	    HF2(8223, vs, pScatCorr - ProtonMom);
-	    HF2(8224, vs, pScatCorrDE - ProtonMomCorrDE);
+	    HF2(8222, vs, pScat - KaonMom);
+	    HF2(8223, vs, pScatCorr - KaonMom);
+	    HF2(8224, vs, pScatCorrDE - KaonMomCorrDE);
 	    HF2(8225, vs, MissMass);
 	    HF2(8226, vs, MissMassCorr);
 	    HF2(8227, vs, MissMassCorrDE);
-	    HF2(8228, ProtonMom, pScat - ProtonMom);
-	    HF2(8229, ProtonMom, pScatCorr - ProtonMom);
-	    HF2(8230, ProtonMomCorrDE, pScatCorrDE - ProtonMomCorrDE);
-	    HF2(8231, ProtonMom, MissMass);
-	    HF2(8232, ProtonMom, MissMassCorr);
-	    HF2(8233, ProtonMomCorrDE, MissMassCorrDE);
+	    HF2(8228, KaonMom, pScat - KaonMom);
+	    HF2(8229, KaonMom, pScatCorr - KaonMom);
+	    HF2(8230, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	    HF2(8231, KaonMom, MissMass);
+	    HF2(8232, KaonMom, MissMassCorr);
+	    HF2(8233, KaonMomCorrDE, MissMassCorrDE);
 
-	    HFProf(8316, us, pScat - ProtonMom);
-	    HFProf(8317, us, pScatCorr - ProtonMom);
-	    HFProf(8318, us, pScatCorrDE - ProtonMomCorrDE);
+	    HFProf(8316, us, pScat - KaonMom);
+	    HFProf(8317, us, pScatCorr - KaonMom);
+	    HFProf(8318, us, pScatCorrDE - KaonMomCorrDE);
 	    HFProf(8319, us, MissMass);
 	    HFProf(8320, us, MissMassCorr);
 	    HFProf(8321, us, MissMassCorrDE);
-	    HFProf(8322, vs, pScat - ProtonMom);
-	    HFProf(8323, vs, pScatCorr - ProtonMom);
-	    HFProf(8324, vs, pScatCorrDE - ProtonMomCorrDE);
+	    HFProf(8322, vs, pScat - KaonMom);
+	    HFProf(8323, vs, pScatCorr - KaonMom);
+	    HFProf(8324, vs, pScatCorrDE - KaonMomCorrDE);
 	    HFProf(8325, vs, MissMass);
 	    HFProf(8326, vs, MissMassCorr);
 	    HFProf(8327, vs, MissMassCorrDE);
-	    HFProf(8328, ProtonMom, pScat - ProtonMom);
-	    HFProf(8329, ProtonMom, pScatCorr - ProtonMom);
-	    HFProf(8330, ProtonMomCorrDE, pScatCorrDE - ProtonMomCorrDE);
-	    HFProf(8331, ProtonMom, MissMass);
-	    HFProf(8332, ProtonMom, MissMassCorr);
-	    HFProf(8333, ProtonMomCorrDE, MissMassCorrDE);
+	    HFProf(8328, KaonMom, pScat - KaonMom);
+	    HFProf(8329, KaonMom, pScatCorr - KaonMom);
+	    HFProf(8330, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	    HFProf(8331, KaonMom, MissMass);
+	    HFProf(8332, KaonMom, MissMassCorr);
+	    HFProf(8333, KaonMomCorrDE, MissMassCorrDE);
 
 	    HF2(8241, src.xkm[idKm], event.xbTPC[id]);
 	    HF2(8242, src.ykm[idKm], event.ybTPC[id]);
@@ -2317,6 +2318,7 @@ dst::DstRead( int ievent )
   event.track_cluster_row_center = **src.track_cluster_row_center;
 
   event.chargeIndistinguishable = **src.chargeIndistinguishable;
+
   event.pid_inverted = **src.pid_inverted;
   event.chisqr_inverted = **src.chisqr_inverted;
   event.pval_inverted = **src.pval_inverted;
@@ -2405,69 +2407,12 @@ dst::DstRead( int ievent )
     double nsigma_pi = event.nsigma_pion[itTpc]     ;
     double nsigma_e  = event.nsigma_electron[itTpc] ;
     
-    // double nsigmaHtof_t  = event.nsigma_tritonHtof[itTpc]   ;
-    // double nsigmaHtof_d  = event.nsigma_deutronHtof[itTpc]  ;
-    // double nsigmaHtof_p  = event.nsigma_protonHtof[itTpc]   ;
-    // double nsigmaHtof_k  = event.nsigma_kaonHtof[itTpc]     ;
-    // double nsigmaHtof_pi = event.nsigma_pionHtof[itTpc]     ;
-    // double nsigmaHtof_e  = event.nsigma_electronHtof[itTpc] ;
     TPCLocalTrackHelix* track = TPCAna.GetTrackTPCHelix(itTpc);
     if (!track) continue;
     int htof_seg= -1;
     double tracklen_htof = -1.0;
     TVector3 pos_htof;
     bool isInsideTarget = false;
-    // if(event.isKurama[itTpc]==1){
-    //   for(int jgf=0; jgf<GFntTpc; jgf++){
-    // 	if(itTpc==jgf) continue;
-    // 	if( event.charge[jgf]==1 ) continue;
-    // 	if( event.isBeam[jgf]==1
-    // 	    || event.isK18[jgf]==1
-    // 	    || event.isAccidental[jgf]==1 ) continue;
-    // 	double extrapKurama = qnan;
-    // 	double extrapOther = qnan;
-    // 	double dist = qnan;
-    // 	TVector3 momKurama; TVector3 momOther;	  
-    // 	TVector3 vertex;
-
-    // 	double thetafac = 0.3;
-    // 	Double_t kurama_par[5];
-    // 	kurama_par[0] = event.helix_cx[itTpc];
-    // 	kurama_par[1] = event.helix_cy[itTpc];
-    // 	kurama_par[2] = event.helix_z0[itTpc];
-    // 	kurama_par[3] = event.helix_r[itTpc];
-    // 	kurama_par[4] = event.helix_dz[itTpc];
-    // 	Int_t kurama_nh = event.helix_t[itTpc].size();
-    // 	Double_t kurama_theta_range = event.helix_t[itTpc][kurama_nh-1] - event.helix_t[itTpc][0];
-    // 	Double_t kurama_theta_min = event.helix_t[itTpc][0] - thetafac*kurama_theta_range;
-    // 	Double_t kurama_theta_max = event.helix_t[itTpc][kurama_nh-1] + thetafac*kurama_theta_range;
-	  
-    // 	Double_t other_par[5];
-    // 	other_par[0] = event.helix_cx[jgf];
-    // 	other_par[1] = event.helix_cy[jgf];
-    // 	other_par[2] = event.helix_z0[jgf];
-    // 	other_par[3] = event.helix_r[jgf];
-    // 	other_par[4] = event.helix_dz[jgf];
-    // 	Int_t other_nh = event.helix_t[jgf].size();
-    // 	Double_t other_theta_range = event.helix_t[jgf][0] - event.helix_t[jgf][other_nh-1];
-    // 	Double_t other_theta_min = event.helix_t[jgf][other_nh-1] - thetafac*other_theta_range;
-    // 	Double_t other_theta_max = event.helix_t[jgf][0] + thetafac*other_theta_range;
-    // 	double thetaKurama,thetaOther;
-    // 	vertex = Kinematics::VertexPointHelix(kurama_par,other_par,
-    // 					      kurama_theta_min,kurama_theta_max,
-    // 					      other_theta_min,other_theta_max,
-    // 					      thetaKurama,thetaOther,
-    // 					      dist);			    
-    // 	Bool_t vtxouttgt
-    // 	  = dist < ppi_distcut 
-    // 	  && ( TMath::Abs(vertex.x()) > 25. 
-    // 	       || TMath::Abs(vertex.y()) > 25. 
-    // 	       || TMath::Abs(vertex.z() - tpc::ZTarget) > 50.) 
-    // 	  && ( vertex.z() - tpc::ZTarget>0 );
-    // 	event.GFKuramaVtxOutTgt = vtxouttgt;
-    // 	if(vtxouttgt) break;
-    //   }
-    // }
     if ( TPCAna.IsInsideTarget(track) ) {      
       event.insideTgt[itTpc] = true;
       // if(event.isKurama[itTpc]){
@@ -2601,6 +2546,16 @@ dst::DstRead( int ievent )
       }
     }
   }
+
+  for(int it=0; it<event.ntTpc; it++){
+    HF2(50, event.mom0[it]*event.charge[it], event.dEdx[it]);
+    if(event.charge[it]<0){
+      HF2(51, event.mom0[it]*event.charge[it], event.dEdx[it]);
+    } else {
+      HF2(52, event.mom0[it]*event.charge[it], event.dEdx[it]);
+    }
+  }
+  
   std::cout << __FILE__ << " " << __LINE__ << std::endl;  
   //Lambda reconstruction
   std::vector<Int_t> L_p_id_container, L_pi_id_container;
@@ -3164,6 +3119,7 @@ ConfMan::InitializeHistograms( void )
   HB1(12, "K18 TPC tagging", 2, 0., 2. );
   HB1(13, "Kurama TPC tagging", 2, 0., 2. );
   HB1(14, "KK TPC tagging", 2, 0., 2. );
+  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);  
   HB1(22, "K18 TPC tagging", 2, 0., 2. );
   HB1(23, "Kurama TPC tagging", 2, 0., 2. );
   HB1(24, "KK TPC tagging", 2, 0., 2. );
@@ -3174,7 +3130,36 @@ ConfMan::InitializeHistograms( void )
   HB1(43, "Kurama TPC tagging", 2, 0., 2. );
   HB1(44, "KK TPC tagging", 2, 0., 2. );
 
-  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);
+  HB2(50, "<dE/dx>;p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2(51, "<dE/dx>;(nega) p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, -maxpoq, 0., nbindedx, mindedx, maxdedx);
+  HB2(52, "<dE/dx>;(pos) p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HBProf(150, ";#beta#gamma;<-dE/dx> [MeVg^{-1}cm^{2}]", 1000000, 0.1, 10000, 1., 10. );
+  HBProf(151, "#pi, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(152, "K, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(153, "p, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(154, "#Xi^{-}, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(155, "#pi, Carbon; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(156, "K, Carbon; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(157, "p, Carbon; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  HBProf(158, "#Xi^{-}, Carbon; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
+  const Double_t npoints = 1000000;
+  for(Int_t i=0; i<npoints; ++i){
+    Double_t x = (Double_t) i/npoints;
+    Double_t x1 = TMath::Power(10., 5.*x - 1.);
+    Double_t beta = TMath::Sqrt(x1*x1/(x1*x1+1.));
+    Double_t Carbon = 3.223;
+    HFProf(150, x1, Kinematics::HypTPCdEdx(2, 1000.*pdg::KaonMass(), beta)/Carbon);
+
+    Double_t x2 = TMath::Power(10., (TMath::Log10(maxpoq) - TMath::Log10(0.1))*x + TMath::Log10(0.1));
+    HFProf(151, x2, Kinematics::HypTPCdEdx(1, 1000.*pdg::PionMass(), x2/TMath::Sqrt(x2*x2 + pdg::PionMass()*pdg::PionMass())));
+    HFProf(152, x2, Kinematics::HypTPCdEdx(1, 1000.*pdg::KaonMass(), x2/TMath::Sqrt(x2*x2 + pdg::KaonMass()*pdg::KaonMass())));
+    HFProf(153, x2, Kinematics::HypTPCdEdx(1, 1000.*pdg::ProtonMass(), x2/TMath::Sqrt(x2*x2 + pdg::ProtonMass()*pdg::ProtonMass())));
+    HFProf(154, x2, Kinematics::HypTPCdEdx(1, 1000.*pdg::XiMinusMass(), x2/TMath::Sqrt(x2*x2 + pdg::XiMinusMass()*pdg::XiMinusMass())));
+    HFProf(155, x2, Kinematics::HypTPCdEdx(2, 1000.*pdg::PionMass(), x2/TMath::Sqrt(x2*x2 + pdg::PionMass()*pdg::PionMass())));
+    HFProf(156, x2, Kinematics::HypTPCdEdx(2, 1000.*pdg::KaonMass(), x2/TMath::Sqrt(x2*x2 + pdg::KaonMass()*pdg::KaonMass())));
+    HFProf(157, x2, Kinematics::HypTPCdEdx(2, 1000.*pdg::ProtonMass(), x2/TMath::Sqrt(x2*x2 + pdg::ProtonMass()*pdg::ProtonMass())));
+    HFProf(158, x2, Kinematics::HypTPCdEdx(2, 1000.*pdg::XiMinusMass(), x2/TMath::Sqrt(x2*x2 + pdg::XiMinusMass()*pdg::XiMinusMass())));
+  }
 
   // missing mass with scat angle, vtx,
   HB1(100, "MissMass", 3600, -1.0, 17. );
@@ -3596,7 +3581,8 @@ ConfMan::InitializeHistograms( void )
   HB1(30302, "Mass2 [#pi^-_{K^0}]",2*nbinM2Pi,-maxM2Pi,maxM2Pi);
   
 #endif
-  
+
+#if SavePidHistograms
   for(int itype=0; itype<kNtype; itype++){//0:general, 1:Lambda reconstruct, 2:K0 reconstruct, 3: K- 
     if(!KPEvent) continue;
     if(itype>pidlikeli::kTypeKm) continue;
@@ -3687,7 +3673,8 @@ ConfMan::InitializeHistograms( void )
         }
       }
     }
-  }  
+  }
+#endif
 
   HBTree( "tpc", "tree of E42" );
   tree->Branch( "status", &event.status );

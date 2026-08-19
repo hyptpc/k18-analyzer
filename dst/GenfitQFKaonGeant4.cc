@@ -2178,16 +2178,28 @@ dst::DstRead( Int_t ievent )
   //double binding_energyTPC = m11B + KaonMass - (mm_12CTPC - 0.120); //GeV/c2
   double binding_energyTPC = m11B + KaonMass - mm_12CTPC; //GeV/c2
   event.BETPC[0] = binding_energyTPC; //MeV/c2
-  
+  double bek = -event.BETPC[0];  
   //event.MissMassCorrDE[0] = event.MissMassCorrDE[0] - 0.120 ;
   event.MissMassCorrDE[0] = event.MissMassCorrDE[0]; 
   double missmass = event.MissMassCorrDE[0];
   if(missmass>minMM&&missmass<maxMM) HF1( 1, event.status++ ); // debug 1
   HF1(3900,event.MissMassCorrDE[0]);
-  HF1(13900,-event.BETPC[0]);  
-  TVector3 G4SKmMomVec(event.G4scatkmmom_x,event.G4scatkmmom_y,event.G4scatkmmom_z);
-  HF1(120, G4SKmMomVec.Phi());
-  HF1(121, G4SKmMomVec.Phi()*TMath::RadToDeg());
+  HF1(13900,bek);  
+  //TVector3 G4SKmMomVec(event.G4scatkmmom_x,event.G4scatkmmom_y,event.G4scatkmmom_z);
+  if(bek>-0.3&&bek<0.3){
+    //double m = kp.Mag();
+    double t = kp_momTPC.Theta();    
+    double ct = kp_momTPC.CosTheta();
+    double ph = kp_momTPC.Phi();
+    //HF1(1130, G4SKmMomVec.Mag());
+    HF1(1132, t*TMath::RadToDeg());
+    HF1(1133, ct);
+    HF1(1134, ph);
+    HF1(1135, ph*TMath::RadToDeg());
+    //HF2(1810, ph, m);
+    //HF2(1820, ct, m);
+    HF2(1830, ct, ph); 
+  }
   
   Double_t pionmip = Kinematics::HypTPCdEdx(3, PionMass*1000., 1.8/TMath::Hypot(PionMass, 1.8)); //MeV/c2
   Double_t HTOF_thr = pionmip*0.1; // 10% of 1.8 GeV/c pi- mip  
@@ -2945,14 +2957,13 @@ dst::DstRead( Int_t ievent )
 	HF1(4050, event.GFkmmom);
 	HF1(4060, diff_kmmom.Mag());
 	HF1(4070, miss_momTPC.Mag());
-	double bek = -event.BETPC[0];
 	for(int i=0; i<8; i++){
 	  if( double(i)*0.050-0.100<bek && double(i+1)*0.050-0.100>bek ){
 	    HF1(4062+i, diff_kmmom.Mag());
 	  }
 	}
-	int binbek = GetBinIndexBEk(bek);	
-	HF1(4062+binbek, diff_kmmom.Mag());	
+	int binbek = GetBinIndexBEk(bek);
+	HF1(14000+binbek, diff_kmmom.Mag());	
 	if(missmass>minMM&&missmass<maxMM){	
 	  HF1(4051, event.GFkmmom);
 	  HF1(4061, diff_kmmom.Mag());
@@ -2962,33 +2973,47 @@ dst::DstRead( Int_t ievent )
 	HF1(4110, GFkmCosTheta);
 	HF1(4120, event.GFkmphi);      
 	HF1(4121, event.GFkmphi*TMath::RadToDeg());
+	if(bek>-0.3&&bek<0.3){
+	  double m = kp_momTPC.Mag();
+	  double t = kp_momTPC.Theta();	  
+	  double ct = kp_momTPC.CosTheta();
+	  double ph = kp_momTPC.Phi();	  
+	  //HF1(4130, m);
+	  HF1(4132, t*TMath::RadToDeg());
+	  HF1(4133, ct);
+	  HF1(4134, ph);
+	  HF1(4135, ph*TMath::RadToDeg());
+	  //HF2(4810, ph, m);
+	  //HF2(4820, ct, m);
+	  HF2(4830, ct, ph);     
+	}
 	HF2(4500, event.GFkmtheta*TMath::RadToDeg(), event.GFkmmom);
 	HF2(4510, event.GFkmphi*TMath::RadToDeg(), event.GFkmmom);
-	HF2(4520, event.GFkmphi*TMath::RadToDeg(), event.GFkmtheta*TMath::RadToDeg()); 	
+	HF2(4520, event.GFkmphi*TMath::RadToDeg(), event.GFkmtheta*TMath::RadToDeg());	
       }
     }
     double pmom = kp_momTPC.Mag();
     double ptheta = kp_momTPC.Theta(); //rad
     double pcost = kp_momTPC.CosTheta();
     double pphi = kp_momTPC.Phi(); //rad
-    HF1(1050, pmom);
-    HF1(1100, ptheta*TMath::RadToDeg());
-    HF1(1110, pcost);
-    HF1(1120, pphi);      
-    HF1(1121, pphi*TMath::RadToDeg());
-    HF2(1500, ptheta*TMath::RadToDeg(), pmom);
-    HF2(1510, pphi*TMath::RadToDeg(), pmom);
-    HF2(1520, pphi*TMath::RadToDeg(), ptheta*TMath::RadToDeg());
+    HF1(7050, pmom);
+    HF1(7100, ptheta*TMath::RadToDeg());
+    HF1(7110, pcost);
+    HF1(7120, pphi);      
+    HF1(7121, pphi*TMath::RadToDeg());
+    HF2(7500, ptheta*TMath::RadToDeg(), pmom);
+    HF2(7510, pphi*TMath::RadToDeg(), pmom);
+    HF2(7520, pphi*TMath::RadToDeg(), ptheta*TMath::RadToDeg());
     if(event.GFkmmom>0.01&&event.GFkmmass2>minM2Km&&event.GFkmmass2<maxM2Km){
       std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;      
-      HF1(2050, pmom);
-      HF1(2100, ptheta*TMath::RadToDeg());
-      HF1(2110, pcost);
-      HF1(2120, pphi);      
-      HF1(2121, pphi*TMath::RadToDeg());
-      HF2(2500, ptheta*TMath::RadToDeg(), pmom);
-      HF2(2510, pphi*TMath::RadToDeg(), pmom);
-      HF2(2520, pphi*TMath::RadToDeg(), ptheta*TMath::RadToDeg());
+      HF1(8050, pmom);
+      HF1(8100, ptheta*TMath::RadToDeg());
+      HF1(8110, pcost);
+      HF1(8120, pphi);      
+      HF1(8121, pphi*TMath::RadToDeg());
+      HF2(8500, ptheta*TMath::RadToDeg(), pmom);
+      HF2(8510, pphi*TMath::RadToDeg(), pmom);
+      HF2(8520, pphi*TMath::RadToDeg(), ptheta*TMath::RadToDeg());
     }
   }
 
@@ -3038,30 +3063,16 @@ ConfMan::InitializeHistograms( void )
   HB1(23, "[g4] Kaon AnalysisdEdx; dEdx [arb.unit]; counts ", 1000, 0, 350);
   HB1(24, "[g4] Kaon GeantdEdx; dEdx [arb.unit]; counts ", 1000, 0, 350);
 
-  HB1( 50, "[g4] Mom of G4GenScatK- ; #delta momentum [GeV/c]; coutns", 500, 1.5, 2.0);
-  HB1(100, "[g4] Theta of G4GenScatK- [deg]; #theta [deg]; counts", 300, 0, 30); 
-  HB1(110, "[g4] CosTheta of G4GenScatK- ; Cos(#theta); counts", 200, -1, 1);  
-  HB1(120, "[g4] Phi of G4GenScatK- [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
-  HB1(121, "[g4] Phi of G4GenScatK- [deg]; #phi [deg]; counts", 3600, -180, 180);
+  HB1(1130, "[g4][inc] Mom of ScatP ; momentum [GeV/c]; coutns", 500, 0.0, 1.0);
+  //HB1(1131, "[g4] Mom of G4GenScatK- [deg]; #phi [deg]; counts", 3600, -180, 180);  
+  HB1(1132, "[g4][inc] Theta of ScatP [deg]; #theta [deg]; counts", 300, 0, 30); 
+  HB1(1133, "[g4][inc] CosTheta of ScatP ; Cos(#theta); counts", 200, -1, 1);  
+  HB1(1134, "[g4][inc] Phi of ScatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
+  HB1(1135, "[g4][inc] Phi of ScatP [deg]; #phi [deg]; counts", 3600, -180, 180);
+  HB2(1810, "[g4][inc] Phi vs Mom of ScatP; #phi [deg]; momentum [GeV/c]", 3600,-180,180, 500,0.0,1.0);
+  HB2(1820, "[g4][inc] CosTheta vs Mom of ScatP; cos(#theta) ; momentum [GeV/c]", 200,-1,1, 500,0.0,1.0);
+  HB2(1830, "[g4][inc] CosTheta vs Phi of ScatP; cos(#theta) ; #phi [deg]", 200,-1,1, 3600,-180,180);   
   
-  HB1(1050, "[g4] Mom of scatP ; momentum [GeV/c]; coutns", 500, 1.5, 2.0);
-  HB1(1100, "[g4] Theta of scatP [deg]; #theta [deg]; counts", 300, 0, 30); 
-  HB1(1110, "[g4] CosTheta of scatP ; Cos(#theta); counts", 200, -1, 1);
-  HB1(1120, "[g4] Phi of scatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
-  HB1(1121, "[g4] Phi of scatP [deg]; #phi [deg]; counts", 3600, -180, 180);
-  HB2(1500, "[g4] Mom vs Theta scatP; #theta [deg]; momentum [GeV/c]", 300, 0, 30, 500, 1.5, 2.0);
-  HB2(1510, "[g4] Mom vs Phi scatP; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 1.5, 2.0);
-  HB2(1520, "[g4] Theta vs Phi scatP; #phi [deg]; #theta [deg]", 3600, -180, 180, 300, 0, 30);    
-
-  HB1(2050, "[g4][M2] Mom of scatP ; momentum [GeV/c]; coutns", 500, 1.5, 2.0);
-  HB1(2100, "[g4][M2] Theta of scatP [deg]; #theta [deg]; counts", 300, 0, 30); 
-  HB1(2110, "[g4][M2] CosTheta of scatP ; Cos(#theta); counts", 200, -1, 1);
-  HB1(2120, "[g4][M2] Phi of scatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
-  HB1(2121, "[g4][M2] Phi of scatP [deg]; #phi [deg]; counts", 3600, -180, 180);
-  HB2(2500, "[g4][M2] Mom vs Theta scatP; #theta [deg]; momentum [GeV/c]", 300, 0, 30, 500, 1.5, 2.0);
-  HB2(2510, "[g4][M2] Mom vs Phi scatP; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 1.5, 2.0);
-  HB2(2520, "[g4][M2] Theta vs Phi scatP; #phi [deg]; #theta [deg]", 3600, -180, 180, 300, 0, 30);  
-
   HB1(3050, "[g4] Mom of scatK- ; momentum [GeV/c]; coutns", 500, 0., 1.0);
   HB1(3100, "[g4] Theta of scatK- [deg]; #theta [deg]; counts", 1800, 0, 180); 
   HB1(3110, "[g4] CosTheta of scatK- ; Cos(#theta); counts", 200, -1, 1);
@@ -3088,9 +3099,37 @@ ConfMan::InitializeHistograms( void )
   HB1(4110, "[g4][M2] CosTheta of scatK- ; Cos(#theta); counts", 200, -1, 1);
   HB1(4120, "[g4][M2] Phi of scatK- [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
   HB1(4121, "[g4][M2] Phi of scatK- [deg]; #phi [deg]; counts", 3600, -180, 180);
-  HB2(4500, "[g4][M2] Mom vs Theta scatK-; #theta [deg]; momentum [GeV/c]", 1800, 0, 180, 1000, 0, 2.0);
-  HB2(4510, "[g4][M2] Mom vs Phi scatK-; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 1000, 0, 2.0);
-  HB2(4520, "[g4][M2] Theta vs Phi scatK-; #phi [deg]; #theta [deg]", 3600, -180, 180, 1800, 0, 180);
+  HB1(4130, "[M2][AccK-] Mom of ScatP ; momentum [GeV/c]; coutns", 500, 0., 1.0);
+  HB1(4131, "[M2][missmass][AccK-] Mom of ScatP ; momentum [GeV/c]; coutns", 500, 0., 1.0);      
+  HB1(4132, "[g4][M2][AccK-] Theta of ScatP [deg]; #theta [deg]; counts", 1800, 0, 180); 
+  HB1(4133, "[g4][M2][AccK-] CosTheta of ScatP ; Cos(#theta); counts", 200, -1, 1);  
+  HB1(4134, "[g4][M2][AccK-] Phi of ScatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
+  HB1(4135, "[g4][M2][AccK-] Phi of ScatP [deg]; #phi [deg]; counts", 3600, -180, 180);   
+  HB2(4500, "[g4][M2][AccK-] Mom vs Theta scatP; #theta [deg]; momentum [GeV/c]", 1800, 0, 180, 1000, 0, 2.0);
+  HB2(4510, "[g4][M2][AccK-] Mom vs Phi scatP; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 1000, 0, 2.0);
+  HB2(4520, "[g4][M2][AccK-] Theta vs Phi scatP; #phi [deg]; #theta [deg]", 3600, -180, 180, 1800, 0, 180);
+  HB2(4810, "[g4][M2][AccK-] Phi vs Mom of ScatP; #phi [deg]; momentum [GeV/c]", 3600,-180,180, 500,0.0,1.0);
+  HB2(4820, "[g4][M2][AccK-] CosTheta vs Mom of ScatP; cos(#theta) ; momentum [GeV/c]", 200,-1,1, 500,0.0,1.0);
+  HB2(4830, "[g4][M2][AccK-] CosTheta vs Phi of ScatP; cos(#theta) ; #phi [deg]", 200,-1,1, 3600,-180,180);     
+
+  HB1(7050, "[g4] Mom of scatP ; momentum [GeV/c]; coutns", 500, 1.5, 2.0);
+  HB1(7100, "[g4] Theta of scatP [deg]; #theta [deg]; counts", 300, 0, 30); 
+  HB1(7110, "[g4] CosTheta of scatP ; Cos(#theta); counts", 200, -1, 1);
+  HB1(7120, "[g4] Phi of scatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
+  HB1(7121, "[g4] Phi of scatP [deg]; #phi [deg]; counts", 3600, -180, 180);
+  HB2(7500, "[g4] Mom vs Theta scatP; #theta [deg]; momentum [GeV/c]", 300, 0, 30, 500, 1.5, 2.0);
+  HB2(7510, "[g4] Mom vs Phi scatP; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 1.5, 2.0);
+  HB2(7520, "[g4] Theta vs Phi scatP; #phi [deg]; #theta [deg]", 3600, -180, 180, 300, 0, 30);    
+
+  HB1(8050, "[g4][M2] Mom of scatP ; momentum [GeV/c]; coutns", 500, 1.5, 2.0);
+  HB1(8100, "[g4][M2] Theta of scatP [deg]; #theta [deg]; counts", 300, 0, 30); 
+  HB1(8110, "[g4][M2] CosTheta of scatP ; Cos(#theta); counts", 200, -1, 1);
+  HB1(8120, "[g4][M2] Phi of scatP [rad]; #phi [rad]; counts", 500, -TMath::Pi(), TMath::Pi());
+  HB1(8121, "[g4][M2] Phi of scatP [deg]; #phi [deg]; counts", 3600, -180, 180);
+  HB2(8500, "[g4][M2] Mom vs Theta scatP; #theta [deg]; momentum [GeV/c]", 300, 0, 30, 500, 1.5, 2.0);
+  HB2(8510, "[g4][M2] Mom vs Phi scatP; #phi [deg]; momentum [GeV/c]", 3600, -180, 180, 500, 1.5, 2.0);
+  HB2(8520, "[g4][M2] Theta vs Phi scatP; #phi [deg]; #theta [deg]", 3600, -180, 180, 300, 0, 30);  
+  
   
   HB1(13900, "[g4] BE KP inclusive; -BE_{K} [GeV]; Counts", 120, -0.3, 0.3);
   HB1(13950, "[g4] BE KP exclusive [dEdxPID]; -BE_{K} [GeV]; Counts", 120, -0.3, 0.3);

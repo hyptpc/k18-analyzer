@@ -14,6 +14,11 @@
 
 class TNamed;
 class VEvent;
+class TFile;
+class TObject;
+class TF1;
+class TH1;
+class TH2;
 
 //_____________________________________________________________________________
 class ConfMan
@@ -69,10 +74,19 @@ public:
   template <typename T>
   Bool_t InitializeParameter(const TString& key1,
                              const TString& key2);
-
+  
+  TObject* GetParamObject(const TString& fileKey, const TString& objName);
+  TF1* GetParamTF1(const TString& fileKey, const TString& objName);
+  TH1* GetParamTH1(const TString& fileKey, const TString& objName);
+  TH2* GetParamTH2(const TString& fileKey, const TString& objName);
+  
 private:
   TString FilePath(const TString& src) const;
   Bool_t  ShowResult(Bool_t s, const TString& name) const;
+  std::map<TString, TString> fParamRootPaths;
+  std::map<TString, TFile*> fParamTFiles;
+  std::map< TString, std::map<TString, TObject*> > fParamObjectsCache;
+  
 };
 
 //_____________________________________________________________________________
