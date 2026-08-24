@@ -174,16 +174,12 @@ const Bool_t forGeant4 = true;
 
 const double minMM = 0.38;
 const double maxMM = 0.58;
-// const double minM2Km = -0.20;
-// const double maxM2Km =  0.50;
 
 const double minThetaKP = 3.5;
 const double maxThetaKP = 4.5;
   
 const double minThetaKPCH2 = 1.5;
 const double maxThetaKPCH2 = 10.5;
-
-  //const Int_t MaxHits = 2000;
 
 constexpr double cTau0L = 7.89; // cTauLambda [cm]
 constexpr double c_cm_per_ns = 29.9792458; // c[cm/ns]
@@ -460,9 +456,6 @@ struct DstG4
   Double_t px[MaxHits];
   Double_t py[MaxHits];
   Double_t pz[MaxHits];
-  // std::vector<Double_t> px;
-  // std::vector<Double_t> py;
-  // std::vector<Double_t> pz;
 
   void clear( void )
   {    
@@ -2662,21 +2655,6 @@ dst::DstRead( int ievent )
 	event.GFresidual_py[igf][ihit] = mom.y() - chargetest*event.mom_y[igf][ihit];
 	event.GFresidual_pz[igf][ihit] = mom.z() - chargetest*event.mom_z[igf][ihit]; 
 	if(ihit==0) HF1( genfitHid+7, event.GFmom[igf][0]); 
-	// HF1( genfitHid+8, event.GFlayer[igf][ihit]); 
-	// HF1( genfitHid+10, event.GFresidual_x[igf][ihit]);
-	// HF1( genfitHid+11, event.GFresidual_y[igf][ihit]);
-	// HF1( genfitHid+12, event.GFresidual_z[igf][ihit]);
-	// HF1( genfitHid+13, event.GFresidual_p[igf][ihit]);
-	// HF1( genfitHid+14, event.GFresidual_px[igf][ihit]);
-	// HF1( genfitHid+15, event.GFresidual_py[igf][ihit]);
-	// HF1( genfitHid+16, event.GFresidual_pz[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1), event.GFresidual_x[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+1, event.GFresidual_y[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+2, event.GFresidual_z[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+3, event.GFresidual_p[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+4, event.GFresidual_px[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+5, event.GFresidual_py[igf][ihit]);
-	// HF1( genfitHid+1000*(layer+1)+6, event.GFresidual_pz[igf][ihit]);
       } //ihit  
       //Extrapolation
       if( event.isBeam[igf]==1 || event.isK18[igf]==1 || event.isAccidental[igf]==1 ) continue;      
