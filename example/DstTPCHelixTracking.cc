@@ -165,7 +165,6 @@ struct Event
   std::vector<Int_t> charge;//Helix charge
   std::vector<Int_t> pid;//HypTPC dE/dx PID bit pattern (same convention as TPCLocalTrackHelix::GetPid)
   std::vector<Double_t> path;//Helix path
-  std::vector<std::vector<Double_t>> combi_id;
   std::vector<std::vector<Double_t>> closeDistTpc;
   std::vector<std::vector<Double_t>> vtxTpc;
   std::vector<std::vector<Double_t>> vtyTpc;
@@ -211,6 +210,8 @@ struct Event
   std::vector<Double_t> lambda_target_to_vtx_y;
   std::vector<Double_t> lambda_target_to_vtx_z;
   std::vector<Double_t> lambda_target_to_vtx_dot_mom;
+  std::vector<Int_t> lambda_track_id1;
+  std::vector<Int_t> lambda_track_id2;
 #endif
 
 #if EnableReconstructK0
@@ -226,6 +227,8 @@ struct Event
   std::vector<Double_t> k0_target_to_vtx_y;
   std::vector<Double_t> k0_target_to_vtx_z;
   std::vector<Double_t> k0_target_to_vtx_dot_mom;
+  std::vector<Int_t> k0_track_id1;
+  std::vector<Int_t> k0_track_id2;
 #endif
   
   void clearBasicInfo() {
@@ -270,7 +273,7 @@ struct Event
       dEdx_cor_0, dEdx_cor_10, dEdx_cor_20, dEdx_cor_30, dEdx_cor_40, dEdx_cor_50, dEdx_cor_60,
 #endif
       dz_factor, mom0_x, mom0_y, mom0_z, mom0, charge, pid, path,
-      combi_id, closeDistTpc, vtxTpc, vtyTpc, vtzTpc, mom_vtx, mom_vty, mom_vtz,
+      closeDistTpc, vtxTpc, vtyTpc, vtzTpc, mom_vtx, mom_vty, mom_vtz,
       
       hitlayer, hitpos_x, hitpos_y, hitpos_z, calpos_x, calpos_y, calpos_z, residual, residual_x, residual_y, residual_z, helix_t,
 
@@ -285,7 +288,8 @@ struct Event
       lambda_vtx_x, lambda_vtx_y, lambda_vtx_z,
       lambda_mom_x, lambda_mom_y, lambda_mom_z,
       lambda_target_to_vtx_x, lambda_target_to_vtx_y, lambda_target_to_vtx_z,
-      lambda_target_to_vtx_dot_mom
+      lambda_target_to_vtx_dot_mom,
+      lambda_track_id1, lambda_track_id2
     );
   }
   #endif
@@ -297,7 +301,8 @@ struct Event
       k0_vtx_x, k0_vtx_y, k0_vtx_z,
       k0_mom_x, k0_mom_y, k0_mom_z,
       k0_target_to_vtx_x, k0_target_to_vtx_y, k0_target_to_vtx_z,
-      k0_target_to_vtx_dot_mom
+      k0_target_to_vtx_dot_mom,
+      k0_track_id1, k0_track_id2
     );
   }
   #endif
@@ -330,7 +335,7 @@ struct Event
       dEdx_cor_0, dEdx_cor_10, dEdx_cor_20, dEdx_cor_30, dEdx_cor_40, dEdx_cor_50, dEdx_cor_60,
 #endif
       dz_factor, mom0_x, mom0_y, mom0_z, mom0, charge, pid, path,
-      combi_id, closeDistTpc, vtxTpc, vtyTpc, vtzTpc, mom_vtx, mom_vty, mom_vtz,
+      closeDistTpc, vtxTpc, vtyTpc, vtzTpc, mom_vtx, mom_vty, mom_vtz,
       
       hitlayer, hitpos_x, hitpos_y, hitpos_z, calpos_x, calpos_y, calpos_z, residual, residual_x, residual_y, residual_z, helix_t,
 
@@ -348,7 +353,7 @@ struct Event
 
   void resizeTrackCombi(Int_t it, Int_t n) {
     dst::resize_all(n,
-      combi_id[it], closeDistTpc[it], 
+      closeDistTpc[it], 
       vtxTpc[it], vtyTpc[it], vtzTpc[it], 
       mom_vtx[it], mom_vty[it], mom_vtz[it]
     );
@@ -462,7 +467,6 @@ namespace
   {
     const Double_t qnan = TMath::QuietNaN();
     for (Int_t it_pair = 0; it_pair < nt_tpc; ++it_pair) {
-      event.combi_id[it][it_pair] = static_cast<Double_t>(it_pair);
       event.closeDistTpc[it][it_pair] = qnan;
       event.vtxTpc[it][it_pair] = qnan;
       event.vtyTpc[it][it_pair] = qnan;
@@ -691,6 +695,8 @@ namespace
         event.lambda_target_to_vtx_y.push_back(target_to_vtx.Y());
         event.lambda_target_to_vtx_z.push_back(target_to_vtx.Z());
         event.lambda_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
+        event.lambda_track_id1.push_back(cand.GetTrackId1());
+        event.lambda_track_id2.push_back(cand.GetTrackId2());
       }
     }
   }
@@ -729,6 +735,8 @@ namespace
         event.k0_target_to_vtx_y.push_back(target_to_vtx.Y());
         event.k0_target_to_vtx_z.push_back(target_to_vtx.Z());
         event.k0_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
+        event.k0_track_id1.push_back(cand.GetTrackId1());
+        event.k0_track_id2.push_back(cand.GetTrackId2());
       }
     }
   }
@@ -1039,7 +1047,6 @@ ConfMan::InitializeHistograms()
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 #if TrackSearch
-  tree->Branch( "combi_id", &event.combi_id );
   tree->Branch( "closeDistTpc", &event.closeDistTpc );
   tree->Branch( "vtxTpc", &event.vtxTpc );
   tree->Branch( "vtyTpc", &event.vtyTpc );
@@ -1088,6 +1095,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("lambda_target_to_vtx_y", &event.lambda_target_to_vtx_y);
   tree->Branch("lambda_target_to_vtx_z", &event.lambda_target_to_vtx_z);
   tree->Branch("lambda_target_to_vtx_dot_mom", &event.lambda_target_to_vtx_dot_mom);
+  tree->Branch("lambda_track_id1", &event.lambda_track_id1);
+  tree->Branch("lambda_track_id2", &event.lambda_track_id2);
 #endif
 
 #if EnableReconstructK0
@@ -1103,6 +1112,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("k0_target_to_vtx_y", &event.k0_target_to_vtx_y);
   tree->Branch("k0_target_to_vtx_z", &event.k0_target_to_vtx_z);
   tree->Branch("k0_target_to_vtx_dot_mom", &event.k0_target_to_vtx_dot_mom);
+  tree->Branch("k0_track_id1", &event.k0_track_id1);
+  tree->Branch("k0_track_id2", &event.k0_track_id2);
 #endif
 
   return true;
