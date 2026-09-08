@@ -95,6 +95,25 @@ public:
                         Double_t dedx);
   void FillHelixLambdaMassHist(const TPCVertex* vertex);
   void FillHelixK0ShortMassHist(const TPCVertex* vertex);
+  void FillHelixHtofExtrapHist(Int_t n_cand,
+                               const std::vector<Int_t>& seg,
+                               const std::vector<TVector3>& pos,
+                               const std::vector<Double_t>& tracklen,
+                               const std::vector<Int_t>& plane_id = {},
+                               const std::vector<Double_t>& horizontal = {},
+                               const std::vector<Double_t>& vertical = {});
+  // HTOFPath_Stage: 0=no cand, 1=no match, 2=L_sec bad, 3=ok
+  void FillHelixHtofPathStage(Int_t stage);
+  void FillHelixHtofMatchHist(Bool_t match_ok);
+  void FillHelixHtofMatchQuality(Double_t abs_s, Double_t drho,
+                                 Double_t horizontal, Double_t vertical,
+                                 Double_t dseg, Double_t L_sec);
+  void FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Double_t L_beam,
+                            Double_t m2, Int_t vertex_source,
+                            Double_t p_vtx, Int_t charge, Int_t pid,
+                            Double_t t_sec,
+                            Double_t dt_pi, Double_t dt_k, Double_t dt_p,
+                            Double_t htof_seg);
 
 private:
   inline static Bool_t m_dst_calib_flag = false;

@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+#include <TMath.h>
+#include <TVector3.h>
+
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
@@ -25,6 +28,12 @@
 namespace
 {
 const auto& gUser   = UserParamMan::GetInstance();
+
+// HTOF face distance from center [mm] (azimuth i*45 deg).
+constexpr Double_t dist_htof_mm[NumOfPlanesHTOF] = {
+  348.6, 348.6, 348.6, 348.6,
+  348.6, 348.6, 348.6, 348.6
+};
 }
 
 //_____________________________________________________________________________
@@ -33,6 +42,14 @@ TPCAnalyzer::TPCAnalyzer()
     m_TPCHitCont(NumOfLayersTPC+1),
     m_TPCClCont(NumOfLayersTPC)
 {
+  // HTOF planes: normals every 45 deg about Y, origin = L * normal.
+  for (Int_t i = 0; i < NumOfPlanesHTOF; ++i) {
+    const Double_t phi = static_cast<Double_t>(i) * 0.25 * TMath::Pi();
+    const Double_t L = dist_htof_mm[i];
+    m_htof_normal[i] = TVector3(-TMath::Sin(phi), 0., -TMath::Cos(phi));
+    m_htof_origin[i] = L * m_htof_normal[i];
+  }
+
   for(Int_t i=0; i<n_type; ++i){
     m_is_decoded[i] = false;
   }
@@ -449,4 +466,96 @@ void
 TPCAnalyzer::ClearTPCK18Tracks()
 {
   del::ClearContainer(m_TPCK18TC);
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::ExtrapolateToTarget(const TPCLocalTrackHelix* track,
+                                 TVector3& pos, TVector3& mom,
+                                 Double_t& len, Double_t& dist) const
+{
+  if (!track) return false;
+  return track->ExtrapolateToTarget(pos, mom, len, dist);
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
+                               std::vector<Int_t>& segid,
+                               std::vector<TVector3>& pos,
+                               std::vector<TVector3>& mom,
+                               std::vector<Double_t>& tracklen,
+                               std::vector<Int_t>& plane_id,
+                               std::vector<Double_t>& horizontal,
+                               std::vector<Double_t>& vertical) const
+{
+  segid.clear();
+  pos.clear();
+  mom.clear();
+  tracklen.clear();
+  plane_id.clear();
+  horizontal.clear();
+  vertical.clear();
+  if (!track) return false;
+
+  // HTOF segment geometry [mm]. y_offset ~+4 (e72 survey).
+  const Double_t y_offset = 4.0;
+  const Double_t seg_height = 400.0;
+  const Double_t seg_width = 70.0 + 1.0;           // ideal + clearance
+  const Double_t beam_win_width = 2.0 * seg_width;
+  const Double_t beam_win_height = 112.0;
+  const Int_t segs_per_plane = 4;
+
+  for (Int_t i = 0; i < NumOfPlanesHTOF; ++i) {
+    TVector3 pos0;
+    TVector3 mom0;
+    Double_t tracklen0 = 0.;
+    if (!track->ExtrapolateToPlane(m_htof_origin[i], m_htof_normal[i],
+                                   pos0, mom0, tracklen0))
+      continue;
+
+    const TVector3& center = m_htof_origin[i];
+    const TVector3 diff = pos0 - center;
+    const Double_t xzdist = TMath::Hypot(diff.x(), diff.z());
+    const TVector3 cross = center.Cross(diff);
+
+    if (TMath::Abs(pos0.y() - y_offset) > seg_height
+        || xzdist > 2.0 * seg_width)
+      continue;
+
+    Int_t segmentID = -1;
+    if (i == 0) {
+      if (TMath::Abs(pos0.x()) < 0.5 * beam_win_width
+          && TMath::Abs(pos0.y() - y_offset) < 0.5 * beam_win_height)
+        continue; // beam window
+      else if (cross.y() < 0) {
+        if (xzdist >= seg_width) segmentID = 0;
+        else if (pos0.y() < y_offset) segmentID = 2;
+        else segmentID = 1;
+      } else {
+        if (xzdist >= seg_width) segmentID = 5;
+        else if (pos0.y() < y_offset) segmentID = 4;
+        else segmentID = 3;
+      }
+    } else {
+      if (cross.y() < 0) {
+        if (xzdist >= seg_width) segmentID = 2 + segs_per_plane * i;
+        else segmentID = 3 + segs_per_plane * i;
+      } else {
+        if (xzdist < seg_width) segmentID = 4 + segs_per_plane * i;
+        else segmentID = 5 + segs_per_plane * i;
+      }
+    }
+
+    const Double_t h = (cross.y() >= 0. ? 1. : -1.) * xzdist;
+    segid.push_back(segmentID);
+    pos.push_back(pos0);
+    mom.push_back(mom0);
+    tracklen.push_back(tracklen0);
+    plane_id.push_back(i);
+    horizontal.push_back(h);
+    vertical.push_back(pos0.y() - y_offset);
+  }
+
+  return !segid.empty();
 }

@@ -267,6 +267,16 @@ public:
   //Re-fit with the vertex constraint
   Bool_t DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res);
 
+  // Helix–plane / point / target extrapolation (mm; theta scan + bisect).
+  Bool_t ExtrapolateToPlane(const TVector3& origin_mm, const TVector3& normal,
+                            TVector3& pos_on_plane, TVector3& mom_on_plane,
+                            Double_t& track_len) const;
+  Bool_t ExtrapolateToPoint(const TVector3& point,
+                            TVector3& pos_on_track, TVector3& mom_on_track,
+                            Double_t& track_len, Double_t& closest_dist) const;
+  Bool_t ExtrapolateToTarget(TVector3& pos_on_track, TVector3& mom_on_track,
+                             Double_t& track_len, Double_t& closest_dist) const;
+
   //Functions For Kinematic Fit
   void AdjustResolutionScale(Double_t MomScale=1, Double_t PhiScale=1, Double_t dZScale=1){
     m_MomResScale*=MomScale; m_PhResScale*=PhiScale; m_dZResScale*=dZScale;

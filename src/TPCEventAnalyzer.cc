@@ -7,8 +7,10 @@
 
 #include <TPDGCode.h>
 
+#include "DatabasePDG.hh"
 #include "DCGeomMan.hh"
 #include "DetectorID.hh"
+#include "MathTools.hh"
 #include "RootHelper.hh"
 #include "ThreeVector.hh"
 #include "TPCAnalyzer.hh"
@@ -737,6 +739,138 @@ TPCEventAnalyzer::FillHelixK0ShortMassHist(const TPCVertex* vertex)
     HF1("K0_TargetToVtxY", target_to_vtx.y());
     HF1("K0_TargetToVtxZ", target_to_vtx.z());
     HF1("K0_TargetToVtxDotMom", target_to_vtx_dot_mom);
+  }
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofExtrapHist(Int_t n_cand,
+                                          const std::vector<Int_t>& seg,
+                                          const std::vector<TVector3>& pos,
+                                          const std::vector<Double_t>& tracklen,
+                                          const std::vector<Int_t>& plane_id,
+                                          const std::vector<Double_t>& horizontal,
+                                          const std::vector<Double_t>& vertical)
+{
+  HF1("HTOFExtrap_NCand", static_cast<Double_t>(n_cand));
+  if (n_cand <= 0)
+    return;
+
+  constexpr Double_t kHtofL = 348.6; // [mm], same as TPCAnalyzer dist_htof_mm
+  const std::size_t n = seg.size();
+  for (std::size_t ic = 0; ic < n; ++ic) {
+    HF1("HTOFExtrap_SegId", seg[ic]);
+    HF1("HTOFExtrap_TrackLen", tracklen[ic]);
+    HF1("HTOFExtrap_X", pos[ic].X());
+    HF1("HTOFExtrap_Y", pos[ic].Y());
+    HF1("HTOFExtrap_Z", pos[ic].Z());
+
+    const Double_t rho = TMath::Hypot(pos[ic].X(), pos[ic].Z());
+    HF1("HTOFExtrap_Rho", rho);
+    HF1("HTOFExtrap_dRho", TMath::Abs(rho - kHtofL));
+    if (ic < horizontal.size())
+      HF1("HTOFExtrap_H", horizontal[ic]);
+    if (ic < vertical.size())
+      HF1("HTOFExtrap_V", vertical[ic]);
+    if (ic < plane_id.size() && plane_id[ic] >= 0) {
+      const Double_t phi = static_cast<Double_t>(plane_id[ic]) * 0.25 * TMath::Pi();
+      const TVector3 nrm(-TMath::Sin(phi), 0., -TMath::Cos(phi));
+      const TVector3 org = kHtofL * nrm;
+      HF1("HTOFExtrap_AbsS", TMath::Abs((pos[ic] - org).Dot(nrm)));
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofPathStage(Int_t stage)
+{
+  HF1("HTOFPath_Stage", static_cast<Double_t>(stage));
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofMatchHist(Bool_t match_ok)
+{
+  HF1("HTOFMatch", match_ok ? 1. : 0.);
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofMatchQuality(Double_t abs_s, Double_t drho,
+                                            Double_t horizontal, Double_t vertical,
+                                            Double_t dseg, Double_t L_sec)
+{
+  HF1("HTOFMatch_AbsS", abs_s);
+  HF1("HTOFMatch_dRho", drho);
+  HF1("HTOFMatch_H", horizontal);
+  HF1("HTOFMatch_V", vertical);
+  HF1("HTOFMatch_dSeg", dseg);
+  if (L_sec > 0.)
+    HF1("HTOFMatch_Lsec", L_sec);
+}
+
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Double_t L_beam,
+                                       Double_t m2, Int_t vertex_source,
+                                       Double_t p_vtx, Int_t charge, Int_t pid,
+                                       Double_t t_sec,
+                                       Double_t dt_pi, Double_t dt_k, Double_t dt_p,
+                                       Double_t htof_seg)
+{
+  HF1("ctof_htof", ctof_htof);
+  HF1("L_sec", L_sec);
+  HF1("L_beam", L_beam);
+  HF1("m2", m2);
+  if (vertex_source == 1 || vertex_source == 2)
+    HF1(Form("m2_vtxsrc%d", vertex_source), m2);
+  HF1("vertex_source", vertex_source);
+
+  if (std::isfinite(dt_pi)) {
+    HF1("dT_Pi", dt_pi);
+    if (std::isfinite(htof_seg))
+      HF2("dT_Pi_vs_Seg", htof_seg, dt_pi);
+    HF2("dT_Pi_vs_Lsec", L_sec, dt_pi);
+    if (pid & 0x1)
+      HF1("dT_Pi_PiPid", dt_pi);
+  }
+  if (std::isfinite(dt_k))
+    HF1("dT_K", dt_k);
+  if (std::isfinite(dt_p))
+    HF1("dT_P", dt_p);
+
+  // 1/beta vs q*p; multi-bit pid fills every matching species.
+  if (charge == 0 || !(p_vtx > 0.))
+    return;
+  const Double_t poq = p_vtx * static_cast<Double_t>(charge);
+
+  auto fill_exp = [&](Double_t mass, const char* name) {
+    if (!(mass > 0.)) return;
+    const Double_t inv_beta = TMath::Sqrt(1. + (mass / p_vtx) * (mass / p_vtx));
+    HF2(name, poq, inv_beta);
+  };
+  // pid bits: 0=pi, 1=K, 2=p
+  if (pid & 0x1) {
+    fill_exp(pdg::PionMass(), "InvBetaExp_vs_PoQ");
+    fill_exp(pdg::PionMass(), "InvBetaExp_vs_PoQ_Pi");
+  }
+  if (pid & 0x2) {
+    fill_exp(pdg::KaonMass(), "InvBetaExp_vs_PoQ");
+    fill_exp(pdg::KaonMass(), "InvBetaExp_vs_PoQ_K");
+  }
+  if (pid & 0x4) {
+    fill_exp(pdg::ProtonMass(), "InvBetaExp_vs_PoQ");
+    fill_exp(pdg::ProtonMass(), "InvBetaExp_vs_PoQ_P");
+  }
+
+  if (L_sec > 0. && t_sec > 0.) {
+    const Double_t inv_beta_meas = MathTools::C() * t_sec / L_sec;
+    HF2("InvBetaMeas_vs_PoQ", poq, inv_beta_meas);
+    if (pid & 0x1) HF2("InvBetaMeas_vs_PoQ_Pi", poq, inv_beta_meas);
+    if (pid & 0x2) HF2("InvBetaMeas_vs_PoQ_K", poq, inv_beta_meas);
+    if (pid & 0x4) HF2("InvBetaMeas_vs_PoQ_P", poq, inv_beta_meas);
   }
 }
 

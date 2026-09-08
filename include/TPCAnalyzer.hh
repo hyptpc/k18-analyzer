@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <TString.h>
+#include <TVector3.h>
 
 #include "DetectorID.hh"
 #include "TPCReconstructor.hh"
@@ -99,7 +100,24 @@ public:
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
   const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }
 
+  // Extrapolate helix to HTOF / target (mm).
+  Bool_t ExtrapolateToTarget(const TPCLocalTrackHelix* track,
+                             TVector3& pos, TVector3& mom,
+                             Double_t& len, Double_t& dist) const;
+  Bool_t ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
+                           std::vector<Int_t>& segid,
+                           std::vector<TVector3>& pos,
+                           std::vector<TVector3>& mom,
+                           std::vector<Double_t>& tracklen,
+                           std::vector<Int_t>& plane_id,
+                           std::vector<Double_t>& horizontal,
+                           std::vector<Double_t>& vertical) const;
+
 private:
+
+  // HTOF plane geometry (see dist_htof_mm in .cc).
+  TVector3 m_htof_origin[NumOfPlanesHTOF];
+  TVector3 m_htof_normal[NumOfPlanesHTOF];
 
 protected:
 

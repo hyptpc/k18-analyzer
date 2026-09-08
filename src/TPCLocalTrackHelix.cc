@@ -40,6 +40,7 @@ z = p[kHelixZ0] + p[kHelixDz]*p[kHelixR]*(theta);
 #include "TPCLocalTrackHelix.hh"
 
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -176,8 +177,9 @@ namespace
   // Hardcoded per build for now (e72_735 → 0.735).
   // TODO (future): gUser.GetParameter("BeamMom") and/or TPCLocalTrackHelix::SetBeamMom()
   //   from Dst BeginRun (run-dependent momentum).
-  constexpr Double_t BeamMom = 0.735;
+  // constexpr Double_t BeamMom = 0.735;
   // constexpr Double_t BeamMom = 0.933;
+  constexpr Double_t BeamMom = 1.0;
 
   // p_t band lower edge: tag accidental only if p_t >= BeamMom - BeamMomOffset [GeV/c]
   constexpr Double_t BeamMomOffset = 0.2;
@@ -4094,4 +4096,174 @@ TPCLocalTrackHelix::GetCovarianceMatrix(){
   Elements[2*3+0] = cov_mom_ph;
   TMatrixD CovMat(3,3,Elements);
   return CovMat;
+}
+
+//______________________________________________________________________________
+// Start theta / step direction from charge (GetOrder convention).
+static Bool_t
+HelixPlaneStart(const Double_t par[5], Int_t charge, Double_t mint, Double_t maxt,
+                const TVector3& plane_pos,
+                Double_t& start_theta, Double_t& step, Double_t& dir,
+                const Double_t step_size,
+                std::function<TVector3(Double_t)> global_pos)
+{
+  TVector3 pos_at_mint = global_pos(mint);
+  TVector3 pos_at_maxt = global_pos(maxt);
+  TVector3 start_point = pos_at_mint;
+  TVector3 track_direction = pos_at_maxt - pos_at_mint;
+  if (charge > 0) {
+    track_direction *= -1.0;
+    start_point = pos_at_maxt;
+  }
+  const TVector3 start_to_plane = plane_pos - start_point;
+  if (start_to_plane.Dot(track_direction) > 0) {
+    dir = 1.0;
+    if (charge < 0) {
+      start_theta = mint;
+      step = +step_size;
+    } else {
+      start_theta = maxt;
+      step = -step_size;
+    }
+  } else {
+    dir = -1.0;
+    if (charge < 0) {
+      start_theta = mint;
+      step = -step_size;
+    } else {
+      start_theta = maxt;
+      step = +step_size;
+    }
+  }
+  (void)par;
+  return true;
+}
+
+//______________________________________________________________________________
+// Helix–plane intersection: theta scan, then bisect to |s|<0.1 mm.
+Bool_t
+TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3& normal,
+                                       TVector3& pos_on_plane, TVector3& mom_on_plane,
+                                       Double_t& track_len) const
+{
+  if (!IsThetaCalculated()) return false;
+
+  Double_t par[5];
+  GetParam(par);
+  const Int_t charge = m_charge;
+  const Double_t mint = m_min_t;
+  const Double_t maxt = m_max_t;
+
+  const TVector3& plane_pos = origin_mm;
+  const TVector3& plane_normal = normal;
+  const Double_t step_size = 0.02; // [rad]
+  const Int_t max_iter = 1000;
+  const Double_t sign_eps = 1e-6;
+  const Double_t s_tol = 0.1; // [mm]
+  const Int_t max_bisect = 40;
+
+  auto global_pos = [&](Double_t theta) { return GlobalPosition(par, theta); };
+  auto plane_sign = [&](Double_t theta) -> Double_t {
+    return (global_pos(theta) - plane_pos).Dot(plane_normal);
+  };
+
+  Double_t start_theta = 0., step = 0., dir = 0.;
+  HelixPlaneStart(par, charge, mint, maxt, plane_pos, start_theta, step, dir, step_size, global_pos);
+
+  Double_t current_theta = start_theta;
+  Double_t prev_sign = plane_sign(start_theta);
+  Bool_t found_cross = kFALSE;
+
+  for (Int_t i = 0; i < max_iter; ++i) {
+    const Double_t current_sign = plane_sign(current_theta);
+    if (current_sign * prev_sign <= sign_eps) {
+      found_cross = kTRUE;
+      break;
+    }
+    prev_sign = current_sign;
+    current_theta += step;
+  }
+
+  if (!found_cross)
+    return false;
+
+  Double_t theta_lo = current_theta - step;
+  Double_t theta_hi = current_theta;
+  Double_t s_lo = plane_sign(theta_lo);
+  Double_t s_hi = plane_sign(theta_hi);
+
+  if (TMath::Abs(s_hi) <= sign_eps && TMath::Abs(s_lo) > sign_eps) {
+    // keep theta_hi
+  } else if (s_lo * s_hi > 0) {
+    theta_lo = current_theta;
+    theta_hi = current_theta;
+    s_lo = s_hi;
+  }
+
+  Double_t theta_best = theta_hi;
+  if (TMath::Abs(s_lo) < TMath::Abs(s_hi))
+    theta_best = theta_lo;
+
+  if (theta_lo != theta_hi && s_lo * s_hi <= 0.) {
+    for (Int_t ib = 0; ib < max_bisect; ++ib) {
+      const Double_t tmid = 0.5 * (theta_lo + theta_hi);
+      const Double_t smid = plane_sign(tmid);
+      if (TMath::Abs(smid) < s_tol) {
+        theta_best = tmid;
+        break;
+      }
+      if (s_lo * smid <= 0.) {
+        theta_hi = tmid;
+        s_hi = smid;
+      } else {
+        theta_lo = tmid;
+        s_lo = smid;
+      }
+      theta_best = (TMath::Abs(s_lo) < TMath::Abs(s_hi)) ? theta_lo : theta_hi;
+      if (TMath::Abs(plane_sign(theta_best)) < s_tol)
+        break;
+    }
+  }
+
+  pos_on_plane = global_pos(theta_best);
+  mom_on_plane = CalcHelixMom(par, theta_best);
+  track_len = dir * TMath::Abs(theta_best - start_theta)
+    * par[kHelixR] * TMath::Sqrt(1. + par[kHelixDz] * par[kHelixDz]);
+  return true;
+}
+
+//______________________________________________________________________________
+// Closest approach to a point (plane normal = point - start).
+Bool_t
+TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
+                                       TVector3& pos_on_track, TVector3& mom_on_track,
+                                       Double_t& track_len, Double_t& closest_dist) const
+{
+  if (!IsThetaCalculated()) return false;
+
+  Double_t par[5];
+  GetParam(par);
+  const Int_t charge = m_charge;
+  const Double_t mint = m_min_t;
+  const Double_t maxt = m_max_t;
+
+  TVector3 start_pos = GlobalPosition(par, mint);
+  if (charge > 0) start_pos = GlobalPosition(par, maxt);
+  const TVector3 plane_normal = (point - start_pos).Unit();
+
+  if (!ExtrapolateToPlane(point, plane_normal, pos_on_track, mom_on_track, track_len))
+    return false;
+
+  closest_dist = (pos_on_track - point).Mag();
+  return true;
+}
+
+//______________________________________________________________________________
+Bool_t
+TPCLocalTrackHelix::ExtrapolateToTarget(TVector3& pos_on_track, TVector3& mom_on_track,
+                                        Double_t& track_len, Double_t& closest_dist) const
+{
+  const TVector3 target_point(0., 0., tpc::Z_TARGET);
+  return ExtrapolateToPoint(target_point, pos_on_track, mom_on_track,
+                            track_len, closest_dist);
 }

@@ -42,6 +42,7 @@ void BuildTPCHSHelixResidual();
 void BuildTPCHelixLambda();
 void BuildTPCLambdaEta();
 void BuildTPCHelixK0Short();
+void BuildTPCHelixHTOF();
 
 void BuildD5Tracking(Bool_t flag_beam_particle=false);
 void BuildD5WireResidual();
