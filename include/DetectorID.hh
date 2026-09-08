@@ -49,6 +49,8 @@ const Int_t NumOfSegT2   =  1;
 const Int_t NumOfSegSCH  = 64;
 const Int_t NumOfSegT3   =  1;
 
+const Int_t NumOfPlanesHTOF = 8; // octagonal HTOF faces
+
 const Int_t DetIdVmeRm     =  81;
 const Int_t DetIdScaler    =  91;
 const Int_t DetIdTrigFlag  =  99;
