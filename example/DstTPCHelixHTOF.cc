@@ -124,6 +124,8 @@ struct Event
   Int_t status;
   UInt_t runnum;
   UInt_t evnum;
+  std::vector<Double_t> trigpat;
+  std::vector<std::vector<Double_t>> trigflag;
   Int_t beamflag;
 
   Double_t time0;
@@ -190,7 +192,8 @@ struct Event
     time0 = qnan;
     time0_seg = qnan;
     ntTpc = 0;
-    dst::clear_all(charge, is_beam, is_accidental, match_ok, vertex_source,
+    dst::clear_all(trigpat, trigflag,
+                   charge, is_beam, is_accidental, match_ok, vertex_source,
                    pid, dEdx,
                    mom0, p_vtx, p_htof,
                    ctof_htof, L_beam, L_sec, t_beam, t_sec,
@@ -271,6 +274,8 @@ struct Src
   // helix (tpc tree)
   TTreeReaderValue<UInt_t>* runnum_tpc;
   TTreeReaderValue<UInt_t>* evnum_tpc;
+  TTreeReaderValue<std::vector<Double_t>>* trigpat;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* trigflag;
   TTreeReaderValue<Int_t>* ntTpc;
   TTreeReaderValue<std::vector<Double_t>>* helix_cx;
   TTreeReaderValue<std::vector<Double_t>>* helix_cy;
@@ -674,6 +679,8 @@ dst::DstRead(Int_t ievent)
 
   event.runnum    = **src.runnum_tpc;
   event.evnum     = **src.evnum_tpc;
+  event.trigpat   = **src.trigpat;
+  event.trigflag  = **src.trigflag;
   event.beamflag  = **src.beamflag;
   event.time0     = **src.time0;
   event.time0_seg = **src.time0_seg;
@@ -717,6 +724,8 @@ dst::SetupReaders()
   if (!dst::SetupReader(kHelix, "kHelix")) return false;
   dst::SetBranch(TTreeReaderCont[kHelix], "run_number", src.runnum_tpc);
   dst::SetBranch(TTreeReaderCont[kHelix], "event_number", src.evnum_tpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "trig_pat", src.trigpat);
+  dst::SetBranch(TTreeReaderCont[kHelix], "trig_flag", src.trigflag);
   dst::SetBranch(TTreeReaderCont[kHelix], "ntTpc", src.ntTpc);
   dst::SetBranch(TTreeReaderCont[kHelix], "helix_cx", src.helix_cx);
   dst::SetBranch(TTreeReaderCont[kHelix], "helix_cy", src.helix_cy);
@@ -767,6 +776,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("status", &event.status);
   tree->Branch("run_number", &event.runnum);
   tree->Branch("event_number", &event.evnum);
+  tree->Branch("trig_pat", &event.trigpat);
+  tree->Branch("trig_flag", &event.trigflag);
   tree->Branch("beam_flag", &event.beamflag);
   tree->Branch("time0", &event.time0);
   tree->Branch("time0_seg", &event.time0_seg);
