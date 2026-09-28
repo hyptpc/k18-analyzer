@@ -1386,5 +1386,4 @@ BuildTPCHelixHTOF()
   HB2("InvBetaMeas_vs_PoQ_K;q#timesp [GeV/c];1/#beta (meas, K pid)", bins_poq, bins_invbeta);
   HB2("InvBetaMeas_vs_PoQ_P;q#timesp [GeV/c];1/#beta (meas, p pid)", bins_poq, bins_invbeta);
 }
-
-//_____________________________________________________________________________
+}
