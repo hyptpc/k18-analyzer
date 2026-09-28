@@ -102,9 +102,9 @@ public:
                                const std::vector<Int_t>& plane_id = {},
                                const std::vector<Double_t>& horizontal = {},
                                const std::vector<Double_t>& vertical = {});
-  // HTOFPath_Stage: 0=no cand, 1=no match, 2=L_sec bad, 3=ok
+  // Path / surface quality for L_sec (0=no cand, 1=cand no match, 2=match Lsec<=0, 3=Lsec ok).
   void FillHelixHtofPathStage(Int_t stage);
-  void FillHelixHtofMatchHist(Bool_t match_ok);
+  void FillHelixHtofMatchHist(Bool_t seg_match);
   void FillHelixHtofMatchQuality(Double_t abs_s, Double_t drho,
                                  Double_t horizontal, Double_t vertical,
                                  Double_t dseg, Double_t L_sec);
@@ -113,7 +113,7 @@ public:
                             Double_t p_vtx, Int_t charge, Int_t pid,
                             Double_t t_sec,
                             Double_t dt_pi, Double_t dt_k, Double_t dt_p,
-                            Double_t htof_seg);
+                            Double_t extrap_seg);
 
 private:
   inline static Bool_t m_dst_calib_flag = false;

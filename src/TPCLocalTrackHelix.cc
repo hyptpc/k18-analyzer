@@ -4122,7 +4122,7 @@ TPCLocalTrackHelix::GetCovarianceMatrix(){
 }
 
 //______________________________________________________________________________
-// Start theta / step direction from charge (GetOrder convention).
+// Shared: choose start_theta / step / dir from charge (GetOrder convention).
 static Bool_t
 HelixPlaneStart(const Double_t par[5], Int_t charge, Double_t mint, Double_t maxt,
                 const TVector3& plane_pos,
@@ -4163,7 +4163,9 @@ HelixPlaneStart(const Double_t par[5], Int_t charge, Double_t mint, Double_t max
 }
 
 //______________________________________________________________________________
-// Helix–plane intersection: theta scan, then bisect to |s|<0.1 mm.
+// Find helix–plane intersection by scanning theta; return position, mom, path length.
+// Charge vs theta stepping follows GetOrder / DetermineCharge (B along +Z).
+// After a coarse zero-crossing bracket, bisect in theta until |(pos-origin)·normal| < 0.1 mm.
 Bool_t
 TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3& normal,
                                        TVector3& pos_on_plane, TVector3& mom_on_plane,
@@ -4216,7 +4218,7 @@ TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3
   Double_t s_hi = plane_sign(theta_hi);
 
   if (TMath::Abs(s_hi) <= sign_eps && TMath::Abs(s_lo) > sign_eps) {
-    // keep theta_hi
+    // hi on plane
   } else if (s_lo * s_hi > 0) {
     theta_lo = current_theta;
     theta_hi = current_theta;
@@ -4256,7 +4258,7 @@ TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3
 }
 
 //______________________________________________________________________________
-// Closest approach to a point (plane normal = point - start).
+// Closest approach to a point via a plane whose normal is (point - start).
 Bool_t
 TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
                                        TVector3& pos_on_track, TVector3& mom_on_track,
@@ -4271,7 +4273,7 @@ TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
   const Double_t maxt = m_max_t;
 
   TVector3 start_pos = GlobalPosition(par, mint);
-  if (charge > 0) start_pos = GlobalPosition(par, maxt);
+  if (charge > 0) start_pos = GlobalPosition(par, maxt); // same as GetOrder
   const TVector3 plane_normal = (point - start_pos).Unit();
 
   if (!ExtrapolateToPlane(point, plane_normal, pos_on_track, mom_on_track, track_len))
@@ -4282,6 +4284,7 @@ TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
 }
 
 //______________________________________________________________________________
+// Extrapolate to the target point (0, 0, Z_TARGET).
 Bool_t
 TPCLocalTrackHelix::ExtrapolateToTarget(TVector3& pos_on_track, TVector3& mom_on_track,
                                         Double_t& track_len, Double_t& closest_dist) const

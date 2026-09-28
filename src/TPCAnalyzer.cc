@@ -29,7 +29,8 @@ namespace
 {
 const auto& gUser   = UserParamMan::GetInstance();
 
-// HTOF face distance from center [mm] (azimuth i*45 deg).
+// Center-to-plane distance [mm] for each HTOF face (azimuth i*45 deg).
+// One entry per face, so that the faces can be placed independently.
 constexpr Double_t dist_htof_mm[NumOfPlanesHTOF] = {
   348.6, 348.6, 348.6, 348.6,
   348.6, 348.6, 348.6, 348.6
@@ -42,7 +43,7 @@ TPCAnalyzer::TPCAnalyzer()
     m_TPCHitCont(NumOfLayersTPC+1),
     m_TPCClCont(NumOfLayersTPC)
 {
-  // HTOF planes: normals every 45 deg about Y, origin = L * normal.
+  // Build eight HTOF planes: normals every 45 deg about Y, origin = L * normal.
   for (Int_t i = 0; i < NumOfPlanesHTOF; ++i) {
     const Double_t phi = static_cast<Double_t>(i) * 0.25 * TMath::Pi();
     const Double_t L = dist_htof_mm[i];
@@ -479,6 +480,7 @@ TPCAnalyzer::ExtrapolateToTarget(const TPCLocalTrackHelix* track,
 }
 
 //_____________________________________________________________________________
+// Intersect helix with HTOF planes; assign segment IDs and accept in-fiducial hits.
 Bool_t
 TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
                                std::vector<Int_t>& segid,
@@ -498,12 +500,13 @@ TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
   vertical.clear();
   if (!track) return false;
 
-  // HTOF segment geometry [mm]. y_offset ~+4 (e72 survey).
+  // HTOF segment geometry [mm], local to this function.
+  // y_offset: vertical shift of the whole HTOF (survey).
   const Double_t y_offset = 4.0;
   const Double_t seg_height = 400.0;
   const Double_t seg_width = 70.0 + 1.0;           // ideal + clearance
-  const Double_t beam_win_width = 2.0 * seg_width;
-  const Double_t beam_win_height = 112.0;
+  const Double_t beam_win_width = 2.0 * seg_width; // full X width
+  const Double_t beam_win_height = 112.0;          // full Y size (ideal)
   const Int_t segs_per_plane = 4;
 
   for (Int_t i = 0; i < NumOfPlanesHTOF; ++i) {
@@ -519,6 +522,7 @@ TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
     const Double_t xzdist = TMath::Hypot(diff.x(), diff.z());
     const TVector3 cross = center.Cross(diff);
 
+    // Fiducial: |Y-offset| within one seg_height; tangential within 2 seg_widths.
     if (TMath::Abs(pos0.y() - y_offset) > seg_height
         || xzdist > 2.0 * seg_width)
       continue;
@@ -537,7 +541,7 @@ TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
         else if (pos0.y() < y_offset) segmentID = 4;
         else segmentID = 3;
       }
-    } else {
+    } else { // i != 0
       if (cross.y() < 0) {
         if (xzdist >= seg_width) segmentID = 2 + segs_per_plane * i;
         else segmentID = 3 + segs_per_plane * i;
@@ -547,6 +551,7 @@ TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
       }
     }
 
+    // In-plane hit on this HTOF face: horizontal (signed tangential), vertical (Y - offset).
     const Double_t h = (cross.y() >= 0. ? 1. : -1.) * xzdist;
     segid.push_back(segmentID);
     pos.push_back(pos0);
@@ -558,4 +563,99 @@ TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
   }
 
   return !segid.empty();
+}
+
+//_____________________________________________________________________________
+Int_t
+TPCAnalyzer::MatchHtofCluster(Double_t extrap_seg,
+                              const std::vector<Double_t>& cl_seg)
+{
+  Int_t best = -1;
+  Double_t best_d = 1.e9;
+  for (std::size_t i = 0; i < cl_seg.size(); ++i) {
+    if (TMath::IsNaN(cl_seg[i])) continue;
+    const Double_t d = TMath::Abs(extrap_seg - cl_seg[i]);
+    if (d > 1.0) continue;
+    if (d < best_d) {
+      best_d = d;
+      best = static_cast<Int_t>(i);
+    }
+  }
+  return best;
+}
+
+//_____________________________________________________________________________
+Int_t
+TPCAnalyzer::MatchHtofCluster(Double_t extrap_seg,
+                              const std::vector<Double_t>& cl_seg,
+                              const std::vector<Double_t>& cl_time,
+                              Double_t time0)
+{
+  Int_t best = -1;
+  Double_t best_d = 1.e9;
+  Double_t best_dt = 1.e9;
+  for (std::size_t i = 0; i < cl_seg.size(); ++i) {
+    if (TMath::IsNaN(cl_seg[i])) continue;
+    const Double_t d = TMath::Abs(extrap_seg - cl_seg[i]);
+    if (d > 1.0) continue;
+    Double_t dt = 1.e9; // unknown time: ranked after any cluster with a time
+    if (i < cl_time.size() && TMath::Finite(cl_time[i]) && TMath::Finite(time0))
+      dt = TMath::Abs(cl_time[i] - time0);
+    if (d < best_d - 1e-9 || (TMath::Abs(d - best_d) <= 1e-9 && dt < best_dt)) {
+      best_d = d;
+      best_dt = dt;
+      best = static_cast<Int_t>(i);
+    }
+  }
+  return best;
+}
+
+//_____________________________________________________________________________
+Int_t
+TPCAnalyzer::MatchHtofBySeg(Double_t cl_seg,
+                            const std::vector<Double_t>& segs)
+{
+  Int_t best = -1;
+  Double_t best_d = 1.e9;
+  for (std::size_t i = 0; i < segs.size(); ++i) {
+    if (TMath::IsNaN(segs[i])) continue;
+    const Double_t d = TMath::Abs(cl_seg - segs[i]);
+    if (d < best_d) {
+      best_d = d;
+      best = static_cast<Int_t>(i);
+    }
+  }
+  return best;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCAnalyzer::HtofPlaneDistance(Int_t plane_id)
+{
+  if (plane_id < 0 || plane_id >= NumOfPlanesHTOF)
+    return TMath::QuietNaN();
+  return dist_htof_mm[plane_id];
+}
+
+//_____________________________________________________________________________
+TVector3
+TPCAnalyzer::HtofPlaneNormal(Int_t plane_id) const
+{
+  if (plane_id < 0 || plane_id >= NumOfPlanesHTOF)
+    return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
+  return m_htof_normal[plane_id];
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::HtofMatchResidual(Int_t plane_id, const TVector3& pos,
+                               Double_t& abs_s, Double_t& drho) const
+{
+  if (plane_id < 0 || plane_id >= NumOfPlanesHTOF) return false;
+  const TVector3& org = m_htof_origin[plane_id];
+  const TVector3& nrm = m_htof_normal[plane_id];
+  abs_s = TMath::Abs((pos - org).Dot(nrm));
+  const Double_t L = org.Mag(); // origin = L * unit normal
+  drho = TMath::Abs(TMath::Hypot(pos.X(), pos.Z()) - L);
+  return true;
 }

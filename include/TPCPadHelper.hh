@@ -1853,6 +1853,14 @@ inline Bool_t Noise(Int_t layer, Int_t row){
   return Noise(pad_id);
 }
 
+//_____________________________________________________________________________
+// xz cylinder about (0, Z_TARGET) with |y| cut (E72 target + holder + clearance).
+inline Bool_t
+IsInsideTargetCylinder(const TVector3& pos)
+{
+  const Double_t r = TMath::Hypot(pos.X(), pos.Z() - Z_TARGET);
+  return (r < TARGET_RADIUS) && (TMath::Abs(pos.Y()) < TARGET_HALF_Y);
+}
 
 //Functions for G4 simulation
 //_____________________________________________________________________________
@@ -1928,5 +1936,6 @@ inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Do
   }
   return eff;
 }
+
 }
 #endif

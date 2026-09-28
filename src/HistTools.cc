@@ -1311,48 +1311,72 @@ BuildTPCHelixK0Short()
 void
 BuildTPCHelixHTOF()
 {
-  HB1("HTOFExtrap_NCand;N_{HTOF cand};Counts", 10, -0.5, 9.5);
-  HB1("HTOFExtrap_SegId;HTOF seg id;Counts", 40, -0.5, 39.5);
-  HB1("HTOFExtrap_TrackLen;helix path length [mm];Counts", 200, -500., 1500.);
-  HB1("HTOFExtrap_X;extrap X [mm];Counts", 200, -500., 500.);
-  HB1("HTOFExtrap_Y;extrap Y [mm];Counts", 200, -500., 500.);
-  HB1("HTOFExtrap_Z;extrap Z [mm];Counts", 200, -500., 500.);
-  HB1("HTOFExtrap_AbsS;|plane residual s| [mm];Counts", 200, 0., 2.);
-  HB1("HTOFExtrap_Rho;#rho_{XZ} [mm];Counts", 200, 300., 400.);
-  HB1("HTOFExtrap_dRho;|#rho_{XZ}-L| [mm];Counts", 200, 0., 20.);
-  HB1("HTOFExtrap_H;horizontal on face [mm];Counts", 200, -160., 160.);
-  HB1("HTOFExtrap_V;vertical on face [mm];Counts", 200, -420., 420.);
-  // HTOFPath_Stage: 0=no cand, 1=cand no match, 2=match L_sec bad, 3=L_sec ok
-  HB1("HTOFPath_Stage;path stage;Counts", 4, -0.5, 3.5);
-  HB1("HTOFMatch;match flag;Counts", 2, -0.5, 1.5);
-  HB1("HTOFMatch_AbsS;|s| (matched) [mm];Counts", 200, 0., 2.);
-  HB1("HTOFMatch_dRho;|#rho-L| (matched) [mm];Counts", 200, 0., 20.);
-  HB1("HTOFMatch_H;horizontal (matched) [mm];Counts", 200, -160., 160.);
-  HB1("HTOFMatch_V;vertical (matched) [mm];Counts", 200, -420., 420.);
-  HB1("HTOFMatch_dSeg;|cand seg - cl seg|;Counts", 11, -0.5, 10.5);
-  HB1("HTOFMatch_Lsec;L_{sec} (matched) [mm];Counts", 200, 0., 1000.);
-  HB1("ctof_htof;ctof_{HTOF} [ns];Counts", 200, -20., 80.);
-  HB1("L_sec;L_{sec} [mm];Counts", 200, 0., 1000.);
-  HB1("L_beam;L_{beam} [mm];Counts", 200, 0., 1000.);
-  HB1("m2;m^{2} [(GeV/c^{2})^{2}];Counts", 200, -0.5, 2.);
-  HB1("m2_vtxsrc1;m^{2} (pair vtx);Counts", 200, -0.5, 2.);
-  HB1("m2_vtxsrc2;m^{2} (beam-helix vtx);Counts", 200, -0.5, 2.);
-  HB1("vertex_source;vertex source;Counts", 3, -0.5, 2.5);
+  const Double_t bins_ncand[3]      = {10., -0.5, 9.5};
+  const Double_t bins_segid[3]      = {40., -0.5, 39.5};
+  const Double_t bins_tracklen[3]   = {200., -500., 1500.};
+  const Double_t bins_extrap_xyz[3] = {200., -500., 500.};
+  const Double_t bins_abs_s[3]      = {200., 0., 2.};
+  const Double_t bins_rho[3]        = {200., 300., 400.};
+  const Double_t bins_drho[3]       = {200., 0., 20.};
+  const Double_t bins_face_h[3]     = {200., -160., 160.};
+  const Double_t bins_face_v[3]     = {200., -420., 420.};
+  const Double_t bins_stage[3]      = {8., -0.5, 7.5};
+  const Double_t bins_match[3]      = {2., -0.5, 1.5};
+  const Double_t bins_dseg[3]       = {11., -0.5, 10.5};
+  const Double_t bins_lsec[3]       = {200., 0., 1000.};
+  const Double_t bins_ctof[3]       = {200., -20., 80.};
+  const Double_t bins_m2[3]         = {200., -0.5, 2.};
+  const Double_t bins_vtxsrc[3]     = {3., -0.5, 2.5};
+  const Double_t bins_dt[3]         = {200., -20., 20.};
+  const Double_t bins_seg[3]        = {34., -0.5, 33.5};
+  const Double_t bins_poq[3]        = {150., -1.5, 1.5};
+  const Double_t bins_invbeta[3]    = {120., 0., 4.0};
 
-  // dt_*: t_sec - tof_calc(m_X); hypothesis residual, not species ID.
-  HB1("dT_Pi;t_{sec}-tof_{calc}(#pi) [ns];Counts", 200, -20., 20.);
-  HB1("dT_K;t_{sec}-tof_{calc}(K) [ns];Counts", 200, -20., 20.);
-  HB1("dT_P;t_{sec}-tof_{calc}(p) [ns];Counts", 200, -20., 20.);
-  HB1("dT_Pi_PiPid;t_{sec}-tof_{calc}(#pi) (#pi pid) [ns];Counts", 200, -20., 20.);
-  const Double_t bins_seg[3] = {34., -0.5, 33.5};
-  const Double_t bins_dt[3] = {200., -20., 20.};
-  const Double_t bins_lsec[3] = {200., 0., 1000.};
+  HB1("HTOFExtrap_NCand;N_{HTOF cand};Counts", bins_ncand);
+  HB1("HTOFExtrap_SegId;HTOF seg id;Counts", bins_segid);
+  HB1("HTOFExtrap_TrackLen;helix path length [mm];Counts", bins_tracklen);
+  HB1("HTOFExtrap_X;extrap X [mm];Counts", bins_extrap_xyz);
+  HB1("HTOFExtrap_Y;extrap Y [mm];Counts", bins_extrap_xyz);
+  HB1("HTOFExtrap_Z;extrap Z [mm];Counts", bins_extrap_xyz);
+  // Surface quality of ExtrapolateToHTOF candidates (before cluster match).
+  HB1("HTOFExtrap_AbsS;|plane residual s| [mm];Counts", bins_abs_s);
+  HB1("HTOFExtrap_Rho;#rho_{XZ} [mm];Counts", bins_rho);
+  HB1("HTOFExtrap_dRho;|#rho_{XZ}-L| [mm];Counts", bins_drho);
+  HB1("HTOFExtrap_H;horizontal on face [mm];Counts", bins_face_h);
+  HB1("HTOFExtrap_V;vertical on face [mm];Counts", bins_face_v);
+
+  // 0=no cand, 1=cand no match, 2=match but no vertex (ExtrapAll=1: match/ADC only),
+  // 3=TOF/PID filled, 4=time0/cluster time invalid, 5=L_sec<=0,
+  // 6=beam condition unresolved (ResolveBeamCondition) or t_beam not finite,
+  // 7=L_sec / t_sec / p_vtx not positive (HasValidTofPidInputs)
+  HB1("HTOFPath_Stage;path stage;Counts", bins_stage);
+  
+  HB1("HTOFMatch;match flag;Counts", bins_match);
+  HB1("HTOFMatch_AbsS;|s| (matched) [mm];Counts", bins_abs_s);
+  HB1("HTOFMatch_dRho;|#rho-L| (matched) [mm];Counts", bins_drho);
+  HB1("HTOFMatch_H;horizontal (matched) [mm];Counts", bins_face_h);
+  HB1("HTOFMatch_V;vertical (matched) [mm];Counts", bins_face_v);
+  HB1("HTOFMatch_dSeg;|cand seg - cl seg|;Counts", bins_dseg);
+  HB1("HTOFMatch_Lsec;L_{sec} (matched) [mm];Counts", bins_lsec);
+  HB1("HTOF_Ctof;ctof_{HTOF} [ns];Counts", bins_ctof);
+  HB1("L_sec;L_{sec} [mm];Counts", bins_lsec);
+  HB1("L_beam;L_{beam} [mm];Counts", bins_lsec);
+  HB1("m2;m^{2} [(GeV/c^{2})^{2}];Counts", bins_m2);
+  HB1("m2_vtxsrc1;m^{2} (pair vtx);Counts", bins_m2);
+  HB1("m2_vtxsrc2;m^{2} (beam-helix vtx);Counts", bins_m2);
+  HB1("vertex_source;vertex source;Counts", bins_vtxsrc);
+
+  // if-X residuals: dt_X = t_sec - tof_calc(m_X). Not a species assignment.
+  HB1("dT_Pi;t_{sec}-tof_{calc}(#pi) [ns];Counts", bins_dt);
+  HB1("dT_K;t_{sec}-tof_{calc}(K) [ns];Counts", bins_dt);
+  HB1("dT_P;t_{sec}-tof_{calc}(p) [ns];Counts", bins_dt);
+  HB1("dT_Pi_PiPid;t_{sec}-tof_{calc}(#pi) (#pi pid) [ns];Counts", bins_dt);
   HB2("dT_Pi_vs_Seg;HTOF seg;t_{sec}-tof_{calc}(#pi) [ns]", bins_seg, bins_dt);
   HB2("dT_Pi_vs_Lsec;L_{sec} [mm];t_{sec}-tof_{calc}(#pi) [ns]", bins_lsec, bins_dt);
 
-  // 1/beta vs q*p; multi-bit pid fills every matching species hist.
-  const Double_t bins_poq[3] = {150., -1.5, 1.5};
-  const Double_t bins_invbeta[3] = {120., 0., 4.0};
+  // 1/beta vs q*p (= signed p/z for |q|=1).
+  // Exp: TPC pid mass + p. Meas: TOF (c*t_sec/L_sec).
+  // Multiple pid bits (e.g. pi|K) → fill every matching species hist.
   HB2("InvBetaExp_vs_PoQ;q#timesp [GeV/c];1/#beta (exp, pid mass)", bins_poq, bins_invbeta);
   HB2("InvBetaExp_vs_PoQ_Pi;q#timesp [GeV/c];1/#beta (exp, #pi)", bins_poq, bins_invbeta);
   HB2("InvBetaExp_vs_PoQ_K;q#timesp [GeV/c];1/#beta (exp, K)", bins_poq, bins_invbeta);
@@ -1362,4 +1386,5 @@ BuildTPCHelixHTOF()
   HB2("InvBetaMeas_vs_PoQ_K;q#timesp [GeV/c];1/#beta (meas, K pid)", bins_poq, bins_invbeta);
   HB2("InvBetaMeas_vs_PoQ_P;q#timesp [GeV/c];1/#beta (meas, p pid)", bins_poq, bins_invbeta);
 }
-}
+
+//_____________________________________________________________________________

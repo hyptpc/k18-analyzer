@@ -756,7 +756,6 @@ TPCEventAnalyzer::FillHelixHtofExtrapHist(Int_t n_cand,
   if (n_cand <= 0)
     return;
 
-  constexpr Double_t kHtofL = 348.6; // [mm], same as TPCAnalyzer dist_htof_mm
   const std::size_t n = seg.size();
   for (std::size_t ic = 0; ic < n; ++ic) {
     HF1("HTOFExtrap_SegId", seg[ic]);
@@ -765,17 +764,19 @@ TPCEventAnalyzer::FillHelixHtofExtrapHist(Int_t n_cand,
     HF1("HTOFExtrap_Y", pos[ic].Y());
     HF1("HTOFExtrap_Z", pos[ic].Z());
 
+    const Int_t plane = (ic < plane_id.size()) ? plane_id[ic] : -1;
+    const Double_t htof_l = TPCAnalyzer::HtofPlaneDistance(plane >= 0 ? plane : 0); // [mm]
     const Double_t rho = TMath::Hypot(pos[ic].X(), pos[ic].Z());
     HF1("HTOFExtrap_Rho", rho);
-    HF1("HTOFExtrap_dRho", TMath::Abs(rho - kHtofL));
+    HF1("HTOFExtrap_dRho", TMath::Abs(rho - htof_l));
     if (ic < horizontal.size())
       HF1("HTOFExtrap_H", horizontal[ic]);
     if (ic < vertical.size())
       HF1("HTOFExtrap_V", vertical[ic]);
-    if (ic < plane_id.size() && plane_id[ic] >= 0) {
-      const Double_t phi = static_cast<Double_t>(plane_id[ic]) * 0.25 * TMath::Pi();
+    if (plane >= 0) {
+      const Double_t phi = static_cast<Double_t>(plane) * 0.25 * TMath::Pi();
       const TVector3 nrm(-TMath::Sin(phi), 0., -TMath::Cos(phi));
-      const TVector3 org = kHtofL * nrm;
+      const TVector3 org = htof_l * nrm;
       HF1("HTOFExtrap_AbsS", TMath::Abs((pos[ic] - org).Dot(nrm)));
     }
   }
@@ -790,9 +791,9 @@ TPCEventAnalyzer::FillHelixHtofPathStage(Int_t stage)
 
 //_____________________________________________________________________________
 void
-TPCEventAnalyzer::FillHelixHtofMatchHist(Bool_t match_ok)
+TPCEventAnalyzer::FillHelixHtofMatchHist(Bool_t seg_match)
 {
-  HF1("HTOFMatch", match_ok ? 1. : 0.);
+  HF1("HTOFMatch", seg_match ? 1. : 0.);
 }
 
 //_____________________________________________________________________________
@@ -810,7 +811,6 @@ TPCEventAnalyzer::FillHelixHtofMatchQuality(Double_t abs_s, Double_t drho,
     HF1("HTOFMatch_Lsec", L_sec);
 }
 
-
 //_____________________________________________________________________________
 void
 TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Double_t L_beam,
@@ -818,9 +818,9 @@ TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Doubl
                                        Double_t p_vtx, Int_t charge, Int_t pid,
                                        Double_t t_sec,
                                        Double_t dt_pi, Double_t dt_k, Double_t dt_p,
-                                       Double_t htof_seg)
+                                       Double_t extrap_seg)
 {
-  HF1("ctof_htof", ctof_htof);
+  HF1("HTOF_Ctof", ctof_htof);
   HF1("L_sec", L_sec);
   HF1("L_beam", L_beam);
   HF1("m2", m2);
@@ -830,8 +830,8 @@ TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Doubl
 
   if (std::isfinite(dt_pi)) {
     HF1("dT_Pi", dt_pi);
-    if (std::isfinite(htof_seg))
-      HF2("dT_Pi_vs_Seg", htof_seg, dt_pi);
+    if (std::isfinite(extrap_seg))
+      HF2("dT_Pi_vs_Seg", extrap_seg, dt_pi);
     HF2("dT_Pi_vs_Lsec", L_sec, dt_pi);
     if (pid & 0x1)
       HF1("dT_Pi_PiPid", dt_pi);
@@ -841,7 +841,8 @@ TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Doubl
   if (std::isfinite(dt_p))
     HF1("dT_P", dt_p);
 
-  // 1/beta vs q*p; multi-bit pid fills every matching species.
+  // 1/beta vs q*p (signed p/z for |q|=1).
+  // If multiple TPC pid bits are set (e.g. pi|K), fill every matching species.
   if (charge == 0 || !(p_vtx > 0.))
     return;
   const Double_t poq = p_vtx * static_cast<Double_t>(charge);
@@ -851,7 +852,7 @@ TPCEventAnalyzer::FillHelixHtofPidHist(Double_t ctof_htof, Double_t L_sec, Doubl
     const Double_t inv_beta = TMath::Sqrt(1. + (mass / p_vtx) * (mass / p_vtx));
     HF2(name, poq, inv_beta);
   };
-  // pid bits: 0=pi, 1=K, 2=p
+  // bit0=pi, bit1=K, bit2=p — independent ifs so multi-flag tracks enter all
   if (pid & 0x1) {
     fill_exp(pdg::PionMass(), "InvBetaExp_vs_PoQ");
     fill_exp(pdg::PionMass(), "InvBetaExp_vs_PoQ_Pi");

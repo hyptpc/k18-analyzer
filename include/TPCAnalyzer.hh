@@ -100,10 +100,11 @@ public:
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
   const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }
 
-  // Extrapolate helix to HTOF / target (mm).
+  // Extrapolate helix to the target (mm).
   Bool_t ExtrapolateToTarget(const TPCLocalTrackHelix* track,
                              TVector3& pos, TVector3& mom,
                              Double_t& len, Double_t& dist) const;
+  // Extrapolate helix to HTOF (mm). Candidates returned via out-vectors.
   Bool_t ExtrapolateToHTOF(const TPCLocalTrackHelix* track,
                            std::vector<Int_t>& segid,
                            std::vector<TVector3>& pos,
@@ -113,9 +114,29 @@ public:
                            std::vector<Double_t>& horizontal,
                            std::vector<Double_t>& vertical) const;
 
+  // HTOF cluster/raw seg matching (extrap seg ↔ MeanSeg; |Δ|<=1 for cluster).
+  static Int_t MatchHtofCluster(Double_t extrap_seg,
+                                const std::vector<Double_t>& cl_seg);
+  // Same, but among clusters with the same |Δseg| prefer the one whose time is closest to
+  // time0 (never rejects a cluster by time; NaN time0 / cluster time -> seg order only).
+  static Int_t MatchHtofCluster(Double_t extrap_seg,
+                                const std::vector<Double_t>& cl_seg,
+                                const std::vector<Double_t>& cl_time,
+                                Double_t time0);
+  // Closest seg index; no max-distance cut (ADC/dE attach).
+  static Int_t MatchHtofBySeg(Double_t cl_seg,
+                              const std::vector<Double_t>& segs);
+  // Plane residual for match QA: abs_s = |(pos-origin)·n|, dRho = |ρ_xz - L|.
+  Bool_t HtofMatchResidual(Int_t plane_id, const TVector3& pos,
+                           Double_t& abs_s, Double_t& drho) const;
+  // Center-to-plane distance [mm] of HTOF face plane_id (dist_htof_mm[]); NaN if out of range.
+  static Double_t HtofPlaneDistance(Int_t plane_id);
+  // Unit normal of HTOF face plane_id (TPC frame); NaN vector if out of range.
+  TVector3 HtofPlaneNormal(Int_t plane_id) const;
+
 private:
 
-  // HTOF plane geometry (see dist_htof_mm in .cc).
+  // HTOF planes (origin + normal); distances from dist_htof_mm[].
   TVector3 m_htof_origin[NumOfPlanesHTOF];
   TVector3 m_htof_normal[NumOfPlanesHTOF];
 
