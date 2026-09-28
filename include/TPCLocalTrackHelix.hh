@@ -214,6 +214,10 @@ public:
   void SetMint(Double_t t) { m_min_t = t; }
   void SetMaxt(Double_t t) { m_max_t = t; }
 
+  /// Nominal beam |p| [GeV/c] for CheckIsAccidental. Call when run_num changes.
+  static void SetBeamMomentum(Double_t momentum_gev_c);
+  static Double_t BeamMomentum();
+
   Bool_t IsBackward();
   void IsMultiLoop();
   void CheckIsAccidental();

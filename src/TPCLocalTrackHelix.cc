@@ -64,6 +64,7 @@ z = p[kHelixZ0] + p[kHelixDz]*p[kHelixR]*(theta);
 #include "DetectorID.hh"
 
 #include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 #define DebugDisp 0  // 0=off, 1=on (#if DebugDisp)
 #define IterativeResolution 1
@@ -174,12 +175,10 @@ namespace
   constexpr Double_t BeamLikeMaxAbsDz = 0.05;
 
   // CheckIsAccidental(): nominal beam momentum [GeV/c].
-  // Hardcoded per build for now (e72_735 → 0.735).
-  // TODO (future): gUser.GetParameter("BeamMom") and/or TPCLocalTrackHelix::SetBeamMom()
-  //   from Dst BeginRun (run-dependent momentum).
-  // constexpr Double_t BeamMom = 0.735;
-  // constexpr Double_t BeamMom = 0.933;
-  constexpr Double_t BeamMom = 1.0;
+  // Set via TPCLocalTrackHelix::SetBeamMomentum from Dst (run-dependent).
+  // Default 1.0 keeps previous hardcoded behavior until SetBeamMomentum is called.
+  Double_t BeamMom = 1.0;
+  Bool_t BeamMomSet = false;
 
   // p_t band lower edge: tag accidental only if p_t >= BeamMom - BeamMomOffset [GeV/c]
   constexpr Double_t BeamMomOffset = 0.2;
@@ -3535,6 +3534,30 @@ TPCLocalTrackHelix::RecalcTrack()
   m_path = dtheta * TMath::Hypot(m_r, m_r * m_dz);
   m_transverse_path = dtheta * m_r;
   IsMultiLoop();
+}
+
+//_____________________________________________________________________________
+void
+TPCLocalTrackHelix::SetBeamMomentum(Double_t momentum_gev_c)
+{
+  if (!(momentum_gev_c > 0.) || !std::isfinite(momentum_gev_c)) {
+    spdlog::warn("TPCLocalTrackHelix::SetBeamMomentum: invalid momentum {}",
+                 momentum_gev_c);
+    return;
+  }
+  if (!BeamMomSet || BeamMom != momentum_gev_c) {
+    spdlog::info("TPCLocalTrackHelix::SetBeamMomentum: {:.3f} GeV/c",
+                 momentum_gev_c);
+  }
+  BeamMom = momentum_gev_c;
+  BeamMomSet = true;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::BeamMomentum()
+{
+  return BeamMom;
 }
 
 //_____________________________________________________________________________

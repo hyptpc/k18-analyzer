@@ -5,6 +5,7 @@
 
 #include <TPDGCode.h>
 
+#include "BeamRunCondition.hh"
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
 #include "DCGeomMan.hh"
@@ -838,6 +839,10 @@ dst::DstRead(Int_t ievent)
   event.beamflag = **src.beamflag;
   event.clkTpc   = **src.clkTpc;
   HF1("Status", event.status++);
+
+  const ResolvedBeamCondition beam = ResolveBeamCondition(event.runnum);
+  if (beam.ValidMomentum())
+    TPCLocalTrackHelix::SetBeamMomentum(*beam.momentum_gev_c);
 
   
   if (**src.nhTpc == 0) return true;
