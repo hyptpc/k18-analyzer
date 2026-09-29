@@ -559,6 +559,11 @@ struct Topo
   std::vector<Double_t> trk_pstarPionHyp;   // ambiguous PID: pion mass hypothesis
   std::vector<Double_t> trk_m2;
   std::vector<Double_t> trk_invbeta;
+#ifdef E42_PIDKIN
+  // Length and |p| passed to Kinematics::MassSquare. trk_mom is a different point.
+  std::vector<Double_t> trk_path;
+  std::vector<Double_t> trk_m2mom;
+#endif
   std::vector<Double_t> trk_nsigma_proton;
   std::vector<Double_t> trk_nsigma_kaon;
   std::vector<Double_t> trk_nsigma_pion;
@@ -651,6 +656,12 @@ struct Topo
   std::vector<Double_t> lamCand_quality;
   std::vector<Int_t>    lamCand_region; // 0 none, 1 signal, 2 left SB, 3 right SB
   std::vector<Int_t>    lamCand_fiducial;
+#ifdef E42_PIDKIN
+  std::vector<Double_t> lamCand_pPos; // GeV/c at the decay vertex
+  std::vector<Double_t> lamCand_pNeg;
+  std::vector<Double_t> lamCand_pathPos; // decay vertex to HTOF, same matcher as m^2
+  std::vector<Double_t> lamCand_pathNeg;
+#endif
   Int_t lamBestId; // index of selected candidate (-1 if none)
 
   // K0S reconstructed in this producer
@@ -680,6 +691,12 @@ struct Topo
   std::vector<Double_t> k0Cand_quality;
   std::vector<Int_t>    k0Cand_region;
   std::vector<Int_t>    k0Cand_fiducial;
+#ifdef E42_PIDKIN
+  std::vector<Double_t> k0Cand_pPos;
+  std::vector<Double_t> k0Cand_pNeg;
+  std::vector<Double_t> k0Cand_pathPos;
+  std::vector<Double_t> k0Cand_pathNeg;
+#endif
   Int_t k0BestId;
 
   Int_t v0OverlapFlag;
@@ -806,6 +823,9 @@ struct Topo
     trk_pParallelQ.clear(); trk_pTransverseQ.clear(); trk_cosThetaQ.clear();
     trk_pstarProtonHyp.clear(); trk_pstarPionHyp.clear();
     trk_m2.clear(); trk_invbeta.clear();
+#ifdef E42_PIDKIN
+    trk_path.clear(); trk_m2mom.clear();
+#endif
     trk_nsigma_proton.clear(); trk_nsigma_kaon.clear(); trk_nsigma_pion.clear();
     trk_nsigma_electron.clear(); trk_nsigma_deutron.clear(); trk_nsigma_triton.clear();
     trk_nsigmaHtof_proton.clear(); trk_nsigmaHtof_kaon.clear();
@@ -867,6 +887,10 @@ struct Topo
     lamCand_mom.clear(); lamCand_mom_x.clear(); lamCand_mom_y.clear(); lamCand_mom_z.clear();
     lamCand_alpha.clear(); lamCand_qT.clear(); lamCand_quality.clear();
     lamCand_region.clear(); lamCand_fiducial.clear();
+#ifdef E42_PIDKIN
+    lamCand_pPos.clear(); lamCand_pNeg.clear();
+    lamCand_pathPos.clear(); lamCand_pathNeg.clear();
+#endif
 
     k0Flag = 0; nK0S = 0;
     k0Mass = qnan; k0Mom = qnan; k0Mom_x = qnan; k0Mom_y = qnan; k0Mom_z = qnan;
@@ -880,6 +904,10 @@ struct Topo
     k0Cand_mom.clear(); k0Cand_mom_x.clear(); k0Cand_mom_y.clear(); k0Cand_mom_z.clear();
     k0Cand_alpha.clear(); k0Cand_qT.clear(); k0Cand_quality.clear();
     k0Cand_region.clear(); k0Cand_fiducial.clear();
+#ifdef E42_PIDKIN
+    k0Cand_pPos.clear(); k0Cand_pNeg.clear();
+    k0Cand_pathPos.clear(); k0Cand_pathNeg.clear();
+#endif
 
     v0OverlapFlag = 0; v0OverlapTrackIds.clear();
     sidebandScaleLambda = topodef::kLambdaSidebandScale;
@@ -3301,6 +3329,10 @@ dst::DstRead( int ievent )
   topo.trk_pstarPionHyp.assign(ntTpc, qnan);
   topo.trk_m2.assign(ntTpc, qnan);
   topo.trk_invbeta.assign(ntTpc, qnan);
+#ifdef E42_PIDKIN
+  topo.trk_path.assign(ntTpc, qnan);
+  topo.trk_m2mom.assign(ntTpc, qnan);
+#endif
   topo.trk_nsigma_proton.assign(ntTpc, qnan);
   topo.trk_nsigma_kaon.assign(ntTpc, qnan);
   topo.trk_nsigma_pion.assign(ntTpc, qnan);
@@ -3332,6 +3364,11 @@ dst::DstRead( int ievent )
       topo.trk_htofReached[it] = 1;
       topo.trk_m2[it] = event.GFm2[it];
       topo.trk_invbeta[it] = event.GFinvbeta[it];
+#ifdef E42_PIDKIN
+      if(it<(Int_t)event.GFtracklen.size()) topo.trk_path[it] = event.GFtracklen[it];
+      if(it<(Int_t)event.GFmom.size() && !event.GFmom[it].empty())
+	topo.trk_m2mom[it] = event.GFmom[it][0];
+#endif
       topo.trk_nsigmaHtof_proton[it] = event.nsigma_protonHtof[it];
       topo.trk_nsigmaHtof_kaon[it] = event.nsigma_kaonHtof[it];
       topo.trk_nsigmaHtof_pion[it] = event.nsigma_pionHtof[it];
@@ -3629,6 +3666,35 @@ dst::DstRead( int ievent )
 	      topo.k0Cand_mom, topo.k0Cand_mom_x, topo.k0Cand_mom_y, topo.k0Cand_mom_z,
 	      topo.k0Cand_alpha, topo.k0Cand_qT, topo.k0Cand_quality,
 	      topo.k0Cand_region, topo.k0Cand_fiducial);
+#ifdef E42_PIDKIN
+    auto path_from_decay = [&](Int_t id, Double_t x, Double_t y, Double_t z)->Double_t {
+      if(id<0 || id>=ntTpc || TMath::IsNaN(x) || TMath::IsNaN(y) || TMath::IsNaN(z)) return qnan;
+      Int_t repid = -1;
+      Int_t hitid_htof; Double_t tof; Double_t len;
+      TVector3 pos_htof; Double_t track2tgt_dist;
+      const TVector3 vtx(x, y, z);
+      if(!GFtrackCont.TPCHTOFTrackMatching(id, repid, vtx, event.HtofSeg, event.posHtof,
+					   hitid_htof, tof, len, pos_htof, track2tgt_dist))
+	return qnan;
+      return len;
+    };
+    for(size_t i=0; i<lamCands.size(); ++i){
+      topo.lamCand_pPos.push_back(lamCands[i].pPos);
+      topo.lamCand_pNeg.push_back(lamCands[i].pNeg);
+      topo.lamCand_pathPos.push_back(path_from_decay(lamCands[i].idPos, lamCands[i].vtx_x,
+						     lamCands[i].vtx_y, lamCands[i].vtx_z));
+      topo.lamCand_pathNeg.push_back(path_from_decay(lamCands[i].idNeg, lamCands[i].vtx_x,
+						     lamCands[i].vtx_y, lamCands[i].vtx_z));
+    }
+    for(size_t i=0; i<k0Cands.size(); ++i){
+      topo.k0Cand_pPos.push_back(k0Cands[i].pPos);
+      topo.k0Cand_pNeg.push_back(k0Cands[i].pNeg);
+      topo.k0Cand_pathPos.push_back(path_from_decay(k0Cands[i].idPos, k0Cands[i].vtx_x,
+						    k0Cands[i].vtx_y, k0Cands[i].vtx_z));
+      topo.k0Cand_pathNeg.push_back(path_from_decay(k0Cands[i].idNeg, k0Cands[i].vtx_x,
+						    k0Cands[i].vtx_y, k0Cands[i].vtx_z));
+    }
+#endif
 
     Int_t lamSel = -1, k0Sel = -1;
     for(size_t i=0; i<lamCands.size(); ++i) if(lamCands[i].region==1){ lamSel=(Int_t)i; break; }
@@ -5173,6 +5239,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("trk_pstarPionHyp", &topo.trk_pstarPionHyp);
   tree->Branch("trk_m2", &topo.trk_m2);
   tree->Branch("trk_invbeta", &topo.trk_invbeta);
+#ifdef E42_PIDKIN
+  tree->Branch("trk_path", &topo.trk_path);
+  tree->Branch("trk_m2mom", &topo.trk_m2mom);
+#endif
   tree->Branch("trk_nsigma_proton", &topo.trk_nsigma_proton);
   tree->Branch("trk_nsigma_kaon", &topo.trk_nsigma_kaon);
   tree->Branch("trk_nsigma_pion", &topo.trk_nsigma_pion);
@@ -5264,6 +5334,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("lamCand_quality", &topo.lamCand_quality);
   tree->Branch("lamCand_region", &topo.lamCand_region);
   tree->Branch("lamCand_fiducial", &topo.lamCand_fiducial);
+#ifdef E42_PIDKIN
+  tree->Branch("lamCand_pPos", &topo.lamCand_pPos);
+  tree->Branch("lamCand_pNeg", &topo.lamCand_pNeg);
+  tree->Branch("lamCand_pathPos", &topo.lamCand_pathPos);
+  tree->Branch("lamCand_pathNeg", &topo.lamCand_pathNeg);
+#endif
   tree->Branch("lamBestId", &topo.lamBestId);
 
   tree->Branch("k0Flag", &topo.k0Flag);
@@ -5295,6 +5371,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("k0Cand_quality", &topo.k0Cand_quality);
   tree->Branch("k0Cand_region", &topo.k0Cand_region);
   tree->Branch("k0Cand_fiducial", &topo.k0Cand_fiducial);
+#ifdef E42_PIDKIN
+  tree->Branch("k0Cand_pPos", &topo.k0Cand_pPos);
+  tree->Branch("k0Cand_pNeg", &topo.k0Cand_pNeg);
+  tree->Branch("k0Cand_pathPos", &topo.k0Cand_pathPos);
+  tree->Branch("k0Cand_pathNeg", &topo.k0Cand_pathNeg);
+#endif
   tree->Branch("k0BestId", &topo.k0BestId);
   tree->Branch("v0OverlapFlag", &topo.v0OverlapFlag);
   tree->Branch("v0OverlapTrackIds", &topo.v0OverlapTrackIds);
