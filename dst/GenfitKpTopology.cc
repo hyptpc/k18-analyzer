@@ -560,9 +560,10 @@ struct Topo
   std::vector<Double_t> trk_m2;
   std::vector<Double_t> trk_invbeta;
 #ifdef E42_PIDKIN
-  // Length and |p| passed to Kinematics::MassSquare. trk_mom is a different point.
+  // Length, |p| and HTOF time passed to Kinematics::MassSquare. trk_mom is a different point.
   std::vector<Double_t> trk_path;
   std::vector<Double_t> trk_m2mom;
+  std::vector<Double_t> trk_tof;
 #endif
   std::vector<Double_t> trk_nsigma_proton;
   std::vector<Double_t> trk_nsigma_kaon;
@@ -661,6 +662,8 @@ struct Topo
   std::vector<Double_t> lamCand_pNeg;
   std::vector<Double_t> lamCand_pathPos; // decay vertex to HTOF, same matcher as m^2
   std::vector<Double_t> lamCand_pathNeg;
+  std::vector<Double_t> lamCand_tofPos; // matched HTOF time, same hit list as m^2
+  std::vector<Double_t> lamCand_tofNeg;
 #endif
   Int_t lamBestId; // index of selected candidate (-1 if none)
 
@@ -696,6 +699,8 @@ struct Topo
   std::vector<Double_t> k0Cand_pNeg;
   std::vector<Double_t> k0Cand_pathPos;
   std::vector<Double_t> k0Cand_pathNeg;
+  std::vector<Double_t> k0Cand_tofPos;
+  std::vector<Double_t> k0Cand_tofNeg;
 #endif
   Int_t k0BestId;
 
@@ -824,7 +829,7 @@ struct Topo
     trk_pstarProtonHyp.clear(); trk_pstarPionHyp.clear();
     trk_m2.clear(); trk_invbeta.clear();
 #ifdef E42_PIDKIN
-    trk_path.clear(); trk_m2mom.clear();
+    trk_path.clear(); trk_m2mom.clear(); trk_tof.clear();
 #endif
     trk_nsigma_proton.clear(); trk_nsigma_kaon.clear(); trk_nsigma_pion.clear();
     trk_nsigma_electron.clear(); trk_nsigma_deutron.clear(); trk_nsigma_triton.clear();
@@ -890,6 +895,7 @@ struct Topo
 #ifdef E42_PIDKIN
     lamCand_pPos.clear(); lamCand_pNeg.clear();
     lamCand_pathPos.clear(); lamCand_pathNeg.clear();
+    lamCand_tofPos.clear(); lamCand_tofNeg.clear();
 #endif
 
     k0Flag = 0; nK0S = 0;
@@ -907,6 +913,7 @@ struct Topo
 #ifdef E42_PIDKIN
     k0Cand_pPos.clear(); k0Cand_pNeg.clear();
     k0Cand_pathPos.clear(); k0Cand_pathNeg.clear();
+    k0Cand_tofPos.clear(); k0Cand_tofNeg.clear();
 #endif
 
     v0OverlapFlag = 0; v0OverlapTrackIds.clear();
@@ -3332,6 +3339,7 @@ dst::DstRead( int ievent )
 #ifdef E42_PIDKIN
   topo.trk_path.assign(ntTpc, qnan);
   topo.trk_m2mom.assign(ntTpc, qnan);
+  topo.trk_tof.assign(ntTpc, qnan);
 #endif
   topo.trk_nsigma_proton.assign(ntTpc, qnan);
   topo.trk_nsigma_kaon.assign(ntTpc, qnan);
@@ -3368,6 +3376,7 @@ dst::DstRead( int ievent )
       if(it<(Int_t)event.GFtracklen.size()) topo.trk_path[it] = event.GFtracklen[it];
       if(it<(Int_t)event.GFmom.size() && !event.GFmom[it].empty())
 	topo.trk_m2mom[it] = event.GFmom[it][0];
+      if(it<(Int_t)event.GFtofHtof.size()) topo.trk_tof[it] = event.GFtofHtof[it];
 #endif
       topo.trk_nsigmaHtof_proton[it] = event.nsigma_protonHtof[it];
       topo.trk_nsigmaHtof_kaon[it] = event.nsigma_kaonHtof[it];
@@ -3667,32 +3676,45 @@ dst::DstRead( int ievent )
 	      topo.k0Cand_alpha, topo.k0Cand_qT, topo.k0Cand_quality,
 	      topo.k0Cand_region, topo.k0Cand_fiducial);
 #ifdef E42_PIDKIN
-    auto path_from_decay = [&](Int_t id, Double_t x, Double_t y, Double_t z)->Double_t {
-      if(id<0 || id>=ntTpc || TMath::IsNaN(x) || TMath::IsNaN(y) || TMath::IsNaN(z)) return qnan;
+    auto match_from_decay = [&](Int_t id, Double_t x, Double_t y, Double_t z,
+				Double_t& len_out, Double_t& tof_out) {
+      len_out = qnan;
+      tof_out = qnan;
+      if(id<0 || id>=ntTpc || TMath::IsNaN(x) || TMath::IsNaN(y) || TMath::IsNaN(z)) return;
       Int_t repid = -1;
       Int_t hitid_htof; Double_t tof; Double_t len;
       TVector3 pos_htof; Double_t track2tgt_dist;
       const TVector3 vtx(x, y, z);
       if(!GFtrackCont.TPCHTOFTrackMatching(id, repid, vtx, event.HtofSeg, event.posHtof,
 					   hitid_htof, tof, len, pos_htof, track2tgt_dist))
-	return qnan;
-      return len;
+	return;
+      len_out = len;
+      if(hitid_htof>=0 && hitid_htof<(Int_t)event.tHtof.size()) tof_out = event.tHtof[hitid_htof];
     };
+    Double_t len_pos = qnan, tof_pos = qnan, len_neg = qnan, tof_neg = qnan;
     for(size_t i=0; i<lamCands.size(); ++i){
       topo.lamCand_pPos.push_back(lamCands[i].pPos);
       topo.lamCand_pNeg.push_back(lamCands[i].pNeg);
-      topo.lamCand_pathPos.push_back(path_from_decay(lamCands[i].idPos, lamCands[i].vtx_x,
-						     lamCands[i].vtx_y, lamCands[i].vtx_z));
-      topo.lamCand_pathNeg.push_back(path_from_decay(lamCands[i].idNeg, lamCands[i].vtx_x,
-						     lamCands[i].vtx_y, lamCands[i].vtx_z));
+      match_from_decay(lamCands[i].idPos, lamCands[i].vtx_x, lamCands[i].vtx_y, lamCands[i].vtx_z,
+		       len_pos, tof_pos);
+      match_from_decay(lamCands[i].idNeg, lamCands[i].vtx_x, lamCands[i].vtx_y, lamCands[i].vtx_z,
+		       len_neg, tof_neg);
+      topo.lamCand_pathPos.push_back(len_pos);
+      topo.lamCand_pathNeg.push_back(len_neg);
+      topo.lamCand_tofPos.push_back(tof_pos);
+      topo.lamCand_tofNeg.push_back(tof_neg);
     }
     for(size_t i=0; i<k0Cands.size(); ++i){
       topo.k0Cand_pPos.push_back(k0Cands[i].pPos);
       topo.k0Cand_pNeg.push_back(k0Cands[i].pNeg);
-      topo.k0Cand_pathPos.push_back(path_from_decay(k0Cands[i].idPos, k0Cands[i].vtx_x,
-						    k0Cands[i].vtx_y, k0Cands[i].vtx_z));
-      topo.k0Cand_pathNeg.push_back(path_from_decay(k0Cands[i].idNeg, k0Cands[i].vtx_x,
-						    k0Cands[i].vtx_y, k0Cands[i].vtx_z));
+      match_from_decay(k0Cands[i].idPos, k0Cands[i].vtx_x, k0Cands[i].vtx_y, k0Cands[i].vtx_z,
+		       len_pos, tof_pos);
+      match_from_decay(k0Cands[i].idNeg, k0Cands[i].vtx_x, k0Cands[i].vtx_y, k0Cands[i].vtx_z,
+		       len_neg, tof_neg);
+      topo.k0Cand_pathPos.push_back(len_pos);
+      topo.k0Cand_pathNeg.push_back(len_neg);
+      topo.k0Cand_tofPos.push_back(tof_pos);
+      topo.k0Cand_tofNeg.push_back(tof_neg);
     }
 #endif
 
@@ -5242,6 +5264,7 @@ ConfMan::InitializeHistograms( void )
 #ifdef E42_PIDKIN
   tree->Branch("trk_path", &topo.trk_path);
   tree->Branch("trk_m2mom", &topo.trk_m2mom);
+  tree->Branch("trk_tof", &topo.trk_tof);
 #endif
   tree->Branch("trk_nsigma_proton", &topo.trk_nsigma_proton);
   tree->Branch("trk_nsigma_kaon", &topo.trk_nsigma_kaon);
@@ -5339,6 +5362,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("lamCand_pNeg", &topo.lamCand_pNeg);
   tree->Branch("lamCand_pathPos", &topo.lamCand_pathPos);
   tree->Branch("lamCand_pathNeg", &topo.lamCand_pathNeg);
+  tree->Branch("lamCand_tofPos", &topo.lamCand_tofPos);
+  tree->Branch("lamCand_tofNeg", &topo.lamCand_tofNeg);
 #endif
   tree->Branch("lamBestId", &topo.lamBestId);
 
@@ -5376,6 +5401,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("k0Cand_pNeg", &topo.k0Cand_pNeg);
   tree->Branch("k0Cand_pathPos", &topo.k0Cand_pathPos);
   tree->Branch("k0Cand_pathNeg", &topo.k0Cand_pathNeg);
+  tree->Branch("k0Cand_tofPos", &topo.k0Cand_tofPos);
+  tree->Branch("k0Cand_tofNeg", &topo.k0Cand_tofNeg);
 #endif
   tree->Branch("k0BestId", &topo.k0BestId);
   tree->Branch("v0OverlapFlag", &topo.v0OverlapFlag);
