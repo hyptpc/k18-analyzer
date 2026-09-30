@@ -16,8 +16,11 @@ namespace
 const auto& gConf = ConfMan::GetInstance();
 const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
 const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
-const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
+  //const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
+  //const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
+  //Set to a constant value, as the E72 HS field was stable throughout the beamtime
+const Double_t valueHSHall = 0.7872;
+const Double_t valueHSCalc = 0.780;
 }
 
 namespace
