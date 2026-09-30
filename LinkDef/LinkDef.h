@@ -1,4 +1,8 @@
+#include <TParticle.h>
+#include <vector>
+
 #ifdef __CINT__
+
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
@@ -11,4 +15,6 @@
 #pragma link C++ class HitWire+;
 #pragma link C++ class CDCTrackHits+;
 #pragma link C++ class CDCTrackContainer+;
+
+#pragma link C++ class std::vector<TParticle>+;
 #endif
