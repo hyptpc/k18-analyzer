@@ -148,15 +148,51 @@ GetEntries(const std::vector<TTree*>& TTreeCont)
 }
 
 //______________________________________________________________________________
-inline Bool_t
-GetEntry(Int_t ievent)
+// True after the latest GetEntry() failed (I/O / out-of-range / reader status).
+// Cleared at the start of each GetEntry() call. Distinct from DstRead physics
+// skips and event-number mismatch (those return false without setting this).
+inline Bool_t&
+LastGetEntryFailedFlag()
 {
-  for(Int_t i=0, n=TTreeCont.size(); i<n; ++i){
-    if(TTreeCont[i]){
-      TTreeCont[i]->GetEntry(ievent);
-      if(TTreeReaderCont[i]){
-        TTreeReaderCont[i]->SetEntry(ievent);
+  static Bool_t failed = false;
+  return failed;
+}
+
+inline Bool_t
+LastGetEntryFailed()
+{
+  return LastGetEntryFailedFlag();
+}
+
+//______________________________________________________________________________
+inline Bool_t
+GetEntry(Long64_t ievent)
+{
+  LastGetEntryFailedFlag() = false;
+  for (Int_t i = 0, n = TTreeCont.size(); i < n; ++i) {
+    if (!TTreeCont[i])
+      continue;
+    const Long64_t nent = TTreeCont[i]->GetEntries();
+    if (ievent < 0 || ievent >= nent) {
+      spdlog::error("GetEntry: entry {} out of range (entries={}) tree={}",
+                    ievent, nent, TTreeCont[i]->GetName());
+      LastGetEntryFailedFlag() = true;
+      return false;
+    }
+    const Int_t nbytes = TTreeCont[i]->GetEntry(ievent);
+    if (TTreeReaderCont[i]) {
+      const auto status = TTreeReaderCont[i]->SetEntry(ievent);
+      if (status != TTreeReader::kEntryValid) {
+        spdlog::error("GetEntry: TTreeReader::SetEntry({}) status={} tree={}",
+                      ievent, static_cast<int>(status), TTreeCont[i]->GetName());
+        LastGetEntryFailedFlag() = true;
+        return false;
       }
+    } else if (nbytes <= 0) {
+      spdlog::error("GetEntry: TTree::GetEntry({}) returned {} tree={}",
+                    ievent, nbytes, TTreeCont[i]->GetName());
+      LastGetEntryFailedFlag() = true;
+      return false;
     }
   }
   return true;
