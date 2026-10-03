@@ -721,6 +721,12 @@ dst::DstRead(Int_t ievent)
   const Int_t nt = **src.ntTpc;
   if (nt <= 0) return true;
   event.resizeTracks(nt);
+  // Copy beam/accidental tags for all tracks before ProcessTrack so FindPairVertex
+  // can exclude partners with j > it (and tracks that early-return on NaN theta).
+  for (Int_t it = 0; it < nt; ++it) {
+    event.is_beam[it]       = (**src.is_beam)[it];
+    event.is_accidental[it] = (**src.is_accidental)[it];
+  }
   HF1("Status", event.status++);
 
   TPCAnalyzer tpc_ana;
