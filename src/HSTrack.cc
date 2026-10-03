@@ -19,6 +19,10 @@ const Double_t kHSVOZ   = -1300.;
 const Double_t kHSStepZ =   10.;
 const Int_t    kMaxStep = 10000;
 const Bool_t   kPrintVPHSField = false;
+
+// RK q = kShsMapChargeSign * charge / p (FieldMan SHS map).
+constexpr Double_t kShsMapChargeSign = -1.;
+
 // Keep the five upstream planes used for TPCHS residuals, then sample the RK
 // trajectory through the TPC.  250 mm is included explicitly at the end.
 const std::vector<Double_t>& VPZPlanesImpl()
@@ -46,6 +50,7 @@ HSTrack::HSTrack(Double_t xout, Double_t yout,
     m_uout(uout),
     m_vout(vout),
     m_momentum(p),
+    m_charge(-1),
     m_status(kInit),
     m_vp_position(),
     m_vp_momentum()
@@ -90,16 +95,16 @@ HSTrack::Propagate()
   }
   if(m_momentum <= 0. || !std::isfinite(m_momentum) ||
      !std::isfinite(m_xout) || !std::isfinite(m_yout) ||
-     !std::isfinite(m_uout) || !std::isfinite(m_vout)){
+     !std::isfinite(m_uout) || !std::isfinite(m_vout) ||
+     (m_charge != -1 && m_charge != 1)){
     m_status = kInvalidInput;
     return false;
   }
 
-  const Double_t pz = m_momentum/TMath::Sqrt(1. + m_uout*m_uout + m_vout*m_vout);
   // Start at the fitted VO state so the field is integrated from VO onward.
-  const ThreeVector pos0(m_xout, m_yout, kHSVOZ);
-  const ThreeVector mom0(pz*m_uout, pz*m_vout, pz);
-  const RKCordParameter ini(pos0, mom0);
+  const RKCordParameter ini(m_xout, m_yout, kHSVOZ, m_uout, m_vout,
+                            kShsMapChargeSign * static_cast<Double_t>(m_charge)
+                              / m_momentum);
   RKTrajectoryPoint prev(ini,
                          1., 0., 0., 0., 0.,
                          0., 1., 0., 0., 0.,

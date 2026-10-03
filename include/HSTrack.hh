@@ -23,6 +23,10 @@ public:
   HSTrack(Double_t xout, Double_t yout,
           Double_t uout, Double_t vout, Double_t p);
 
+  // Beam charge (±1). Default -1. q = kShsMapChargeSign * charge / p in Propagate.
+  void SetCharge(Int_t charge) { m_charge = charge; }
+  Int_t Charge() const { return m_charge; }
+
   Bool_t Propagate();
 
   Int_t StatusCode() const { return m_status; }
@@ -49,6 +53,7 @@ private:
   Double_t m_uout;
   Double_t m_vout;
   Double_t m_momentum;
+  Int_t m_charge;
   Int_t m_status;
 
   std::vector<TVector3> m_vp_position;
