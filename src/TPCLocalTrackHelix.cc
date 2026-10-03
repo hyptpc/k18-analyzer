@@ -4258,7 +4258,7 @@ TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3
 }
 
 //______________________________________________________________________________
-// Closest approach to a point via a plane whose normal is (point - start).
+// Closest approach to a point: reuse EvalTheta (3D distance minimization on helix).
 Bool_t
 TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
                                        TVector3& pos_on_track, TVector3& mom_on_track,
@@ -4271,16 +4271,46 @@ TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
   const Int_t charge = m_charge;
   const Double_t mint = m_min_t;
   const Double_t maxt = m_max_t;
-
-  TVector3 start_pos = GlobalPosition(par, mint);
-  if (charge > 0) start_pos = GlobalPosition(par, maxt); // same as GetOrder
-  const TVector3 plane_normal = (point - start_pos).Unit();
-
-  if (!ExtrapolateToPlane(point, plane_normal, pos_on_track, mom_on_track, track_len))
+  if (!(par[kHelixR] > 0.) || !TMath::Finite(par[kHelixR]))
     return false;
 
+  auto global_pos = [&](Double_t theta) { return GlobalPosition(par, theta); };
+
+  Double_t start_theta = mint;
+  TVector3 start_pos = global_pos(mint);
+  if (charge > 0) {
+    start_theta = maxt;
+    start_pos = global_pos(maxt); // same as GetOrder
+  }
+
+  constexpr Double_t same_point_eps = 1.e-3; // mm
+  if ((point - start_pos).Mag2() < same_point_eps * same_point_eps) {
+    pos_on_track = start_pos;
+    mom_on_track = CalcHelixMom(par, start_theta);
+    track_len = 0.;
+    closest_dist = 0.;
+    return true;
+  }
+
+  // Same window style as CalcClosestDistTgt.
+  const Double_t theta_margin = 0.5 * TMath::Pi();
+  const Double_t theta_best
+    = EvalTheta(par, point, mint - theta_margin, maxt + theta_margin);
+  if (!TMath::Finite(theta_best))
+    return false;
+
+  pos_on_track = global_pos(theta_best);
+  mom_on_track = CalcHelixMom(par, theta_best);
   closest_dist = (pos_on_track - point).Mag();
-  return true;
+
+  // Path length sign convention shared with ExtrapolateToPlane (HelixPlaneStart).
+  Double_t step = 0., dir = 0., start_theta_len = 0.;
+  const Double_t step_size = 0.02;
+  HelixPlaneStart(par, charge, mint, maxt, point,
+                  start_theta_len, step, dir, step_size, global_pos);
+  track_len = dir * TMath::Abs(theta_best - start_theta_len)
+    * par[kHelixR] * TMath::Sqrt(1. + par[kHelixDz] * par[kHelixDz]);
+  return TMath::Finite(closest_dist) && TMath::Finite(track_len);
 }
 
 //______________________________________________________________________________
