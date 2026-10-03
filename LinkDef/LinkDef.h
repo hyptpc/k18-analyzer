@@ -7,14 +7,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class EventHeaderMC+;
-#pragma link C++ class DetectorData+;
-#pragma link C++ class MCData+;
-#pragma link C++ class ReactionData+;
-
-#pragma link C++ class HitWire+;
-#pragma link C++ class CDCTrackHits+;
-#pragma link C++ class CDCTrackContainer+;
-
 #pragma link C++ class std::vector<TParticle>+;
+#pragma link C++ class std::vector<std::vector<Int_t> >+;
 #endif

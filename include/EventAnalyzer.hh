@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "DetectorID.hh"
-#include "Event.hh"
 #include "HistTools.hh"
 
 class DCAnalyzer;

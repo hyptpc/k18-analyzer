@@ -23,6 +23,7 @@ dst_build_dir		= $(dst_dir)/build
 root_config	= root-config
 root_include	= $(shell $(root_config) --cflags)
 root_libs	= $(shell $(root_config) --libs) -lMinuit -lMinuit2 -lEG -lGeom -lGui -lSpectrum
+rootcling	= $(shell $(root_config) --prefix)/bin/rootcling
 #
 # HDDAQ Unpacker
 unpacker_config		= /group/had/sks/software/unpacker/e70/bin/unpacker-config
@@ -113,9 +114,9 @@ all: lib usr dst
 
 -include $(deps) $(usr_deps) $(dst_deps) $(ex_deps)
 
-dst: $(dst_target) $(dst_objs)
-example: $(ex_target) $(ex_objs)
-usr: $(usr_target) $(usr_objs)
+dst: lib $(dst_target) $(dst_objs)
+example: lib $(ex_target) $(ex_objs)
+usr: lib $(usr_target) $(usr_objs)
 lib: $(lib_objs) $(objs) $(spdlog_lib) # lib/libEvent.so
 
 #______________________________________________________________________________
@@ -134,10 +135,10 @@ $(bin_dir)/Ex%: $(ex_build_dir)/Example%.o $(lib_objs)
 	@ $(mkdir) $(bin_dir)
 	$(CXX) $(FLAGS) -o $@ $< $(libs)
 
-$(lib_objs): $(objs) $(spdlog_lib)
+$(lib_objs): $(objs) $(src_build_dir)/Event_Dict.o $(spdlog_lib)
 	@ $(echo) "$(yellow)=== Archiving $@ $(default_color)"
 	@ $(mkdir) $(lib_dir)
-	$(ar) $(lib_objs) $(objs)
+	$(ar) $(lib_objs) $(sort $(objs) $(src_build_dir)/Event_Dict.o)
 
 #$(so_objs): $(objs)
 #	@ $(echo) "$(yellow)=== Making shared library $@ $(default_color)"
@@ -164,10 +165,9 @@ $(dst_build_dir)/%.o: $(dst_dir)/%.cc
 	@ $(mkdir) $(dst_build_dir)
 	$(CXX) $(FLAGS) -o $@ -MMD -c $<
 
-$(src_dir)/Event_Dict.cc: include/Event.hh LinkDef/LinkDef.h
-	@echo ------------------------- Making $@
-	$(ROOTSYS)/bin/rootcling -f $@ $^
-	@echo ------------------------- Done "\(^o^)/" Done
+$(src_dir)/Event_Dict.cc: LinkDef/LinkDef.h
+	@ $(echo) "$(green)=== Making $@ $(default_color)"
+	$(rootcling) -f $@ TParticle.h vector LinkDef/LinkDef.h
 
 $(spdlog_lib):
 	@ $(echo) "$(green)=== Making $@ $(default_color)"
