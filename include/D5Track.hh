@@ -38,6 +38,7 @@ private:
   Double_t m_momentum;
   Double_t m_d5_chi2;
   Int_t    m_d5_ndf;
+  Int_t    m_minuit_status;
 
   Double_t m_fit_x0;
   Double_t m_fit_u0;
@@ -61,6 +62,7 @@ public:
   Double_t GetMomentum() const { return m_momentum; }
   Double_t GetD5Chi2() const { return m_d5_chi2; }
   Int_t    GetD5Ndf() const { return m_d5_ndf; }
+  Int_t    GetMinuitStatus() const { return m_minuit_status; }
   Double_t GetD5Chi2Ndf() const
   {
     return m_d5_ndf > 0 ? m_d5_chi2 / static_cast<Double_t>(m_d5_ndf) : -1.0;

@@ -72,6 +72,7 @@ D5Track::D5Track(const DCLocalTrack* blc1, const DCLocalTrack* blc2)
     m_momentum(0.0),
     m_d5_chi2(-1.0),
     m_d5_ndf(0),
+    m_minuit_status(-1),
     m_fit_x0(0.0),
     m_fit_u0(0.0),
     m_fit_y0(0.0),
@@ -118,7 +119,7 @@ D5Track::ReadFitParameters(const Double_t* xs)
   m_fit_u0 = xs[1];
   m_fit_y0 = xs[2];
   m_fit_v0 = xs[3];
-  m_delta = xs[4];
+  m_delta  = xs[4];
 }
 
 //_____________________________________________________________________________
@@ -141,6 +142,7 @@ D5Track::CalcMomentum()
 {
   if (!m_trk_blc1 || !m_trk_blc2 || !gD5Mtx.IsReady()) return false;
 
+  m_is_fitted = false;
   m_d5_ndf = CalcNDF();
   if (m_d5_ndf < 1) return false;
 
@@ -152,24 +154,40 @@ D5Track::CalcMomentum()
   ROOT::Math::Functor f(this, &D5Track::operator(), kNumFitPar);
   minimizer.SetFunction(f);
   SetupMinuitVariables(minimizer);
-  minimizer.Minimize();
+  if (!minimizer.Minimize()) return false;
+  // Record Status for DST / ranking; do not reject on Status alone
+  // (Status=1 cov-posdef is common and OK for 1x1-track pairs).
+  m_minuit_status = minimizer.Status();
 
   const Double_t* xs = minimizer.X();
+  if (!xs) return false;
+  for (Int_t i = 0; i < kNumFitPar; ++i) {
+    if (!TMath::Finite(xs[i])) return false;
+  }
   ReadFitParameters(xs);
 
   m_momentum = m_p0 * (1.0 + m_delta/100.0);
   m_d5_chi2 = minimizer.MinValue();
+  if (!TMath::Finite(m_momentum) || !(m_momentum > 0.)
+      || !TMath::Finite(m_d5_chi2)) {
+    return false;
+  }
 
   const Double_t z_ref_in = gD5Mtx.GetD5ZIn();
   Double_t in[5];
   BuildTransportInput(m_fit_x0, m_fit_u0, m_fit_y0, m_fit_v0,
                       m_delta, z_ref_in, in);
   Double_t out[4];
-  gD5Mtx.Transport(in, out);
+  if (!gD5Mtx.Transport(in, out)) return false;
+  if (!TMath::Finite(out[0]) || !TMath::Finite(out[1])
+      || !TMath::Finite(out[2]) || !TMath::Finite(out[3])) {
+    return false;
+  }
   m_mtxout_x = out[0];
   m_mtxout_u = TMath::Tan(out[1] / 1000.0); // mrad -> dx/dz
   m_mtxout_y = out[2];
   m_mtxout_v = TMath::Tan(out[3] / 1000.0);
+  if (!TMath::Finite(m_mtxout_u) || !TMath::Finite(m_mtxout_v)) return false;
 
   m_is_fitted = true;
 

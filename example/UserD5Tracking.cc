@@ -70,6 +70,7 @@ struct Event
   std::vector<Double_t> d5_fit_chi2;
   std::vector<Int_t>    d5_fit_ndf;
   std::vector<Double_t> d5_fit_chi2_ndf;
+  std::vector<Int_t>    d5_minuit_status;
   std::vector<Int_t>    d5_pair_rank;
   std::vector<Double_t> d5_residual_x;
   std::vector<Double_t> d5_residual_y;
@@ -111,6 +112,9 @@ AssignD5PairRanks()
               const Double_t sa = event.d5_fit_chi2_ndf[a];
               const Double_t sb = event.d5_fit_chi2_ndf[b];
               if (sa != sb) return sa < sb;
+              const Int_t sta = event.d5_minuit_status[a];
+              const Int_t stb = event.d5_minuit_status[b];
+              if (sta != stb) return sta < stb;
               return a < b;
             });
   for (Int_t r=0; r<n; ++r)
@@ -127,6 +131,7 @@ PushD5Result(const D5Track& d5tr, Int_t i, Int_t j, const DCLocalTrack* tr2)
   event.d5_fit_chi2.push_back(d5tr.GetD5Chi2());
   event.d5_fit_ndf.push_back(d5tr.GetD5Ndf());
   event.d5_fit_chi2_ndf.push_back(d5tr.GetD5Chi2Ndf());
+  event.d5_minuit_status.push_back(d5tr.GetMinuitStatus());
   event.d5_residual_x.push_back(d5tr.GetResidualX());
   event.d5_residual_y.push_back(d5tr.GetResidualY());
   event.d5_blc2out_x.push_back(tr2->GetX(event.d5_z_out));
@@ -163,6 +168,7 @@ ProcessBegin()
   event.d5_delta.clear(); event.d5_momentum.clear();
   event.d5_fit_chi2.clear(); event.d5_fit_ndf.clear();
   event.d5_fit_chi2_ndf.clear();
+  event.d5_minuit_status.clear();
   event.d5_pair_rank.clear();
   event.d5_residual_x.clear(); event.d5_residual_y.clear();
   event.d5_blc2out_x.clear(); event.d5_blc2out_y.clear();
@@ -366,6 +372,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("d5_fit_chi2", &event.d5_fit_chi2);
   tree->Branch("d5_fit_ndf", &event.d5_fit_ndf);
   tree->Branch("d5_fit_chi2_ndf", &event.d5_fit_chi2_ndf);
+  tree->Branch("d5_minuit_status", &event.d5_minuit_status);
   tree->Branch("d5_pair_rank", &event.d5_pair_rank);
   tree->Branch("d5_residual_x", &event.d5_residual_x);
   tree->Branch("d5_residual_y", &event.d5_residual_y);
