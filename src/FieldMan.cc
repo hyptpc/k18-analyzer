@@ -3,6 +3,7 @@
 #include "FieldMan.hh"
 
 #include <cmath>
+#include <iomanip>
 
 #include <std_ostream.hh>
 
@@ -16,9 +17,9 @@ namespace
 const auto& gConf = ConfMan::GetInstance();
 const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
 const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-  //const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
-  //const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
-  //Set to a constant value, as the E72 HS field was stable throughout the beamtime
+//const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
+//const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
+//Set to a constant value, as the E72 HS field was stable throughout the beamtime
 const Double_t valueHSHall = 0.7872;
 const Double_t valueHSCalc = 0.780;
 }
@@ -40,7 +41,7 @@ FieldMan::FieldMan()
 FieldMan::~FieldMan()
 {
   if(m_s2s_map) delete m_s2s_map;
-  if(m_shs_map)    delete m_shs_map;
+  if(m_shs_map) delete m_shs_map;
 }
 
 //_____________________________________________________________________________
@@ -70,6 +71,17 @@ FieldMan::Initialize()
     m_shs_map = new S2sFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
     if(!m_shs_map->Initialize())
       return false;
+    const Double_t factor = valueHSHall / valueHSCalc;
+    const Int_t w = 12;
+    hddaq::cout << FUNC_NAME << " SHS map scale" << std::endl
+                << "  " << std::setw(w) << std::left << "file" << " = "
+                << m_file_name_shs << std::endl
+                << "  " << std::setw(w) << std::left << "valueHSHall" << " = "
+                << valueHSHall << std::endl
+                << "  " << std::setw(w) << std::left << "valueHSCalc" << " = "
+                << valueHSCalc << std::endl
+                << "  " << std::setw(w) << std::left << "factor" << " = "
+                << factor << std::endl;
   }
 
   m_is_ready = (m_s2s_map || m_shs_map);
@@ -90,7 +102,7 @@ FieldMan::Initialize(const TString& file_name_s2s,
                      const TString& file_name_shs)
 {
   m_file_name_s2s = file_name_s2s;
-  m_file_name_shs    = file_name_shs;
+  m_file_name_shs = file_name_shs;
   return Initialize();
 }
 
