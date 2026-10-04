@@ -4258,7 +4258,7 @@ TPCLocalTrackHelix::ExtrapolateToPlane(const TVector3& origin_mm, const TVector3
 }
 
 //______________________________________________________________________________
-// Closest approach to a point: reuse EvalTheta (3D distance minimization on helix).
+// Closest approach via EvalTheta (3D POCA).
 Bool_t
 TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
                                        TVector3& pos_on_track, TVector3& mom_on_track,
@@ -4303,13 +4303,13 @@ TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
   mom_on_track = CalcHelixMom(par, theta_best);
   closest_dist = (pos_on_track - point).Mag();
 
-  // Path length sign convention shared with ExtrapolateToPlane (HelixPlaneStart).
-  Double_t step = 0., dir = 0., start_theta_len = 0.;
-  const Double_t step_size = 0.02;
-  HelixPlaneStart(par, charge, mint, maxt, point,
-                  start_theta_len, step, dir, step_size, global_pos);
-  track_len = dir * TMath::Abs(theta_best - start_theta_len)
-    * par[kHelixR] * TMath::Sqrt(1. + par[kHelixDz] * par[kHelixDz]);
+  // Signed path length from track start (GetOrder) to POCA.
+  const Double_t arc_factor
+    = par[kHelixR] * TMath::Sqrt(1. + par[kHelixDz] * par[kHelixDz]);
+  if (charge > 0)
+    track_len = (maxt - theta_best) * arc_factor;
+  else
+    track_len = (theta_best - mint) * arc_factor;
   return TMath::Finite(closest_dist) && TMath::Finite(track_len);
 }
 
