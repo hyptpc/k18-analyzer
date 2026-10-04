@@ -834,20 +834,21 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
   const RKcalcHitPoint& hpTofU = m_HitPointCont.HitPointOfLayer(IdTOFUX);
   const RKcalcHitPoint& hpTofD = m_HitPointCont.HitPointOfLayer(IdTOFDX);
 
-  if(!m_use_tof){
-    Double_t ux, uy;
-    GetTrajectoryLocalPosition(IdTOFUX, ux, uy);
-    Int_t utof_seg = gGeom.CalcWireNumber(IdTOFUX, ux);
-
-    Double_t dx, dy;
-    GetTrajectoryLocalPosition(IdTOFDX, dx, dy);
-    Int_t dtof_seg = gGeom.CalcWireNumber(IdTOFDX, dx);
-
-    // if( utof_seg < 0 || utof_seg >= NumOfSegTOF ||
-    //     dtof_seg < 0 || dtof_seg >= NumOfSegTOF ) m_tof_seg = -1;
-    // else if( utof_seg == dtof_seg ) m_tof_seg = (Double_t)utof_seg;
-    // else                            m_tof_seg = (utof_seg+dtof_seg)/2.;
-  }
+  // Disabled: TOF seg from trajectory left unused (assignment commented out).
+  // if(!m_use_tof){
+  //   Double_t ux, uy;
+  //   GetTrajectoryLocalPosition(IdTOFUX, ux, uy);
+  //   Int_t utof_seg = gGeom.CalcWireNumber(IdTOFUX, ux);
+  //
+  //   Double_t dx, dy;
+  //   GetTrajectoryLocalPosition(IdTOFDX, dx, dy);
+  //   Int_t dtof_seg = gGeom.CalcWireNumber(IdTOFDX, dx);
+  //
+  //   if( utof_seg < 0 || utof_seg >= NumOfSegTOF ||
+  //       dtof_seg < 0 || dtof_seg >= NumOfSegTOF ) m_tof_seg = -1;
+  //   else if( utof_seg == dtof_seg ) m_tof_seg = (Double_t)utof_seg;
+  //   else                            m_tof_seg = (utof_seg+dtof_seg)/2.;
+  // }
 
   if((Int_t)m_tof_seg%2==1){ // upstream
     m_path_length_tof = std::abs(hpTgt.PathLength()-hpTofU.PathLength());
