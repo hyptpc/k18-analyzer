@@ -2,8 +2,8 @@
 
 #include "TPCEventAnalyzer.hh"
 
-#include <sstream>
 #include <cmath>
+#include <sstream>
 
 #include <TPDGCode.h>
 

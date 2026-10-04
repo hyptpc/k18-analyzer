@@ -43,9 +43,6 @@ public:
   TPCBaselineInfo TPCBaselineHit(const TPCRawData& TPCrawData);
   Int_t TPCCorHit(const TPCRawData& TPCrawData);
 
-  // NOTE: Disabled for now; this name collides with the TPCHit type name.
-  // void TPCHit(const TPCAnalyzer& TPCAna);
-
   void SetClock(const std::vector<Double_t>& clkTpc) { m_clkTpc = clkTpc; }
   void FillCoBoClockTime(const TString& prefix, Int_t layer, Int_t row,
                          Double_t ctime, const TVector3& local_pos, Double_t ref_y);

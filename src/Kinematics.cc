@@ -439,7 +439,7 @@ CorrElossIn(const TVector3& Pin, const TVector3& Xin,
   if (CalcDe(mom, mass, length,&mom_new,&energy_new)) {
     CorPin = mom_new/mom*Pin;
     // hddaq::cout << "CorrElossIn:: mom = " << mom << ", mom_new = " << mom_new
-    // 	      << std::endl;
+    //        << std::endl;
     return CorPin;
   } else {
     return Pin;
@@ -455,7 +455,7 @@ CalcLengthBeam(const TVector3& Pin, const TVector3& Xin,
   Double_t v=Pin.y()/Pin.z();
 
   // hddaq::cout << "CalcLengthBeam:: vtx (x,y,z)=(" << vtx.x() << ", "
-  // 	    << vtx.y() << ", " << vtx.z() << ")" << std::endl;
+  //        << vtx.y() << ", " << vtx.z() << ")" << std::endl;
 
   TVector3 point1, point2;
   /* vertex point check */
@@ -476,7 +476,7 @@ CalcLengthBeam(const TVector3& Pin, const TVector3& Xin,
     }
   }
   // hddaq::cout << "CalcLengthBeam:: Point1 (x,y,z)=(" << point1.x() << ", "
-  // 	    << point1.y() << ", " << point1.z() << ")" << std::endl;
+  //        << point1.y() << ", " << point1.z() << ")" << std::endl;
   /* target entrance point check */
   Double_t ztgtIn=TARGETcenter-TARGETsizeZ;
 
@@ -499,7 +499,7 @@ CalcLengthBeam(const TVector3& Pin, const TVector3& Xin,
   }
 
   // hddaq::cout << "CalcLengthBeam:: Point2 (x,y,z)=(" << point2.x() << ", "
-  // 	    << point2.y() << ", " << point2.z() << ")" << std::endl;
+  //        << point2.y() << ", " << point2.z() << ")" << std::endl;
   // hddaq::cout << "CalcLengthBeam:: length=" << (point1-point2).Mag() << std::endl;
 
   return (point1-point2).Mag();
@@ -558,7 +558,7 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
 
   CorPout = mom_new/mom*Pout;
   // hddaq::cout << "CorrElossOut:: mom = " << mom << ", mom_new = " << mom_new
-  // 	    << std::endl;
+  //        << std::endl;
 
   return CorPout;
 }
@@ -572,7 +572,7 @@ CalcLengthScat(const TVector3& Pout, const TVector3& Xout,
   Double_t v=Pout.y()/Pout.z();
 
   // hddaq::cout << "CalcLengthScat:: vtx (x,y,z)=(" << vtx.x() << ", "
-  // 	    << vtx.y() << ", " << vtx.z() << ")" << std::endl;
+  //        << vtx.y() << ", " << vtx.z() << ")" << std::endl;
 
   TVector3 point1, point2;
   /* vertex point check */
@@ -593,7 +593,7 @@ CalcLengthScat(const TVector3& Pout, const TVector3& Xout,
     }
   }
   // hddaq::cout << "CalcLengthScat:: Point1 (x,y,z)=(" << point1.x() << ", "
-  // 	    << point1.y() << ", " << point1.z() << ")" << std::endl;
+  //        << point1.y() << ", " << point1.z() << ")" << std::endl;
 
   /* target exit point check */
   Double_t ztgtOut=TARGETcenter+TARGETsizeZ;
@@ -617,7 +617,7 @@ CalcLengthScat(const TVector3& Pout, const TVector3& Xout,
   }
 
   // hddaq::cout << "CalcLengthScat:: Point2 (x,y,z)=(" << point2.x() << ", "
-  // 	    << point2.y() << ", " << point2.z() << ")" << std::endl;
+  //        << point2.y() << ", " << point2.z() << ")" << std::endl;
   // hddaq::cout << "CalcLengthScata:: length=" << (point1-point2).Mag() << std::endl;
 
   return (point1-point2).Mag();
@@ -687,11 +687,11 @@ CalcCrossingPoint(Double_t u, Double_t v, const TVector3& Point,
 
   if(c < 0){
     // hddaq::cerr << FUNC_NAME << " "
-    // 	      << "this track does not cross target" << std::endl;
+    //        << "this track does not cross target" << std::endl;
     return false;
   }else{
     // hddaq::cout << FUNC_NAME << " "
-    // 	      << "this track cross target!" << std::endl;
+    //        << "this track cross target!" << std::endl;
     *z1 = (-(a*u+b*v)+TMath::Sqrt(c))/(u*u+v*v);
     *z2 = (-(a*u+b*v)-TMath::Sqrt(c))/(u*u+v*v);
     return true;
@@ -958,7 +958,7 @@ Double_t HypTPCdEdx(Int_t materialid, Double_t mass/*MeV/c2*/, Double_t beta){
 //_____________________________________________________________________________
 Int_t
 HypTPCCalcDe(Int_t materialid, Double_t momentum, Double_t mass, Double_t distance,
-	     Double_t *momentum_cor, Double_t *energy_cor)
+             Double_t *momentum_cor, Double_t *energy_cor)
 {
   Double_t dE_dx; /*MeV/cm*/
   Double_t eloss; /*MeV*/
@@ -1053,15 +1053,15 @@ HypTPCCorrElossOut(Int_t materialid, const TVector3& Pout, Double_t length, Doub
       E = Ehigh-(Ehigh-Elow)*FH/(FH-FL);
       //printf("-------E=%f, Elow=%f, Ehigh=%f, FL=%f, FH=%f----------\n",E, Elow, Ehigh, FL, FH);
       if (std::abs(FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) < 0.0000001){
-	Elow = E;
-	Ehigh = E;
-	FH = FTMP;
+        Elow = E;
+        Ehigh = E;
+        FH = FTMP;
       } if ((FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) < 0) {
-	Elow = E;
-	FL = FTMP;
+        Elow = E;
+        FL = FTMP;
       } else if ((FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) > 0){
-	Ehigh = E;
-	FH = FTMP;
+        Ehigh = E;
+        FH = FTMP;
       }
     }
 
@@ -1278,7 +1278,7 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
   Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
-		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
+                      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_p)/sigma_p;
   return nsigma;
@@ -1292,7 +1292,7 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t to
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
   Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
-		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
+                      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_d)/sigma_d;
   return nsigma;
@@ -1306,7 +1306,7 @@ Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
   Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
-		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
+                      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_t)/sigma_t;
   return nsigma;
@@ -1320,7 +1320,7 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof){
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
   Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
-		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
+                      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_k)/sigma_k;
   return nsigma;
@@ -1334,7 +1334,7 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof){
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
   Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
-		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
+                       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_pi)/sigma_pi;
   return nsigma;
@@ -1361,7 +1361,7 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t inverse_beta){
   const Double_t mp = pdg::ProtonMass(); // [GeV/c^2]
   Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
   Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
-		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
+                      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_p)/sigma_p;
   return nsigma;
@@ -1374,7 +1374,7 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t inverse_beta){
   const Double_t md = pdg::DeuteronMass(); // [GeV/c^2]
   Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
   Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
-		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
+                      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_d)/sigma_d;
   return nsigma;
@@ -1387,7 +1387,7 @@ Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t inverse_beta){
   const Double_t mt = pdg::TritonMass(); // [GeV/c^2]
   Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
   Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
-		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
+                      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_t)/sigma_t;
   return nsigma;
@@ -1400,7 +1400,7 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t inverse_beta){
   const Double_t mk = pdg::KaonMass(); // [GeV/c^2]
   Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
   Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
-		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
+                      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_k)/sigma_k;
   return nsigma;
@@ -1413,7 +1413,7 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t inverse_beta){
   const Double_t mpi = pdg::PionMass(); // [GeV/c^2]
   Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
   Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
-		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
+                       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
 
   double nsigma = (inverse_beta-inverse_beta_pi)/sigma_pi;
   return nsigma;
@@ -1574,10 +1574,10 @@ CalcHelixPosition(double par[5], double t)
 //_____________________________________________________________________________
 TVector3
 LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
-	     Double_t p_theta_min, Double_t p_theta_max,
-	     Double_t pi_theta_min, Double_t pi_theta_max,
-	     TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
-	     Double_t& dist){
+             Double_t p_theta_min, Double_t p_theta_max,
+             Double_t pi_theta_min, Double_t pi_theta_max,
+             TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
+             Double_t& dist){
 
   Double_t t1, t2;
   TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, t1, t2, dist);
@@ -1591,9 +1591,9 @@ LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
 //E42's legacy
 //_____________________________________________________________________________
 TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
-		  Double_t theta_min, Double_t theta_max,
-		  TVector3 Xlambda, TVector3 Plambda,
-		  TVector3 &Ppi, Double_t &lambdapi_dist){
+                  Double_t theta_min, Double_t theta_max,
+                  TVector3 Xlambda, TVector3 Plambda,
+                  TVector3 &Ppi, Double_t &lambdapi_dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
 
@@ -1660,9 +1660,9 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 
 //_____________________________________________________________________________
 TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
-		  Double_t theta_min, Double_t theta_max,
-		  TVector3 Xlambda, TVector3 Plambda,
-		  TVector3 &Pp2, Double_t &lambdap_dist){
+                  Double_t theta_min, Double_t theta_max,
+                  TVector3 Xlambda, TVector3 Plambda,
+                  TVector3 &Pp2, Double_t &lambdap_dist){
 
   // Note that p2 represents another proton, separate from the proton from the Lambda decay
 
@@ -1731,8 +1731,8 @@ TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
 
 //_____________________________________________________________________________
 TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
-			 TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
-			 TVector3 &xi_mom, Double_t &dist){
+                         TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
+                         TVector3 &xi_mom, Double_t &dist){
 
   Double_t xi_par[5];
   CalcHelixParam(Bfield, -1, xi_mom_decayvtx, xi_decayvtx, xi_par);
@@ -1774,7 +1774,7 @@ TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
 //_____________________________________________________________________________
 TVector3
 CloseDistLambda(TVector3 point, TVector3 Xlambda,
-		TVector3 Plambda, Double_t &dist){
+                TVector3 Plambda, Double_t &dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
 
@@ -1825,7 +1825,7 @@ CloseDistLambda(TVector3 point, TVector3 Xlambda,
 //_____________________________________________________________________________
 TVector3
 CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
-		    TVector3 Plambda, Double_t &dist){
+                    TVector3 Plambda, Double_t &dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
 
@@ -1876,7 +1876,7 @@ CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
 //_____________________________________________________________________________
 TVector3
 LambdaTargetCenter(TVector3 Xlambda, TVector3 Plambda,
-		   Double_t &dist){
+                   Double_t &dist){
 
   Double_t u = Plambda.x()/Plambda.z();
   Double_t v = Plambda.y()/Plambda.z();
@@ -1891,9 +1891,9 @@ LambdaTargetCenter(TVector3 Xlambda, TVector3 Plambda,
 //_____________________________________________________________________________
 TVector3
 LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
-		   TVector3 Xlambda2, TVector3 Plambda2,
-		   TVector3 &vtxlambda1, TVector3 &vtxlambda2,
-		   Double_t &dist){
+                   TVector3 Xlambda2, TVector3 Plambda2,
+                   TVector3 &vtxlambda1, TVector3 &vtxlambda2,
+                   Double_t &dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
 
@@ -1972,10 +1972,10 @@ HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
 //_____________________________________________________________________________
 TVector3
 MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
-		 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
-		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
-		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
-		 Double_t* chisqr){
+                 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
+                 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+                 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
+                 Double_t* chisqr){
 
   // Vertex is underdetermined for ntrack < 2 
   // (chi^2 is identically zero or degenerate along the single track)
@@ -2005,7 +2005,7 @@ MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vecto
     ResFlag = false;
   }
   else if(Res_x0.size() != ntrack || Res_y0.size() != ntrack
-	  || Res_u0.size() != ntrack || Res_v0.size() != ntrack){
+          || Res_u0.size() != ntrack || Res_v0.size() != ntrack){
     std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
     std::cout<<"ntracks = "<<ntrack<<std::endl;
     std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;

@@ -834,7 +834,6 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
   const RKcalcHitPoint& hpTofU = m_HitPointCont.HitPointOfLayer(IdTOFUX);
   const RKcalcHitPoint& hpTofD = m_HitPointCont.HitPointOfLayer(IdTOFDX);
 
-  // Disabled: TOF seg from trajectory left unused (assignment commented out).
   // if(!m_use_tof){
   //   Double_t ux, uy;
   //   GetTrajectoryLocalPosition(IdTOFUX, ux, uy);

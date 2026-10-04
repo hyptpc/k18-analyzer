@@ -150,8 +150,8 @@ ProcessNormal()
       Int_t seg = hit->SegmentId();
       if(seg >= 0 && seg < NumOfSegCOBO){
         // Use earliest (min) of all clock edges in gate; HodoHit sorts so at(0)=min
-	Double_t clock_timing = hit->GetArrayTime().at(0);
-	clkTpc[seg] = clock_timing;
+        Double_t clock_timing = hit->GetArrayTime().at(0);
+        clkTpc[seg] = clock_timing;
         cobo_id.push_back(seg);
         const Double_t offset = gHodo.GetOffset(DetIdCOBO, 0, seg, 0);
         const Double_t gain   = gHodo.GetGain(DetIdCOBO, 0, seg, 0);
