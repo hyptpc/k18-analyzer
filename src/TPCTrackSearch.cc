@@ -1251,6 +1251,12 @@ LocalTrackSearchHelix(
   // BeamThroughTPC==1: skip accidental-track marking (beam-through mode)
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
+  XZhough_x.clear();
+  XZhough_y.clear();
+  XZhough_z.clear();
+  Yhough_x.clear();
+  Yhough_y.clear();
+
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
