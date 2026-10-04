@@ -649,6 +649,7 @@ FitTrack(T* Track, Int_t Houghflag,
         std::cout<<"delete"<<std::endl;
 #endif
         delete Track;
+        Track = nullptr;
       }
       break; //Extended track's fitting is failed
     }
