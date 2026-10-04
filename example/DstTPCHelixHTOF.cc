@@ -643,7 +643,7 @@ main(Int_t argc, Char_t** argv)
     gCounter.check();
     InitializeEvent();
     const Bool_t ok = DstRead(static_cast<Int_t>(ievent));
-    if (dst::LastGetEntryFailed()) {
+    if (dst::LastGetEntryFailed() || dst::LastSyncFailed()) {
       exit_code = EXIT_FAILURE;
       break;
     }
@@ -690,6 +690,7 @@ dst::DstOpen(std::vector<std::string> arg)
     return false;
 
   TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
+  dst::ResetRunNumberCheck();
   return true;
 }
 
@@ -703,9 +704,15 @@ dst::DstRead(Int_t ievent)
   if (!GetEntry(ievent))
     return false;
 
+  if (!dst::EnsureRunNumbersMatch(
+          { **src.runnum_tpc, **src.runnum_hodo }, ievent,
+          { TreeName[kHelix], TreeName[kHodo] }))
+    return false;
+
   evnumPerFile = { **src.evnum_tpc, **src.evnum_hodo };
   if (!dst::CheckEventNumbers(evnumPerFile, ievent,
                               { TreeName[kHelix], TreeName[kHodo] })) {
+    dst::LastSyncFailedFlag() = true;
     return false;
   }
 

@@ -178,6 +178,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* clkTpc;    // clock time
   TTreeReaderValue<std::vector<Double_t>>* cobo_id;   // CoBo ID
 
+  TTreeReaderValue<UInt_t>* runnum_bcout;
   TTreeReaderValue<UInt_t>* evnum_bcout;
   TTreeReaderValue<Int_t>* ntBcOut;
   TTreeReaderValue<std::vector<Double_t>>* chisqrBcOut;
@@ -418,7 +419,7 @@ main(int argc, char **argv)
     gCounter.check();
     InitializeEvent();
     const Bool_t ok = DstRead(static_cast<Int_t>(ievent));
-    if (dst::LastGetEntryFailed()) {
+    if (dst::LastGetEntryFailed() || dst::LastSyncFailed()) {
       exit_code = EXIT_FAILURE;
       break;
     }
@@ -466,7 +467,7 @@ dst::DstOpen(std::vector<std::string> arg)
     return false;
 
   TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
-
+  dst::ResetRunNumberCheck();
   return true;
 }
 
@@ -481,9 +482,15 @@ dst::DstRead(Int_t ievent)
   if (!GetEntry(ievent))
     return false;
 
-  // Check event numbers
+  if (!dst::EnsureRunNumbersMatch(
+          { **src.runnum, **src.runnum_bcout }, ievent,
+          { TreeName[kTpcHit], TreeName[kBcOut] }))
+    return false;
+
   evnumPerFile = { **src.evnum, **src.evnum_bcout };
-  if(!dst::CheckEventNumbers(evnumPerFile, ievent, {TreeName[kTpcHit], TreeName[kBcOut]})){
+  if (!dst::CheckEventNumbers(evnumPerFile, ievent,
+                              { TreeName[kTpcHit], TreeName[kBcOut] })) {
+    dst::LastSyncFailedFlag() = true;
     return false;
   }
 
@@ -575,6 +582,7 @@ dst::SetupReaders()
   // -------------------------------------------------------
   if (!dst::SetupReader(kBcOut, "kBcOut")) return false;
 
+  dst::SetBranch(TTreeReaderCont[kBcOut], "run_number",   src.runnum_bcout);
   dst::SetBranch(TTreeReaderCont[kBcOut], "event_number", src.evnum_bcout);
   dst::SetBranch(TTreeReaderCont[kBcOut], "ntrack", src.ntBcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "chisqr", src.chisqrBcOut);

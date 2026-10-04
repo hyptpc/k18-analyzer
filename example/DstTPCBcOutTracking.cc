@@ -245,6 +245,8 @@ struct Src
   TTreeReaderValue<Double_t>* btof;
   TTreeReaderValue<Double_t>* ftof;
 
+  TTreeReaderValue<UInt_t>* runnum_bcout;
+  TTreeReaderValue<UInt_t>* runnum_hodo;
   TTreeReaderValue<UInt_t>* evnum_bcout;
   TTreeReaderValue<UInt_t>* evnum_hodo;
 
@@ -561,7 +563,7 @@ main(int argc, char **argv)
     gCounter.check();
     InitializeEvent();
     const Bool_t ok = DstRead(static_cast<Int_t>(ievent));
-    if (dst::LastGetEntryFailed()) {
+    if (dst::LastGetEntryFailed() || dst::LastSyncFailed()) {
       exit_code = EXIT_FAILURE;
       break;
     }
@@ -603,6 +605,7 @@ dst::DstOpen(std::vector<std::string> arg)
   }
   if (!CheckEntries(TTreeCont)) return false;
   TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
+  dst::ResetRunNumberCheck();
   return true;
 }
 
@@ -616,9 +619,15 @@ dst::DstRead(Int_t ievent)
   if (!GetEntry(ievent))
     return false;
 
+  if (!dst::EnsureRunNumbersMatch(
+          { **src.runnum, **src.runnum_bcout, **src.runnum_hodo }, ievent,
+          { TreeName[kTpcTracking], TreeName[kBcOut], TreeName[kHodo] }))
+    return false;
+
   evnumPerFile = { **src.evnum_tpc, **src.evnum_bcout, **src.evnum_hodo };
-  if (!dst::CheckEventNumbers(evnumPerFile, ievent, 
-                            {TreeName[kTpcTracking], TreeName[kBcOut], TreeName[kHodo]})) {
+  if (!dst::CheckEventNumbers(evnumPerFile, ievent,
+                              { TreeName[kTpcTracking], TreeName[kBcOut], TreeName[kHodo] })) {
+    dst::LastSyncFailedFlag() = true;
     return false;
   }
 
@@ -768,6 +777,7 @@ dst::SetupReaders()
   // -------------------------------------------------------
   if (!dst::SetupReader(kHodo, "kHodo")) return false;
 
+  dst::SetBranch(TTreeReaderCont[kHodo], "run_number",   src.runnum_hodo);
   dst::SetBranch(TTreeReaderCont[kHodo], "event_number", src.evnum_hodo);
   dst::SetBranch(TTreeReaderCont[kHodo], "btof0", src.btof);
   dst::SetBranch(TTreeReaderCont[kHodo], "ftof0", src.ftof);
@@ -777,6 +787,7 @@ dst::SetupReaders()
   // -------------------------------------------------------
   if (!dst::SetupReader(kBcOut, "kBcOut")) return false;
 
+  dst::SetBranch(TTreeReaderCont[kBcOut], "run_number",   src.runnum_bcout);
   dst::SetBranch(TTreeReaderCont[kBcOut], "event_number", src.evnum_bcout);
   dst::SetBranch(TTreeReaderCont[kBcOut], "ntrack", src.ntBcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "chisqr", src.chisqrBcOut);

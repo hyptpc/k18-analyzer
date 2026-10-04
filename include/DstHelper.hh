@@ -148,9 +148,7 @@ GetEntries(const std::vector<TTree*>& TTreeCont)
 }
 
 //______________________________________________________________________________
-// True after the latest GetEntry() failed (I/O / out-of-range / reader status).
-// Cleared at the start of each GetEntry() call. Distinct from DstRead physics
-// skips and event-number mismatch (those return false without setting this).
+// GetEntry I/O failure. Cleared at each GetEntry().
 inline Bool_t&
 LastGetEntryFailedFlag()
 {
@@ -162,6 +160,73 @@ inline Bool_t
 LastGetEntryFailed()
 {
   return LastGetEntryFailedFlag();
+}
+
+//______________________________________________________________________________
+// Run/event sync failure. Cleared by ResetRunNumberCheck().
+inline Bool_t&
+LastSyncFailedFlag()
+{
+  static Bool_t failed = false;
+  return failed;
+}
+
+inline Bool_t
+LastSyncFailed()
+{
+  return LastSyncFailedFlag();
+}
+
+inline Bool_t&
+RunNumberCheckedFlag()
+{
+  static Bool_t checked = false;
+  return checked;
+}
+
+inline void
+ResetRunNumberCheck()
+{
+  RunNumberCheckedFlag() = false;
+  LastSyncFailedFlag() = false;
+}
+
+// Once per job: all runnums must match (size>=2).
+inline Bool_t
+EnsureRunNumbersMatch(const std::vector<UInt_t>& runnums,
+                      Int_t ievent = -1,
+                      const std::vector<TString>& tree_names = {})
+{
+  if (RunNumberCheckedFlag())
+    return true;
+  if (runnums.size() < 2)
+    return true;
+
+  const UInt_t ref_run = runnums[0];
+  for (size_t i = 1; i < runnums.size(); ++i) {
+    if (runnums[i] != ref_run) {
+      std::string msg = "Run number mismatch";
+      if (ievent >= 0)
+        msg += " at entry " + std::to_string(ievent) + ":";
+      else
+        msg += ":";
+      if (!tree_names.empty() && tree_names.size() == runnums.size()) {
+        for (size_t j = 0; j < runnums.size(); ++j) {
+          msg += " " + std::string(tree_names[j].Data()) + ".run="
+            + std::to_string(runnums[j]);
+        }
+      } else {
+        for (size_t j = 0; j < runnums.size(); ++j) {
+          msg += " [" + std::to_string(j) + "].run=" + std::to_string(runnums[j]);
+        }
+      }
+      spdlog::error(msg);
+      LastSyncFailedFlag() = true;
+      return false;
+    }
+  }
+  RunNumberCheckedFlag() = true;
+  return true;
 }
 
 //______________________________________________________________________________
@@ -199,13 +264,13 @@ GetEntry(Long64_t ievent)
 }
 
 //______________________________________________________________________________
-// Check if multiple event numbers match across different ROOT files
+// Require matching event numbers across inputs (size>=2).
 inline Bool_t
 CheckEventNumbers(const std::vector<UInt_t>& evnums, 
                   Int_t ievent = -1,
                   const std::vector<TString>& tree_names = {})
 {
-  if(evnums.size() < 2) return true;  // No need to check if less than 2
+  if(evnums.size() < 2) return true;
   
   const UInt_t ref_evnum = evnums[0];
   for(size_t i = 1; i < evnums.size(); ++i){
