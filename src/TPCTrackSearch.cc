@@ -181,6 +181,87 @@ namespace
     return hit_index >= 0;
   }
 
+  // Connected components on track-id move edges (union-find). Singleton ids stay alone.
+  std::vector<std::vector<Int_t>>
+  BuildConnectedComponents(const std::vector<Int_t>& ids,
+                           const std::vector<std::pair<Int_t, Int_t>>& edges)
+  {
+    const Int_t n = static_cast<Int_t>(ids.size());
+    std::vector<Int_t> uf_parent(n);
+    for(Int_t i = 0; i < n; ++i) uf_parent[i] = i;
+    auto uf_find = [&](Int_t x) -> Int_t {
+      while(uf_parent[x] != x){
+        uf_parent[x] = uf_parent[uf_parent[x]];
+        x = uf_parent[x];
+      }
+      return x;
+    };
+    auto uf_index = [&](Int_t trackid) -> Int_t {
+      auto it = std::find(ids.begin(), ids.end(), trackid);
+      if(it == ids.end()) return -1;
+      return static_cast<Int_t>(it - ids.begin());
+    };
+    for(const auto& edge : edges){
+      const Int_t ia = uf_index(edge.first);
+      const Int_t ib = uf_index(edge.second);
+      if(ia < 0 || ib < 0) continue;
+      const Int_t ra = uf_find(ia);
+      const Int_t rb = uf_find(ib);
+      if(ra != rb) uf_parent[ra] = rb;
+    }
+    std::vector<std::vector<Int_t>> components(n);
+    for(Int_t i = 0; i < n; ++i){
+      components[uf_find(i)].push_back(ids[i]);
+    }
+    return components;
+  }
+
+  // Evaluate DoFit for every trial; commit all into TrackCont or roll all back.
+  // k18id (if != -9999) uses fit threshold 3. Nulls group_trials on both paths.
+  template <typename T>
+  Bool_t CommitTrialsAllOrNothing(std::vector<T*>& TrackCont,
+                                  std::vector<T*>& group_trials,
+                                  const std::vector<Int_t>& group_ids,
+                                  Bool_t Exclusive,
+                                  Int_t MinNumOfHits,
+                                  Int_t k18id = -9999)
+  {
+    Bool_t fit_ok = true;
+    for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+      Int_t threshold = MinNumOfHits;
+      if(group_ids[ig] == k18id) threshold = 3;
+      T* trial = group_trials[ig];
+      if(!trial->DoFit(threshold)){
+        fit_ok = false;
+        continue;
+      }
+      trial->SetClustersHoughFlag(GoodForTracking);
+      trial->Calculate();
+      if(Exclusive){
+        trial->DoFitExclusive();
+        trial->CalculateExclusive();
+      }
+    }
+
+    if(fit_ok){
+      for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+        const Int_t trackid = group_ids[ig];
+        T* prev_track = TrackCont[trackid];
+        TrackCont[trackid] = group_trials[ig];
+        delete prev_track;
+        group_trials[ig] = nullptr;
+      }
+      return true;
+    }
+
+    for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+      delete group_trials[ig];
+      group_trials[ig] = nullptr;
+      TrackCont[group_ids[ig]]->SetClustersHoughFlag(GoodForTracking);
+    }
+    return false;
+  }
+
   template <typename T> void
   CalcTracks(std::vector<T*>& TrackCont)
   {
@@ -2182,34 +2263,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 
     // Connected components on move edges; extension-only / reject-only → singletons.
     // Commit each component all-or-nothing so TrackCont never shares or drops a hit.
-    const Int_t n_reassign = static_cast<Int_t>(reassign_candidates.size());
-    std::vector<Int_t> uf_parent(n_reassign);
-    for(Int_t i = 0; i < n_reassign; ++i) uf_parent[i] = i;
-    auto uf_find = [&](Int_t x) -> Int_t {
-      while(uf_parent[x] != x){
-        uf_parent[x] = uf_parent[uf_parent[x]];
-        x = uf_parent[x];
-      }
-      return x;
-    };
-    auto uf_index = [&](Int_t trackid) -> Int_t {
-      auto it = std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid);
-      if(it == reassign_candidates.end()) return -1;
-      return static_cast<Int_t>(it - reassign_candidates.begin());
-    };
-    for(const auto& edge : reassign_edges){
-      const Int_t ia = uf_index(edge.first);
-      const Int_t ib = uf_index(edge.second);
-      if(ia < 0 || ib < 0) continue;
-      const Int_t ra = uf_find(ia);
-      const Int_t rb = uf_find(ib);
-      if(ra != rb) uf_parent[ra] = rb;
-    }
-
-    std::vector<std::vector<Int_t>> components(n_reassign);
-    for(Int_t i = 0; i < n_reassign; ++i){
-      components[uf_find(i)].push_back(reassign_candidates[i]);
-    }
+    const auto components = BuildConnectedComponents(reassign_candidates, reassign_edges);
 
     for(Int_t cand_idx = 0; cand_idx < (Int_t)newtracks_fortest.size(); ++cand_idx){
       const Int_t trackid = candidates_trackid[cand_idx];
@@ -2223,8 +2277,10 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     for(const auto& group : components){
       if(group.empty()) continue;
 
-      std::vector<Int_t> trial_idx;
-      trial_idx.reserve(group.size());
+      std::vector<T*> group_trials;
+      std::vector<Int_t> group_ids;
+      group_trials.reserve(group.size());
+      group_ids.reserve(group.size());
       Bool_t all_found = true;
       for(Int_t trackid : group){
         Int_t found = -1;
@@ -2238,7 +2294,8 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
           all_found = false;
           break;
         }
-        trial_idx.push_back(found);
+        group_trials.push_back(newtracks_fortest[found]);
+        group_ids.push_back(trackid);
       }
       if(!all_found){
         std::cout << FUNC_NAME + " FATAL Error missing trial for reassign track" << std::endl;
@@ -2253,38 +2310,15 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
         continue;
       }
 
-      Bool_t fit_ok = true;
-      for(Int_t idx : trial_idx){
-        Int_t threshold = MinNumOfHits;
-        if(candidates_trackid[idx] == k18id) threshold = 3;
-        T* trial = newtracks_fortest[idx];
-        if(!trial->DoFit(threshold)){
-          fit_ok = false;
-          continue;
-        }
-        trial->SetClustersHoughFlag(GoodForTracking);
-        trial->Calculate();
-        if(Exclusive){
-          trial->DoFitExclusive();
-          trial->CalculateExclusive();
-        }
+      if(CommitTrialsAllOrNothing(TrackCont, group_trials, group_ids,
+                                  Exclusive, MinNumOfHits, k18id)){
+        any_committed = true;
       }
-
-      if(fit_ok){
-        for(Int_t idx : trial_idx){
-          const Int_t trackid = candidates_trackid[idx];
-          T* prev_track = TrackCont[trackid];
-          TrackCont[trackid] = newtracks_fortest[idx];
-          delete prev_track;
-          newtracks_fortest[idx] = nullptr;
-          any_committed = true;
-        }
-      }
-      else{
-        for(Int_t idx : trial_idx){
-          delete newtracks_fortest[idx];
-          newtracks_fortest[idx] = nullptr;
-          TrackCont[candidates_trackid[idx]]->SetClustersHoughFlag(GoodForTracking);
+      for(Int_t trackid : group_ids){
+        for(Int_t cand_idx = 0; cand_idx < (Int_t)newtracks_fortest.size(); ++cand_idx){
+          if(candidates_trackid[cand_idx] == trackid){
+            newtracks_fortest[cand_idx] = nullptr;
+          }
         }
       }
     }
@@ -2480,35 +2514,11 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
         group_ids.push_back(trackid);
       }
 
-      Bool_t fit_ok = true;
-      for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
-        if(!group_trials[ig]->DoFit(MinNumOfHits)){
-          fit_ok = false;
-          continue;
-        }
-        group_trials[ig]->SetClustersHoughFlag(GoodForTracking);
-        group_trials[ig]->Calculate();
-        if(Exclusive){
-          group_trials[ig]->DoFitExclusive();
-          group_trials[ig]->CalculateExclusive();
-        }
-      }
-
-      if(!fit_ok){
-        for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
-          delete group_trials[ig];
-          TrackCont[group_ids[ig]]->SetClustersHoughFlag(GoodForTracking);
-        }
+      if(!CommitTrialsAllOrNothing(TrackCont, group_trials, group_ids,
+                                   Exclusive, MinNumOfHits)){
         tracks[0]->SetClustersHoughFlag(GoodForTracking);
         tracks[1]->SetClustersHoughFlag(GoodForTracking);
         continue;
-      }
-
-      for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
-        const Int_t trackid = group_ids[ig];
-        T* prev_track = TrackCont[trackid];
-        TrackCont[trackid] = group_trials[ig];
-        delete prev_track;
       }
 
       del::ClearContainer(VertexCont);
