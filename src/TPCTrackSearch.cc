@@ -2577,7 +2577,9 @@ FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
       std::vector<Int_t> candidate_clustered_tracks;
       TVector3 vertex_point(0, 0, 0);
 
+      // Include seed in the mean (denominator already counts seed via ncltrk).
       candidate_clustered_tracks.push_back(seed_trackid);
+      vertex_point += seed_track->GetClosestPositionTgtXZ() - tgt;
       for(auto& vertex : VertexCont){
         // skip unless this vertex involves the seed track
         const Int_t trackid0 = vertex->GetTrackId(0);
