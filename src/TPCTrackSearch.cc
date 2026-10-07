@@ -2087,6 +2087,8 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   //So without those clusters, it is better to try to add clusters
   Bool_t reassign = false;
   std::vector<Int_t> reassign_candidates;
+  // Move edges (orig, best) for connected-component all-or-nothing commit.
+  std::vector<std::pair<Int_t, Int_t>> reassign_edges;
 
   for(Int_t i=0; i<(Int_t)newtracks_fortest.size(); i++){
     Int_t trackid = candidates_trackid[i];
@@ -2154,6 +2156,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
       else{ // cluster fits another candidate track
         reassign_candidates.push_back(orig_trackid);
         reassign_candidates.push_back(best_trackid);
+        reassign_edges.push_back(std::make_pair(orig_trackid, best_trackid));
         newtracks_fortest[best_idx]->AddTPCHit(new TPCLTrackHit(cl));
       }
     }
@@ -2164,6 +2167,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   std::sort(reassign_candidates.begin(), reassign_candidates.end());
   reassign_candidates.erase(std::unique(reassign_candidates.begin(), reassign_candidates.end()), reassign_candidates.end());
 
+  Bool_t any_committed = false;
   if(!reassign){ //No change
     if(reassign_candidates.size()!=0) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
 #if DebugDisp
@@ -2176,39 +2180,118 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassign_candidates.size()<<std::endl;
 #endif
 
-    // Re-fit and commit tracks in reassign_candidates into TrackCont.
-    for(Int_t cand_idx=0; cand_idx<(Int_t)newtracks_fortest.size(); cand_idx++){
-      Int_t trackid = candidates_trackid[cand_idx];
-      T *trial = newtracks_fortest[cand_idx];
+    // Connected components on move edges; extension-only / reject-only → singletons.
+    // Commit each component all-or-nothing so TrackCont never shares or drops a hit.
+    const Int_t n_reassign = static_cast<Int_t>(reassign_candidates.size());
+    std::vector<Int_t> uf_parent(n_reassign);
+    for(Int_t i = 0; i < n_reassign; ++i) uf_parent[i] = i;
+    auto uf_find = [&](Int_t x) -> Int_t {
+      while(uf_parent[x] != x){
+        uf_parent[x] = uf_parent[uf_parent[x]];
+        x = uf_parent[x];
+      }
+      return x;
+    };
+    auto uf_index = [&](Int_t trackid) -> Int_t {
+      auto it = std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid);
+      if(it == reassign_candidates.end()) return -1;
+      return static_cast<Int_t>(it - reassign_candidates.begin());
+    };
+    for(const auto& edge : reassign_edges){
+      const Int_t ia = uf_index(edge.first);
+      const Int_t ib = uf_index(edge.second);
+      if(ia < 0 || ib < 0) continue;
+      const Int_t ra = uf_find(ia);
+      const Int_t rb = uf_find(ib);
+      if(ra != rb) uf_parent[ra] = rb;
+    }
 
-      if(std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid) == reassign_candidates.end()){
-        delete trial;
+    std::vector<std::vector<Int_t>> components(n_reassign);
+    for(Int_t i = 0; i < n_reassign; ++i){
+      components[uf_find(i)].push_back(reassign_candidates[i]);
+    }
+
+    for(Int_t cand_idx = 0; cand_idx < (Int_t)newtracks_fortest.size(); ++cand_idx){
+      const Int_t trackid = candidates_trackid[cand_idx];
+      if(std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid)
+         == reassign_candidates.end()){
+        delete newtracks_fortest[cand_idx];
+        newtracks_fortest[cand_idx] = nullptr;
+      }
+    }
+
+    for(const auto& group : components){
+      if(group.empty()) continue;
+
+      std::vector<Int_t> trial_idx;
+      trial_idx.reserve(group.size());
+      Bool_t all_found = true;
+      for(Int_t trackid : group){
+        Int_t found = -1;
+        for(Int_t cand_idx = 0; cand_idx < (Int_t)newtracks_fortest.size(); ++cand_idx){
+          if(candidates_trackid[cand_idx] == trackid && newtracks_fortest[cand_idx]){
+            found = cand_idx;
+            break;
+          }
+        }
+        if(found < 0){
+          all_found = false;
+          break;
+        }
+        trial_idx.push_back(found);
+      }
+      if(!all_found){
+        std::cout << FUNC_NAME + " FATAL Error missing trial for reassign track" << std::endl;
+        for(Int_t trackid : group){
+          for(Int_t cand_idx = 0; cand_idx < (Int_t)newtracks_fortest.size(); ++cand_idx){
+            if(candidates_trackid[cand_idx] != trackid) continue;
+            delete newtracks_fortest[cand_idx];
+            newtracks_fortest[cand_idx] = nullptr;
+          }
+          TrackCont[trackid]->SetClustersHoughFlag(GoodForTracking);
+        }
         continue;
       }
 
-      Int_t threshold = MinNumOfHits;
-      if(trackid == k18id) threshold = 3;
-
-      if(!trial->DoFit(threshold)){
-        delete trial;
-        continue;
+      Bool_t fit_ok = true;
+      for(Int_t idx : trial_idx){
+        Int_t threshold = MinNumOfHits;
+        if(candidates_trackid[idx] == k18id) threshold = 3;
+        T* trial = newtracks_fortest[idx];
+        if(!trial->DoFit(threshold)){
+          fit_ok = false;
+          continue;
+        }
+        trial->SetClustersHoughFlag(GoodForTracking);
+        trial->Calculate();
+        if(Exclusive){
+          trial->DoFitExclusive();
+          trial->CalculateExclusive();
+        }
       }
 
-      trial->SetClustersHoughFlag(GoodForTracking);
-      trial->Calculate();
-      if(Exclusive){
-        trial->DoFitExclusive();
-        trial->CalculateExclusive();
+      if(fit_ok){
+        for(Int_t idx : trial_idx){
+          const Int_t trackid = candidates_trackid[idx];
+          T* prev_track = TrackCont[trackid];
+          TrackCont[trackid] = newtracks_fortest[idx];
+          delete prev_track;
+          newtracks_fortest[idx] = nullptr;
+          any_committed = true;
+        }
       }
-
-      T *prev_track = TrackCont[trackid];
-      TrackCont[trackid] = trial;
-      delete prev_track;
+      else{
+        for(Int_t idx : trial_idx){
+          delete newtracks_fortest[idx];
+          newtracks_fortest[idx] = nullptr;
+          TrackCont[candidates_trackid[idx]]->SetClustersHoughFlag(GoodForTracking);
+        }
+      }
     }
   }
   ResetHoughFlag(ClCont);
 
-  if(reassign){
+  if(any_committed){
     //Vertex finding again with new tracks
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
@@ -2379,8 +2462,10 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
         continue;
       }
 
-      // Commit only tracks listed in reassign_candidates; DoFit is the final gate
-      Bool_t any_committed = false;
+      // All-or-nothing: evaluate DoFit for every track in reassign_candidates, then
+      // commit all or roll back all (avoids shared/missing hits across TrackCont).
+      std::vector<T*> group_trials;
+      std::vector<Int_t> group_ids;
       for(Int_t j = 0, nt = trial_tracks.size(); j < nt; ++j){
         const Int_t trackid = candidates_trackid[j];
         T* trial = trial_tracks[j];
@@ -2388,31 +2473,42 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
         if(std::find(reassign_candidates.begin(), reassign_candidates.end(), trackid)
            == reassign_candidates.end()){
           delete trial;
+          trial_tracks[j] = nullptr;
           continue;
         }
+        group_trials.push_back(trial);
+        group_ids.push_back(trackid);
+      }
 
-        T* prev_track = TrackCont[trackid];
-        if(trial->DoFit(MinNumOfHits)){
-          trial->SetClustersHoughFlag(GoodForTracking);
-          trial->Calculate();
-          if(Exclusive){
-            trial->DoFitExclusive();
-            trial->CalculateExclusive();
-          }
-          TrackCont[trackid] = trial;
-          delete prev_track;
-          any_committed = true;
+      Bool_t fit_ok = true;
+      for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+        if(!group_trials[ig]->DoFit(MinNumOfHits)){
+          fit_ok = false;
+          continue;
         }
-        else{
-          prev_track->SetClustersHoughFlag(GoodForTracking);
-          delete trial;
+        group_trials[ig]->SetClustersHoughFlag(GoodForTracking);
+        group_trials[ig]->Calculate();
+        if(Exclusive){
+          group_trials[ig]->DoFitExclusive();
+          group_trials[ig]->CalculateExclusive();
         }
       }
 
-      if(!any_committed){
+      if(!fit_ok){
+        for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+          delete group_trials[ig];
+          TrackCont[group_ids[ig]]->SetClustersHoughFlag(GoodForTracking);
+        }
         tracks[0]->SetClustersHoughFlag(GoodForTracking);
         tracks[1]->SetClustersHoughFlag(GoodForTracking);
         continue;
+      }
+
+      for(std::size_t ig = 0; ig < group_trials.size(); ++ig){
+        const Int_t trackid = group_ids[ig];
+        T* prev_track = TrackCont[trackid];
+        TrackCont[trackid] = group_trials[ig];
+        delete prev_track;
       }
 
       del::ClearContainer(VertexCont);
