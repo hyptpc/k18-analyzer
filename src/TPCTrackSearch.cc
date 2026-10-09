@@ -1452,7 +1452,7 @@ FitTrack(T* Track, Int_t Houghflag,
       delete Track;
       Track = ExtendedTrack; //Updates the track
 #if DebugDisp
-      std::cout<<"extension"<<std::endl;
+      std::cout << "extension" << std::endl;
 #endif
     }
     else{
@@ -1466,7 +1466,7 @@ FitTrack(T* Track, Int_t Houghflag,
       }
       else{
 #if DebugDisp
-        std::cout<<"delete"<<std::endl;
+        std::cout << "delete" << std::endl;
 #endif
         delete Track;
         Track = nullptr;
@@ -1475,9 +1475,9 @@ FitTrack(T* Track, Int_t Houghflag,
     }
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" # of fitting steps for tracking: "<<nstep<<std::endl;
-    std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<" #failed track : "<<TrackContFailed.size()<<std::endl;
-    std::cout<<std::endl;
+    std::cout << FUNC_NAME + " # of fitting steps for tracking: " << nstep << std::endl;
+    std::cout << FUNC_NAME + " #track : " << TrackCont.size() << " #failed track : " << TrackContFailed.size() << std::endl;
+    std::cout << std::endl;
 #endif
 
     nstep++;
@@ -1523,7 +1523,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     Double_t linear_par[4]; Int_t max_bin_xz[2];
     if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
+      std::cout << FUNC_NAME + " No more track candiate! tracki : " << tracki << std::endl;
 #endif
       break;
     }
@@ -1556,12 +1556,12 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
       if(bindiff_xz<=1 && bindiff_y<=1){
         hough_flag = false;
 #if DebugDisp
-        std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
-            <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
-            <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
-        std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-            <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
-            <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
+        std::cout << "Previous hough bin on the XZ plane " << i << "th x: "
+            << XZhough_x[i] << ", y: " << XZhough_y[i] << " on the vertical plane x: "
+            << Yhough_x[i] << ", y: " << Yhough_y[i] << std::endl;
+        std::cout << "Current hough bin on the XZ plane " << i << "th x: "
+            << max_bin_xz[0] << ", y: " << max_bin_xz[1] << " on the vertical plane x: "
+            << max_bin_y[0] << ", y: " << max_bin_y[1] << std::endl;
 #endif
       }
     }
@@ -1572,7 +1572,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
+      std::cout << FUNC_NAME + " The same track is found by Hough-Transform : tracki : " << tracki << " hough cont size : " << XZhough_x.size() << std::endl;
 #endif
       track->SetFitFlag(0);
       track->SetClustersHoughFlag(BadHoughTransform);
@@ -1591,8 +1591,8 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
   ResetHoughFlag(ClCont, BadHoughTransform);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
+  std::cout << FUNC_NAME + " #track : " << TrackCont.size() << std::endl;
+  std::cout << FUNC_NAME + " #failed track : " << TrackContFailed.size() << std::endl;
 #endif
 
   CalcTracks(TrackCont);
@@ -1759,7 +1759,7 @@ HelixTrackSearch(
     prev_add = false;
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" tracki : "<<tracki<<std::endl;
+    std::cout << FUNC_NAME + " tracki : " << tracki << std::endl;
 #endif
 
     std::chrono::milliseconds sec;
@@ -1769,7 +1769,7 @@ HelixTrackSearch(
     Double_t HelixPar[5]; Int_t MaxBinXZ[3];
     if(!tpc::HoughTransformCircleXZ(ClCont, MaxBinXZ, HelixPar, MinNumOfHits)){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" No more circle candiate! tracki : "<<tracki<<std::endl;
+      std::cout << FUNC_NAME + " No more circle candiate! tracki : " << tracki << std::endl;
 #endif
       break;
     }
@@ -1802,12 +1802,12 @@ HelixTrackSearch(
       if(bindiffXZ<=1 && bindiffY<=1){
         hough_flag = false;
 #if DebugDisp
-        std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
-          <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<", z: "<<XZhough_z[i]<<" on the vertical plane x: "
-          <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
-        std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-          <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<", z: "<<MaxBinXZ[2]<<" on the vertical plane x: "
-          <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+        std::cout << "Previous hough bin on the XZ plane " << i << "th x: "
+          << XZhough_x[i] << ", y: " << XZhough_y[i] << ", z: " << XZhough_z[i] << " on the vertical plane x: "
+          << Yhough_x[i] << ", y: " << Yhough_y[i] << std::endl;
+        std::cout << "Current hough bin on the XZ plane " << i << "th x: "
+          << MaxBinXZ[0] << ", y: " << MaxBinXZ[1] << ", z: " << MaxBinXZ[2] << " on the vertical plane x: "
+          << MaxBinY[0] << ", y: " << MaxBinY[1] << std::endl;
 #endif
       }
     }
@@ -1819,7 +1819,7 @@ HelixTrackSearch(
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
+      std::cout << FUNC_NAME + " The same track is found by Hough-Transform : tracki : " << tracki << " hough cont size : " << XZhough_x.size() << std::endl;
 #endif
       track->SetFitFlag(0);
       track->SetClustersHoughFlag(BadHoughTransform);
@@ -1838,8 +1838,8 @@ HelixTrackSearch(
   ResetHoughFlag(ClCont, BadHoughTransform);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
+  std::cout << FUNC_NAME + " #track : " << TrackCont.size() << std::endl;
+  std::cout << FUNC_NAME + " #failed track : " << TrackContFailed.size() << std::endl;
 #endif
 
 }
@@ -1856,7 +1856,7 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
   if(VPs.size()==0) return;
   for(Int_t nt=0; nt<VPs.size(); nt++){
 #if DebugDisp
-    std::cout<<FUNC_NAME+" K18 Track "<<nt<<"/"<<VPs.size()<<std::endl;
+    std::cout << FUNC_NAME + " K18 Track " << nt << "/" << VPs.size() << std::endl;
 #endif
 
     std::chrono::milliseconds sec;
@@ -1867,7 +1867,7 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
       TVector3 pos = VPs[nt][i];
       trackref->AddVPHit(pos);
 #if DebugDisp
-      std::cout<<FUNC_NAME+" K18 RK "<<i<<"th pos : "<<VPs[nt][i]<<std::endl;
+      std::cout << FUNC_NAME + " K18 RK " << i << "th pos : " << VPs[nt][i] << std::endl;
 #endif
     } //i
     trackref->SetIsK18();
@@ -1875,8 +1875,8 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
     trackref->DoVPFit();
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" K18 VP Helix cx : "<<trackref->Getcx()<<" cy : "<<trackref->Getcy()<<" z0 : "<<trackref->Getz0()<<" r : "<<trackref->Getr()<<" dz : "<<trackref->Getdz()<<std::endl;
-    std::cout<<FUNC_NAME+" K18 VP Helix p : "<<trackref->Getr()*tpc::C_LIGHT<<std::endl;
+    std::cout << FUNC_NAME + " K18 VP Helix cx : " << trackref->Getcx() << " cy : " << trackref->Getcy() << " z0 : " << trackref->Getz0() << " r : " << trackref->Getr() << " dz : " << trackref->Getdz() << std::endl;
+    std::cout << FUNC_NAME + " K18 VP Helix p : " << trackref->Getr()*tpc::C_LIGHT << std::endl;
 #endif
 
     Int_t BeforeTGTHits = 0;
@@ -1933,7 +1933,7 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
     TrackContVP.push_back(trackref);
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" Clusters upstream of the target and within the window : "<<BeforeTGTHits<<std::endl;
+    std::cout << FUNC_NAME + " Clusters upstream of the target and within the window : " << BeforeTGTHits << std::endl;
     track->Print(FUNC_NAME+ " K18 track candidate");
 #endif
 
@@ -2116,8 +2116,8 @@ LocalTrackSearchHelix(
   RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
+  std::cout << FUNC_NAME + " #track : " << TrackCont.size() << std::endl;
+  std::cout << FUNC_NAME + " #failed track : " << TrackContFailed.size() << std::endl;
 #endif
 
   DropFailedTracksBelowMinHits(TrackContFailed, MIN_HITS_FOR_FAILED_CALC);
@@ -2225,7 +2225,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = false;
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" tracki : "<<tracki<<std::endl;
+    std::cout << FUNC_NAME + " tracki : " << tracki << std::endl;
 #endif
 
     std::chrono::milliseconds sec;
@@ -2235,7 +2235,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     Double_t linear_par[4]; Int_t max_bin_xz[2];
     if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
+      std::cout << FUNC_NAME + " No more track candiate! tracki : " << tracki << std::endl;
 #endif
       break;
     }
@@ -2268,12 +2268,12 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
       if(bindiff_xz<=1 && bindiff_y<=1){
 	hough_flag = false;
 #if DebugDisp
-	std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
-		 <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
-		 <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
-	std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-		 <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
-		 <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
+	std::cout << "Previous hough bin on the XZ plane " << i << "th x: "
+		 << XZhough_x[i] << ", y: " << XZhough_y[i] << " on the vertical plane x: "
+		 << Yhough_x[i] << ", y: " << Yhough_y[i] << std::endl;
+	std::cout << "Current hough bin on the XZ plane " << i << "th x: "
+		 << max_bin_xz[0] << ", y: " << max_bin_xz[1] << " on the vertical plane x: "
+		 << max_bin_y[0] << ", y: " << max_bin_y[1] << std::endl;
 #endif
       }
     }
@@ -2284,7 +2284,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
+      std::cout << FUNC_NAME + " The same track is found by Hough-Transform : tracki : " << tracki << " hough cont size : " << XZhough_x.size() << std::endl;
 #endif
       track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
@@ -2327,7 +2327,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = false;
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" tracki : "<<tracki<<std::endl;
+    std::cout << FUNC_NAME + " tracki : " << tracki << std::endl;
 #endif
 
     //Circle Hough-transform
@@ -2336,7 +2336,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
     Double_t HelixPar[5]; Int_t MaxBinXZ[3];
     if(!tpc::HoughTransformCircleXZ(ClCont, MaxBinXZ, HelixPar, MinNumOfHits)){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" No more circle candiate! tracki : "<<tracki<<std::endl;
+      std::cout << FUNC_NAME + " No more circle candiate! tracki : " << tracki << std::endl;
 #endif
       break;
     }
@@ -2368,12 +2368,12 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
       if(bindiffXZ<=1 && bindiffY<=1){
 	hough_flag = false;
 #if DebugDisp
-	std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
-		 <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<", z: "<<XZhough_z[i]<<" on the vertical plane x: "
-		 <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
-	std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-		 <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<", z: "<<MaxBinXZ[2]<<" on the vertical plane x: "
-		 <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+	std::cout << "Previous hough bin on the XZ plane " << i << "th x: "
+		 << XZhough_x[i] << ", y: " << XZhough_y[i] << ", z: " << XZhough_z[i] << " on the vertical plane x: "
+		 << Yhough_x[i] << ", y: " << Yhough_y[i] << std::endl;
+	std::cout << "Current hough bin on the XZ plane " << i << "th x: "
+		 << MaxBinXZ[0] << ", y: " << MaxBinXZ[1] << ", z: " << MaxBinXZ[2] << " on the vertical plane x: "
+		 << MaxBinY[0] << ", y: " << MaxBinY[1] << std::endl;
 #endif
       }
     }
@@ -2385,7 +2385,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
+      std::cout << FUNC_NAME + " The same track is found by Hough-Transform : tracki : " << tracki << " hough cont size : " << XZhough_x.size() << std::endl;
 #endif
       track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
@@ -2426,7 +2426,7 @@ HighMomHelixTrackSearch(
     prev_add = false;
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" tracki : "<<tracki<<std::endl;
+    std::cout << FUNC_NAME + " tracki : " << tracki << std::endl;
 #endif
 
     std::chrono::milliseconds sec;
@@ -2436,7 +2436,7 @@ HighMomHelixTrackSearch(
     Double_t linear_par[4]; Int_t max_bin_xz[2];
     if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
+      std::cout << FUNC_NAME + " No more track candiate! tracki : " << tracki << std::endl;
 #endif
       break;
     }
@@ -2468,12 +2468,12 @@ HighMomHelixTrackSearch(
       if(bindiffXZ<=1 && bindiffY<=1){
         hough_flag = false;
 #if DebugDisp
-        std::cout <<"Previous hough bin on the XZ plane "<<i<<"th x: "
-                  <<temp_xz_hough_x[i]<<", y: "<<temp_xz_hough_y[i]<<" on the vertical plane x: "
-                  <<temp_y_hough_x[i]<<", y: "<<temp_y_hough_y[i]<<std::endl;
-        std::cout <<"Current hough bin on the XZ plane "<<i<<"th x: "
-                  <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
-                  <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
+        std::cout << "Previous hough bin on the XZ plane " << i << "th x: "
+                  << temp_xz_hough_x[i] << ", y: " << temp_xz_hough_y[i] << " on the vertical plane x: "
+                  << temp_y_hough_x[i] << ", y: " << temp_y_hough_y[i] << std::endl;
+        std::cout << "Current hough bin on the XZ plane " << i << "th x: "
+                  << max_bin_xz[0] << ", y: " << max_bin_xz[1] << " on the vertical plane x: "
+                  << max_bin_y[0] << ", y: " << max_bin_y[1] << std::endl;
 #endif
       }
     }
@@ -2484,7 +2484,7 @@ HighMomHelixTrackSearch(
 
     if(!hough_flag){
 #if DebugDisp
-      std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<temp_xz_hough_x.size()<<std::endl;
+      std::cout << FUNC_NAME + " The same track is found by Hough-Transform : tracki : " << tracki << " hough cont size : " << temp_xz_hough_x.size() << std::endl;
 #endif
       track_temp->SetClustersHoughFlag(BadHoughTransform);
       delete track_temp;
@@ -2518,8 +2518,8 @@ HighMomHelixTrackSearch(
   ResetHoughFlag(ClCont, BadForTracking);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
+  std::cout << FUNC_NAME + " #track : " << TrackCont.size() << std::endl;
+  std::cout << FUNC_NAME + " #failed track : " << TrackContFailed.size() << std::endl;
 #endif
 
 }
@@ -2688,7 +2688,7 @@ ReassignClustersNearTheTarget(
                              k18id, candidates_trackid, trial_tracks, reassign_candidates);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" Finding the best combination between tracks and clusters"<<std::endl;
+  std::cout << FUNC_NAME + " Finding the best combination between tracks and clusters" << std::endl;
 #endif
 
   // 3) assign stripped clusters (record move edges for connected components)
@@ -2699,21 +2699,21 @@ ReassignClustersNearTheTarget(
     reassign = true;
   }
   if (trial_tracks.size()!=candidates_trackid.size())
-    std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+    std::cout << FUNC_NAME + " FATAL Error #of tracks is not matched" << std::endl;
 
   UniqueSortIds(reassign_candidates);
 
   Bool_t any_committed = false;
   if (!reassign){ //No change
-    if (reassign_candidates.size()!=0) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+    if (reassign_candidates.size()!=0) std::cout << FUNC_NAME + " FATAL Error #of tracks is not matched" << std::endl;
 #if DebugDisp
-    std::cout<<FUNC_NAME+" No reassigning happened"<<std::endl;
+    std::cout << FUNC_NAME + " No reassigning happened" << std::endl;
 #endif
     del::ClearContainer(trial_tracks);
   }
   else{ //Reassigning happens
 #if DebugDisp
-    std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassign_candidates.size()<<std::endl;
+    std::cout << FUNC_NAME + " Candidates for reassigning " << reassign_candidates.size() << std::endl;
 #endif
 
     // 4) commit: connected components on move edges; all-or-nothing per component
