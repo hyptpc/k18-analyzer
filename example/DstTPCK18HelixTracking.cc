@@ -903,18 +903,25 @@ main(Int_t argc, char** argv)
   if (!dst::SetupReaders())
     return EXIT_FAILURE;
   
-  Int_t skip = gUnpacker.get_skip();
+  Long64_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
-  Int_t max_loop = gUnpacker.get_max_loop();
-  Int_t nevent = GetEntries(TTreeCont);
-  if (max_loop > 0) nevent = skip + max_loop;
+  const Long64_t max_loop = gUnpacker.get_max_loop();
+  const Long64_t nentries = GetEntries(TTreeCont);
+  Long64_t nevent = nentries;
+  if (max_loop > 0) nevent = std::min(nentries, skip + max_loop);
 
   CatchSignal::Set();
-  Int_t ievent = skip;
+  Int_t exit_code = EXIT_SUCCESS;
+  Long64_t ievent = skip;
   for (; ievent<nevent && !CatchSignal::Stop(); ++ievent) {
     gCounter.check();
     InitializeEvent();
-    if (DstRead(ievent)) tree->Fill();
+    const Bool_t ok = DstRead(ievent);
+    if (dst::LastGetEntryFailed()) {
+      exit_code = EXIT_FAILURE;
+      break;
+    }
+    if (ok) tree->Fill();
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -922,7 +929,7 @@ main(Int_t argc, char** argv)
 
   DstClose();
 
-  return EXIT_SUCCESS;
+  return exit_code;
 }
 
 //_____________________________________________________________________________
@@ -967,12 +974,13 @@ dst::DstOpen(std::vector<std::string> arg)
 
 //_____________________________________________________________________________
 Bool_t
-dst::DstRead(Int_t ievent)
+dst::DstRead(Long64_t ievent)
 {
   if (ievent%1==0) {
     std::cout << "#D Event Number: " << std::setw(6) << ievent << std::endl;
   }
-  GetEntry(ievent);
+  if (!GetEntry(ievent))
+    return false;
 
   event.runnum   = **src.runnum;
   event.evnum    = **src.evnum;

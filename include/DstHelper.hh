@@ -35,8 +35,8 @@ extern std::vector<TTreeReader*> TTreeReaderCont;
 Bool_t InitializeEvent();
 Bool_t DstOpen(std::vector<std::string> arg);
 Bool_t DstRead();
-Bool_t DstRead(Int_t ievent);
-Bool_t DstRead(Int_t ievent, DCAnalyzer *DCAna);
+Bool_t DstRead(Long64_t ievent);
+Bool_t DstRead(Long64_t ievent, DCAnalyzer *DCAna);
 Bool_t DstClose();
 
 //______________________________________________________________________________
@@ -127,12 +127,12 @@ CheckEntries(const std::vector<TTree*>& TTreeCont)
 }
 
 //______________________________________________________________________________
-inline Int_t
+inline Long64_t
 GetEntries(const std::vector<TTree*>& TTreeCont)
 {
-  std::vector<Int_t> nevent;
-  for(Int_t i=0, n=TTreeCont.size(); i<n; ++i){
-    if(TTreeCont[i]){
+  std::vector<Long64_t> nevent;
+  for (Int_t i = 0, n = TTreeCont.size(); i < n; ++i) {
+    if (TTreeCont[i]) {
 #if CheckEventNumberMismatch
       return TTreeCont[i]->GetEntries();
 #else

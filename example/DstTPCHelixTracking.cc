@@ -779,7 +779,7 @@ main(Int_t argc, char** argv)
   for (; ievent<nevent && !CatchSignal::Stop(); ++ievent) {
     gCounter.check();
     InitializeEvent();
-    const Bool_t ok = DstRead(static_cast<Int_t>(ievent));
+    const Bool_t ok = DstRead(ievent);
     if (dst::LastGetEntryFailed()) {
       exit_code = EXIT_FAILURE;
       break;
@@ -832,7 +832,7 @@ dst::DstOpen(std::vector<std::string> arg)
 
 //_____________________________________________________________________________
 Bool_t
-dst::DstRead(Int_t ievent)
+dst::DstRead(Long64_t ievent)
 {
   if (ievent%1==0) {
     std::cout << "#D Event Number: " << std::setw(6) << ievent << std::endl;
