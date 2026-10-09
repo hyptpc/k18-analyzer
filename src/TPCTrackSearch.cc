@@ -966,6 +966,357 @@ namespace
     }
   }
 
+  //_____________________________________________________________________________
+  // True if track_id is already registered for fragment erase.
+  Bool_t
+  CandidateIdsContain(
+    const std::vector<Int_t>& candidates,
+    Int_t track_id
+  )
+  {
+    return std::find(candidates.begin(), candidates.end(), track_id) != candidates.end();
+  }
+
+  //_____________________________________________________________________________
+  // True if every hit lies in the beam-like corridor (IsBeamLikeHit).
+  template <typename T>
+  Bool_t
+  AllHitsBeamLike(T* track)
+  {
+    for (Int_t ihit = 0; ihit < track->GetNHit(); ++ihit) {
+      TPCHit* hit = track->GetHitInOrder(ihit)->GetHit();
+      if (!track->IsBeamLikeHit(hit->GetPosition())) return false;
+    }
+    return true;
+  }
+
+  //_____________________________________________________________________________
+  // Pass A gate: K18 / mixed beam-like / dist+mid-angle / target-cylinder vtx / candidates.
+  template <typename T>
+  Bool_t
+  VertexMergePassesGate(
+    TPCVertex* vertex,
+    const std::vector<T*>& TrackCont,
+    const std::vector<Int_t>& candidates
+  )
+  {
+    const Int_t id0 = vertex->GetTrackId(0);
+    const Int_t id1 = vertex->GetTrackId(1);
+    if (TrackCont[id0]->GetIsK18() == 1 || TrackCont[id1]->GetIsK18() == 1) return false;
+
+    const Bool_t isbeam1 = AllHitsBeamLike(TrackCont[id0]);
+    const Bool_t isbeam2 = AllHitsBeamLike(TrackCont[id1]);
+    const Bool_t both_beamlike = isbeam1 && isbeam2;
+    if (isbeam1 != isbeam2) return false;
+
+    const Double_t angle_window = 0.4 * TMath::Pi();
+    if (vertex->GetClosestDist() > FragmentMergeClosestDistMax ||
+        TMath::Abs(vertex->GetOpeningAngle() - 0.5 * TMath::Pi()) < angle_window) {
+      return false;
+    }
+
+    if (!both_beamlike) {
+      const TVector3 vtx = vertex->GetVertex();
+      if (TMath::Hypot(vtx.x(), vtx.z() - tpc::Z_TARGET) < tpc::TARGET_RADIUS &&
+          TMath::Abs(vtx.y()) < tpc::TARGET_HALF_Y) {
+        return false;
+      }
+    }
+
+    if (CandidateIdsContain(candidates, id0) || CandidateIdsContain(candidates, id1)) return false;
+    return true;
+  }
+
+  //_____________________________________________________________________________
+  // Longer track becomes trackid1 (parent for merge).
+  template <typename T>
+  void
+  OrderTrackIdsByHitCount(
+    TPCVertex* vertex,
+    const std::vector<T*>& TrackCont,
+    Int_t& trackid1,
+    Int_t& trackid2
+  )
+  {
+    trackid1 = vertex->GetTrackId(0);
+    trackid2 = vertex->GetTrackId(1);
+    if (TrackCont[trackid1]->GetNHit() < TrackCont[trackid2]->GetNHit()) {
+      trackid1 = vertex->GetTrackId(1);
+      trackid2 = vertex->GetTrackId(0);
+    }
+  }
+
+  //_____________________________________________________________________________
+  // new T(parent); optionally copy all fragment hits (Pass A/C). Pass B uses false.
+  template <typename T>
+  T*
+  BuildMergedTrack(
+    T* parent,
+    T* fragment,
+    Bool_t add_all_fragment_hits
+  )
+  {
+    T* merged = new T(parent);
+    if (add_all_fragment_hits) {
+      for (Int_t ihit = 0; ihit < fragment->GetNHit(); ++ihit) {
+        merged->AddTPCHit(new TPCLTrackHit(fragment->GetHitInOrder(ihit)->GetHit()));
+      }
+    }
+    return merged;
+  }
+
+  //_____________________________________________________________________________
+  // Restore GoodForTracking on both fragment pieces after a failed merge path.
+  template <typename T>
+  void
+  RestoreFragmentFlags(T* track1, T* track2)
+  {
+    track1->SetClustersHoughFlag(GoodForTracking);
+    track2->SetClustersHoughFlag(GoodForTracking);
+  }
+
+  //_____________________________________________________________________________
+  // FitTrack; on size+1 run Calculate/Exclusive and optional CheckIsAccidental.
+  // Ownership: merged_track becomes TrackCont.back() after a successful FitTrack.
+  template <typename T>
+  Bool_t
+  TryFitMergedTrack(
+    T*& merged_track,
+    Bool_t call_check_accidental,
+    Bool_t Exclusive,
+    Int_t MinNumOfHits,
+    const std::vector<TPCClusterContainer>& fit_cl_cont,
+    std::vector<T*>& TrackCont,
+    std::vector<T*>& TrackContFailed
+  )
+  {
+    const Int_t n_before = TrackCont.size();
+    tpc::FitTrack(merged_track, GoodForTracking, fit_cl_cont, TrackCont, TrackContFailed, MinNumOfHits);
+    const Int_t n_after = TrackCont.size();
+    if (n_before + 1 != n_after) return false;
+
+    merged_track = TrackCont[n_after - 1];
+    merged_track->Calculate();
+    if (Exclusive) {
+      merged_track->DoFitExclusive();
+      merged_track->CalculateExclusive();
+    }
+    if (call_check_accidental) merged_track->CheckIsAccidental();
+    return true;
+  }
+
+  //_____________________________________________________________________________
+  // Pass A: TestMergedTrack → push candidates before FitTrack; fail → pop + retry list.
+  template <typename T>
+  void
+  TryPassVertexMergeOne(
+    TPCVertex* vertex,
+    const std::vector<TPCClusterContainer>& ClCont,
+    std::vector<T*>& TrackCont,
+    std::vector<T*>& TrackContFailed,
+    std::vector<Int_t>& candidates,
+    std::vector<TPCVertex*>& candidates_VertexCont,
+    Bool_t Exclusive,
+    Int_t MinNumOfHits
+  )
+  {
+    if (!VertexMergePassesGate(vertex, TrackCont, candidates)) return;
+
+#if DebugDisp
+    vertex->Print(FUNC_NAME + " Vertex candidate for merging tracks");
+#endif
+
+    Int_t trackid1 = 0;
+    Int_t trackid2 = 0;
+    OrderTrackIdsByHitCount(vertex, TrackCont, trackid1, trackid2);
+    T* track1 = TrackCont[trackid1];
+    T* track2 = TrackCont[trackid2];
+    T* merged_track = BuildMergedTrack(track1, track2, true);
+
+    if (!merged_track->TestMergedTrack()) {
+      candidates_VertexCont.push_back(vertex);
+      delete merged_track;
+      return;
+    }
+    // Register fragment ids before FitTrack; pop both on fit failure.
+    candidates.push_back(trackid1);
+    candidates.push_back(trackid2);
+
+#if DebugDisp
+    merged_track->Print(FUNC_NAME + " Before fitting the merged track");
+#endif
+
+    if (TryFitMergedTrack(merged_track, true, Exclusive, MinNumOfHits, ClCont, TrackCont, TrackContFailed)) {
+#if DebugDisp
+      merged_track->Print(FUNC_NAME + " After fitting the merged track");
+#endif
+      return;
+    }
+
+    candidates_VertexCont.push_back(vertex);
+    RestoreFragmentFlags(track1, track2);
+    candidates.pop_back();
+    candidates.pop_back();
+  }
+
+  //_____________________________________________________________________________
+  // Pass B: clusters_fortest FitTrack (no TestMergedTrack); drop if lost hits > 3.
+  template <typename T>
+  void
+  TryPassVertexRetryOne(
+    TPCVertex* vertex,
+    std::vector<T*>& TrackCont,
+    std::vector<T*>& TrackContFailed,
+    std::vector<Int_t>& candidates,
+    Bool_t Exclusive,
+    Int_t MinNumOfHits
+  )
+  {
+    Int_t trackid1 = vertex->GetTrackId(0);
+    Int_t trackid2 = vertex->GetTrackId(1);
+    if (CandidateIdsContain(candidates, trackid1) || CandidateIdsContain(candidates, trackid2)) return;
+
+#if DebugDisp
+    vertex->Print(FUNC_NAME + " Vertex candidate for merging tracks");
+#endif
+
+    OrderTrackIdsByHitCount(vertex, TrackCont, trackid1, trackid2);
+    T* track1 = TrackCont[trackid1];
+    T* track2 = TrackCont[trackid2];
+    T* merged_track = BuildMergedTrack(track1, track2, false);
+    const Int_t total_nhit = track1->GetNHit() + track2->GetNHit();
+    std::vector<TPCClusterContainer> clusters_fortest(NumOfLayersTPC);
+    for (Int_t hitid = 0; hitid < track2->GetNHit(); ++hitid) {
+      TPCHit* hit = track2->GetHitInOrder(hitid)->GetHit();
+      hit->SetHoughFlag(0);
+      const Int_t layer = hit->GetLayer();
+      clusters_fortest[layer].push_back(hit->GetParentCluster());
+    }
+
+    if (!TryFitMergedTrack(merged_track, true, Exclusive, MinNumOfHits, clusters_fortest,
+                           TrackCont, TrackContFailed)) {
+      RestoreFragmentFlags(track1, track2);
+      return;
+    }
+
+#if DebugDisp
+    std::cout << FUNC_NAME << " #of bad clusters : " << total_nhit - merged_track->GetNHit() << std::endl;
+#endif
+
+    if (total_nhit - merged_track->GetNHit() > 3) {
+      delete merged_track;
+      TrackCont.pop_back();
+      RestoreFragmentFlags(track1, track2);
+      return;
+    }
+
+    candidates.push_back(trackid1);
+    candidates.push_back(trackid2);
+  }
+
+  //_____________________________________________________________________________
+  // Pass C: opposite target-side pairs; AllowTargetCrossingMerge + chi2/NDF
+  // (no CheckIsAccidental).
+  template <typename T>
+  void
+  PassRestoreFragmentTargetSidePairs(
+    const std::vector<TPCClusterContainer>& ClCont,
+    std::vector<T*>& TrackCont,
+    std::vector<T*>& TrackContFailed,
+    std::vector<Int_t>& candidates,
+    Bool_t Exclusive,
+    Int_t MinNumOfHits
+  )
+  {
+    const auto& beam_extension_cuts = GetBeamFragmentExtensionCuts();
+    const Int_t n_original_tracks = TrackCont.size();
+    for (Int_t id1 = 0; id1 < n_original_tracks; ++id1) {
+      if (CandidateIdsContain(candidates, id1)) continue;
+      T* track1 = TrackCont[id1];
+      Int_t nup1 = 0;
+      Int_t ndown1 = 0;
+      for (Int_t ihit = 0; ihit < track1->GetNHit(); ++ihit) {
+        const TVector3 pos = track1->GetHitInOrder(ihit)->GetHit()->GetPosition();
+        if (pos.z() < tpc::Z_TARGET) ++nup1;
+        else ++ndown1;
+      }
+      if (nup1 == ndown1) continue;
+
+      for (Int_t id2 = id1 + 1; id2 < n_original_tracks; ++id2) {
+        if (CandidateIdsContain(candidates, id2)) continue;
+        T* track2 = TrackCont[id2];
+        Int_t nup2 = 0;
+        Int_t ndown2 = 0;
+        for (Int_t ihit = 0; ihit < track2->GetNHit(); ++ihit) {
+          const TVector3 pos = track2->GetHitInOrder(ihit)->GetHit()->GetPosition();
+          if (pos.z() < tpc::Z_TARGET) ++nup2;
+          else ++ndown2;
+        }
+        if (nup2 == ndown2 || (nup1 > ndown1) == (nup2 > ndown2)) continue;
+
+        T* parent = track1->GetNHit() >= track2->GetNHit() ? track1 : track2;
+        T* fragment = parent == track1 ? track2 : track1;
+        T* merged_track = new T(parent);
+        merged_track->SetAllowTargetCrossingMerge();
+        fragment->SetClustersHoughFlag(0);
+        for (Int_t ihit = 0; ihit < fragment->GetNHit(); ++ihit) {
+          TPCHit* hit = fragment->GetHitInOrder(ihit)->GetHit();
+          merged_track->AddTPCHit(new TPCLTrackHit(hit));
+        }
+        if (!merged_track->TestMergedTrack()) {
+          fragment->SetClustersHoughFlag(GoodForTracking);
+          delete merged_track;
+          continue;
+        }
+
+        const Int_t n_before = TrackCont.size();
+        tpc::FitTrack(merged_track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+        if (TrackCont.size() == n_before + 1) {
+          merged_track = TrackCont.back();
+          merged_track->Calculate();
+          if (Exclusive) {
+            merged_track->DoFitExclusive();
+            merged_track->CalculateExclusive();
+          }
+          if (merged_track->GetNHit() > parent->GetNHit() &&
+              merged_track->GetChiSquare() < beam_extension_cuts.max_chi2_ndf) {
+            candidates.push_back(id1);
+            candidates.push_back(id2);
+            break;
+          }
+          TrackCont.pop_back();
+          delete merged_track;
+        }
+        parent->SetClustersHoughFlag(GoodForTracking);
+        fragment->SetClustersHoughFlag(GoodForTracking);
+      }
+    }
+  }
+
+  //_____________________________________________________________________________
+  // Descending erase of merged fragment ids, then VertexSearch refresh.
+  template <typename T>
+  void
+  EraseCandidatesAndRefreshVertices(
+    std::vector<T*>& TrackCont,
+    std::vector<TPCVertex*>& VertexCont,
+    const std::vector<Int_t>& candidates
+  )
+  {
+    if (candidates.empty()) return;
+
+    std::vector<Int_t> sorted_ids = candidates;
+    std::sort(sorted_ids.begin(), sorted_ids.end(), std::greater<Int_t>());
+    for (Int_t track_id : sorted_ids) {
+      T* prevtrack = TrackCont[track_id];
+      TrackCont.erase(TrackCont.begin() + track_id);
+      delete prevtrack;
+    }
+
+    del::ClearContainer(VertexCont);
+    tpc::VertexSearch(TrackCont, VertexCont);
+  }
+
 } //namespace
 
 namespace tpc{
@@ -2201,281 +2552,32 @@ VertexSearch(std::vector<T*>& TrackCont,
 }
 
 //_____________________________________________________________________________
-template <typename T> void
-RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
-			std::vector<T*>& TrackCont,
-			std::vector<T*>& TrackContFailed,
-			std::vector<TPCVertex*>& VertexCont,
-			Bool_t Exclusive,
-			Int_t MinNumOfHits)
+// Merge split helix pieces: Pass A (vertex) → B (retry) → C (target-side) → erase.
+template <typename T>
+void
+RestoreFragmentedTracks(
+  const std::vector<TPCClusterContainer>& ClCont,
+  std::vector<T*>& TrackCont,
+  std::vector<T*>& TrackContFailed,
+  std::vector<TPCVertex*>& VertexCont,
+  Bool_t Exclusive,
+  Int_t MinNumOfHits
+)
 {
-
   std::vector<TPCVertex*> candidates_VertexCont;
   std::vector<Int_t> candidates;
-  for(auto& vertex: VertexCont){
-    //Threshold conditions of a distance and an angle between two tracks.
-    TVector3 vtx = vertex->GetVertex();
-    Int_t trackid1 = vertex->GetTrackId(0);
-    Int_t trackid2 = vertex->GetTrackId(1);
-    if(TrackCont[trackid1]->GetIsK18()==1 ||
-       TrackCont[trackid2]->GetIsK18()==1) continue;
 
-    Bool_t isbeam1 = true;
-    for(Int_t ihit=0; ihit<TrackCont[trackid1]->GetNHit(); ihit++){
-      TPCHit *hit  = TrackCont[trackid1]->GetHitInOrder(ihit)->GetHit();
-      TVector3 pos = hit->GetPosition();
-      if(!TrackCont[trackid1]->IsBeamLikeHit(pos)){
-        isbeam1 = false;
-        break;
-      }
-    }
-    Bool_t isbeam2 = true;
-    for(Int_t ihit=0; ihit<TrackCont[trackid2]->GetNHit(); ihit++){
-      TPCHit *hit  = TrackCont[trackid2]->GetHitInOrder(ihit)->GetHit();
-      TVector3 pos = hit->GetPosition();
-      if(!TrackCont[trackid2]->IsBeamLikeHit(pos)){
-        isbeam2 = false;
-        break;
-      }
-    }
-    // A beam split at the target has two beam-like pieces.  It used to be
-    // vetoed here unconditionally, so Geant4 beam events could never be
-    // restored.  Keep mixed beam/non-beam pairs vetoed, but let a pair of
-    // beam-like pieces proceed through the usual merged-fit validation.
-    const Bool_t both_beamlike = isbeam1 && isbeam2;
-    if(isbeam1 != isbeam2) continue;
-
-
-    //case1. accidental beam crossing the target is splitted into two tracks
-    //case2. merging fragmentations of commom track. for case2. closest point of two parts are not in the track
-
-    // two parts are close.
-    // Exclude mid-angle pairs (0.1*pi < opening angle < 0.9*pi):
-    // these are unlikely to be fragmented pieces of one track.
-    const Double_t angle_window = 0.4*TMath::Pi();
-    if(vertex->GetClosestDist() > FragmentMergeClosestDistMax ||
-       TMath::Abs(vertex->GetOpeningAngle() - 0.5*TMath::Pi()) < angle_window) continue;
-
-    // closest point is not in the target.
-    // without this, two scattered tracks with opposite direction frequently wrongly merged.
-    if(!both_beamlike &&
-       TMath::Hypot(vtx.x(), vtx.z() - tpc::Z_TARGET) < tpc::TARGET_RADIUS &&
-       TMath::Abs(vtx.y()) < tpc::TARGET_HALF_Y) continue;
-
-#if DebugDisp
-    vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
-    //vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks", true);
-#endif
-
-    //Avoid duplication
-    if(std::find(candidates.begin(), candidates.end(), trackid1) != candidates.end()) continue;
-    if(std::find(candidates.begin(), candidates.end(), trackid2) != candidates.end()) continue;
-
-    //Longer track(track1) is a reference.
-    //Add two tracks.
-    Bool_t order = TrackCont[trackid1]->GetNHit() >= TrackCont[trackid2]->GetNHit() ?  true : false;
-    if(!order){
-      trackid1 = vertex->GetTrackId(1);
-      trackid2 = vertex->GetTrackId(0);
-    }
-
-    T *track1 = TrackCont[trackid1];
-    T *track2 = TrackCont[trackid2];
-    T *MergedTrack = new T(track1);
-    for(Int_t ihit=0; ihit<track2->GetNHit(); ++ihit)
-      MergedTrack->AddTPCHit(new TPCLTrackHit(track2->GetHitInOrder(ihit)->GetHit()));
-
-    //Check whether tracks belong to the same track or not
-    if(!MergedTrack->TestMergedTrack()){
-      candidates_VertexCont.push_back(vertex);
-      delete MergedTrack;
-      continue;
-    }
-    candidates.push_back(trackid1);
-    candidates.push_back(trackid2);
-
-#if DebugDisp
-    MergedTrack->Print(FUNC_NAME+" Before fitting the merged track");
-    //MergedTrack->Print(FUNC_NAME+" Before fitting the merged track", true);
-#endif
-
-    Int_t prev_size = TrackCont.size();
-    FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-
-    Int_t post_size = TrackCont.size();
-    if(prev_size+1 == post_size){ // A merged-track fit succeeded and one new track was added.
-      MergedTrack = TrackCont[post_size-1];
-      MergedTrack->Calculate();
-      if(Exclusive){
-        MergedTrack->DoFitExclusive();
-        MergedTrack->CalculateExclusive();
-      }
-      MergedTrack->CheckIsAccidental();
-
-#if DebugDisp
-      MergedTrack->Print(FUNC_NAME+" After fitting the merged track");
-      //MergedTrack->Print(FUNC_NAME+" After fitting the merged track", true);
-#endif
-    }
-    else{ // A merged-track fit failed (or no new track was added); keep this vertex as a retry candidate.
-      candidates_VertexCont.push_back(vertex);
-      TrackCont[trackid1]->SetClustersHoughFlag(GoodForTracking);
-      TrackCont[trackid2]->SetClustersHoughFlag(GoodForTracking);
-      candidates.pop_back();
-      candidates.pop_back();
-    }
-  } // end of for(auto& vertex: VertexCont)
-
-  //(Iterative process) For candidates with fitting failed, trying another way for fitting.
-  for(auto& vertex: candidates_VertexCont){
-    TVector3 vtx = vertex->GetVertex();
-    Int_t trackid1 = vertex->GetTrackId(0);
-    Int_t trackid2 = vertex->GetTrackId(1);
-
-#if DebugDisp
-    vertex->Print(FUNC_NAME+" Vertex candidate for merging tracks");
-    //vertex->Print(FUNC_NAME+" Vertex candidate for merging tracks", true);
-#endif
-
-    //Avoid duplication
-    if(std::find(candidates.begin(), candidates.end(), trackid1) != candidates.end()) continue;
-    if(std::find(candidates.begin(), candidates.end(), trackid2) != candidates.end()) continue;
-
-    //Longer track(track1) is a reference.
-    //Add two tracks.
-    Bool_t order = TrackCont[trackid1]->GetNHit() >= TrackCont[trackid2]->GetNHit() ?  true : false;
-    if(!order){
-      trackid1 = vertex->GetTrackId(1);
-      trackid2 = vertex->GetTrackId(0);
-    }
-
-    T *track1 = TrackCont[trackid1];
-    T *track2 = TrackCont[trackid2];
-    T *MergedTrack = new T(track1);
-    Int_t total_nhit = track1->GetNHit() + track2->GetNHit();
-    std::vector<TPCClusterContainer> clusters_fortest(NumOfLayersTPC);
-    for(Int_t hitid=0; hitid<track2->GetNHit(); hitid++){
-      TPCHit *hit = track2->GetHitInOrder(hitid)->GetHit();
-      hit->SetHoughFlag(0);
-      Int_t layer = hit->GetLayer();
-      clusters_fortest[layer].push_back(hit->GetParentCluster());
-    }
-
-    Int_t prev_size = TrackCont.size();
-    FitTrack(MergedTrack, GoodForTracking, clusters_fortest, TrackCont, TrackContFailed, MinNumOfHits);
-
-    Int_t post_size = TrackCont.size();
-    if(prev_size+1 == post_size){ // A merged-track fit succeeded and one new track was added.
-      MergedTrack = TrackCont[post_size-1];
-
-#if DebugDisp
-      std::cout<<FUNC_NAME+" #of bad clusters : "<<total_nhit - MergedTrack -> GetNHit()<<std::endl;
-#endif
-
-      if(total_nhit - MergedTrack->GetNHit() > 3){ // might be able to optimize the threshold
-        delete MergedTrack;
-        TrackCont.pop_back();
-        track1->SetClustersHoughFlag(GoodForTracking);
-        track2->SetClustersHoughFlag(GoodForTracking);
-        continue;
-      }
-      else{
-        MergedTrack->Calculate();
-        if(Exclusive){
-          MergedTrack->DoFitExclusive();
-          MergedTrack->CalculateExclusive();
-        }
-        MergedTrack->CheckIsAccidental();
-      }
-    }
-    else{ // A merged-track fit failed (or no new track was added); keep this vertex as a retry candidate.
-      track1->SetClustersHoughFlag(GoodForTracking);
-      track2->SetClustersHoughFlag(GoodForTracking);
-      continue;
-    }
-
-    candidates.push_back(trackid1);
-    candidates.push_back(trackid2);
-  } // end of for(auto& vertex: candidates_VertexCont)
-
-  // A track may be split on the two target sides without producing a vertex:
-  // the two independently fitted pieces are almost collinear, so a unique
-  // closest-approach vertex is ill-defined.  Do not require a beam tag or
-  // beam-corridor preselection here; the full merged helix fit and chi2/NDF
-  // are the discriminator, as in the E42-style fragmented-track test.
-  const auto& beam_extension_cuts = GetBeamFragmentExtensionCuts();
-  const Int_t n_original_tracks = TrackCont.size();
-  for(Int_t id1 = 0; id1 < n_original_tracks; ++id1){
-    if(std::find(candidates.begin(), candidates.end(), id1) != candidates.end()) continue;
-    T *track1 = TrackCont[id1];
-    Int_t nup1 = 0, ndown1 = 0;
-    for(Int_t ihit = 0; ihit < track1->GetNHit(); ++ihit){
-      const TVector3 pos = track1->GetHitInOrder(ihit)->GetHit()->GetPosition();
-      if(pos.z() < tpc::Z_TARGET) ++nup1; else ++ndown1;
-    }
-    if(nup1 == ndown1) continue;
-
-    for(Int_t id2 = id1 + 1; id2 < n_original_tracks; ++id2){
-      if(std::find(candidates.begin(), candidates.end(), id2) != candidates.end()) continue;
-      T *track2 = TrackCont[id2];
-      Int_t nup2 = 0, ndown2 = 0;
-      for(Int_t ihit = 0; ihit < track2->GetNHit(); ++ihit){
-        const TVector3 pos = track2->GetHitInOrder(ihit)->GetHit()->GetPosition();
-        if(pos.z() < tpc::Z_TARGET) ++nup2; else ++ndown2;
-      }
-      if(nup2 == ndown2 || (nup1 > ndown1) == (nup2 > ndown2)) continue;
-
-      // E42-style fragment test: combine all hits, then let the complete
-      // helix refit and chi2/NDF decide.  A pre-fit per-hit residual gate is
-      // too restrictive for two independently fitted target-side pieces.
-      T *parent = track1->GetNHit() >= track2->GetNHit() ? track1 : track2;
-      T *fragment = parent == track1 ? track2 : track1;
-      T *merged_track = new T(parent);
-      merged_track->SetAllowTargetCrossingMerge();
-      fragment->SetClustersHoughFlag(0);
-      for(Int_t ihit = 0; ihit < fragment->GetNHit(); ++ihit){
-        TPCHit *hit = fragment->GetHitInOrder(ihit)->GetHit();
-        merged_track->AddTPCHit(new TPCLTrackHit(hit));
-      }
-      if(!merged_track->TestMergedTrack()){
-        fragment->SetClustersHoughFlag(GoodForTracking);
-        delete merged_track;
-        continue;
-      }
-
-      const Int_t n_before = TrackCont.size();
-      FitTrack(merged_track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-      if(TrackCont.size() == n_before + 1){
-        merged_track = TrackCont.back();
-        merged_track->Calculate();
-        if(Exclusive){ merged_track->DoFitExclusive(); merged_track->CalculateExclusive(); }
-        if(merged_track->GetNHit() > parent->GetNHit() &&
-           merged_track->GetChiSquare() < beam_extension_cuts.max_chi2_ndf){
-          candidates.push_back(id1);
-          candidates.push_back(id2);
-          break;
-        }
-        TrackCont.pop_back();
-        delete merged_track;
-      }
-      parent->SetClustersHoughFlag(GoodForTracking);
-      fragment->SetClustersHoughFlag(GoodForTracking);
-    }
+  for (auto& vertex : VertexCont) {
+    TryPassVertexMergeOne(vertex, ClCont, TrackCont, TrackContFailed,
+                          candidates, candidates_VertexCont, Exclusive, MinNumOfHits);
   }
-
-  if(candidates.size()>0){
-    // Sort track indices in descending order so erasing does not shift remaining indices.
-    std::sort(candidates.begin(), candidates.end(), std::greater<Int_t>());
-    for(Int_t track_id : candidates){
-      T *prevtrack = TrackCont[track_id];
-      TrackCont.erase(TrackCont.begin() + track_id);
-      delete prevtrack;
-    }
-
-    //Vertex finding again with new tracks
-    del::ClearContainer(VertexCont);
-    VertexSearch(TrackCont, VertexCont);
+  for (auto& vertex : candidates_VertexCont) {
+    TryPassVertexRetryOne(vertex, TrackCont, TrackContFailed,
+                          candidates, Exclusive, MinNumOfHits);
   }
+  PassRestoreFragmentTargetSidePairs(ClCont, TrackCont, TrackContFailed,
+                                     candidates, Exclusive, MinNumOfHits);
+  EraseCandidatesAndRefreshVertices(TrackCont, VertexCont, candidates);
 }
 
 //_____________________________________________________________________________
