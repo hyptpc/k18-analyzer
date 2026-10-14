@@ -73,7 +73,7 @@ srcs	= $(wildcard $(src_dir)/*.cc)
 headers	= $(wildcard $(include_dir)/*.hh)
 usr_srcs	= $(wildcard $(usr_dir)/*.cc)
 ex_srcs	 	= $(wildcard $(ex_dir)/*.cc)
-dst_srcs	= $(wildcard $(dst_dir)/*.cc)
+dst_srcs	= $(wildcard $(dst_dir)/Dst*.cc)
 #
 deps	= $(srcs:$(src_dir)/%.cc=$(src_build_dir)/%.d)
 usr_deps	= $(usr_srcs:$(usr_dir)/%.cc=$(usr_build_dir)/%.d)
