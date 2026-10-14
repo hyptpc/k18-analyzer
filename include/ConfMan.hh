@@ -53,6 +53,12 @@ public:
   Bool_t  InitializeParameterFiles();
   Bool_t  InitializeUnpacker();
   Bool_t  IsReady() const { return m_is_ready; }
+  const TString& GetFile(const TString& key) const
+  {
+    const auto itr = m_file.find(key);
+    static const TString empty;
+    return itr == m_file.end() ? empty : itr->second;
+  }
   void    WriteParameters();
   // templates
   template <typename T>

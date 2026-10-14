@@ -1456,42 +1456,32 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 
-  const Double_t mpi = 1000.0 * pdg::PionMass();   // [MeV/c^2]
-  const Double_t mp  = 1000.0 * pdg::ProtonMass(); // [MeV/c^2]
   if(HypTPCdEdxElectron(dedx, poq)) return 0; //electron
 
-  // 1 sigma of <dE/dx>_pi
+  const Double_t mpi = 1000.0 * pdg::PionMass();   // [MeV/c^2]
+  const Double_t mp  = 1000.0 * pdg::ProtonMass(); // [MeV/c^2]
   Double_t par_pi[2] = {conversion_factor, mpi};
-  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi);
   Double_t sigma_pi = CalcTPCdEdxSigma(sigma_dedx_pi, poq);
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
   Double_t window_pi[2] = {-3., 3.}; //E42, E72
-  
-  // 1 sigma of <dE/dx>_p
+
   Double_t par_p[2] = {conversion_factor, mp};
-  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  Double_t dedx_p = HypTPCBethe(&poq, par_p);
   Double_t sigma_p = CalcTPCdEdxSigma(sigma_dedx_p, poq);
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
-  //Double_t window_p[2] = {-4., 6.}; //E42
-  Double_t window_p[2] = {-1.5, 6.}; //E72
+  Double_t window_p[2] = {-1.0, 6.}; // E72 lower bound; current PID uses only this bound
 
-  //p/pi separation power calculation
-  Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
-  Double_t dedx_diff = TMath::Abs(dedx_pi - dedx_p);
-  Double_t separation_power = dedx_diff/avg_sigma;
-  Double_t ppi_separation_cut = dedx_pi < dedx_p ? dedx_pi + 0.5*separation_power*sigma_pi : dedx_p + 0.5*separation_power*sigma_p;
+  // Keep the pion-proton separation estimate for diagnostics, but do not use
+  // it to choose between the pion and proton PID windows.
+  const Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
+  const Double_t dedx_diff = TMath::Abs(dedx_pi - dedx_p);
+  const Double_t separation_power = dedx_diff/avg_sigma;
+  (void)separation_power;
 
   Int_t pid[3] = {0};
-  //if(separation_power < 6.){ // low pi-p separation: use nsigma windows (E42)
-  if(separation_power < 3.){ // low pi-p separation: use nsigma windows (E72)
-    if(nsigma_pi > window_pi[0] && nsigma_pi < window_pi[1]) pid[0]=1;
-    if(nsigma_p > window_p[0]) pid[2]=1;
-  }
-  else{
-    //p pi separation
-    if(dedx > ppi_separation_cut) pid[2]=1;
-    else pid[0]=1;
-  }
+  if(nsigma_pi > window_pi[0] && nsigma_pi < window_pi[1]) pid[0]=1;
+  if(nsigma_p > window_p[0]) pid[2]=1;
 
   //for Kaon candidate selection
   Double_t nsigma_k = HypTPCdEdxNsigmaKaon(dedx, poq);
