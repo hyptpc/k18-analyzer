@@ -163,7 +163,17 @@ ConfMan::WriteParameters()
       TMacro paramfile;
       paramfile.SetName(itr.first);
       paramfile.SetTitle(itr.second);
-      paramfile.ReadFile(itr.second);
+      // Large files (e.g. the field map) cost GBs as a TMacro, one TObjString
+      // per line: store only their path and size.
+      static const Long64_t MaxParamFileSize = 10*1024*1024; // [byte]
+      FileStat_t stat;
+      if(gSystem->GetPathInfo(itr.second, stat) == 0 &&
+         stat.fSize > MaxParamFileSize){
+        paramfile.AddLine(Form("# not stored (%lld bytes): %s",
+                               stat.fSize, itr.second.Data()));
+      }else{
+        paramfile.ReadFile(itr.second);
+      }
       paramfile.Write();
     }
     gFile->cd();

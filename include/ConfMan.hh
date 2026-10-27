@@ -59,6 +59,12 @@ public:
     static const TString empty;
     return itr == m_file.end() ? empty : itr->second;
   }
+  // True if the key is written in the conf file. Get<T>() inserts missing
+  // keys with a default value, so check m_file which only the parser fills.
+  Bool_t  HasKey(const TString& key) const
+  {
+    return m_file.find(key) != m_file.end();
+  }
   void    WriteParameters();
   // templates
   template <typename T>
