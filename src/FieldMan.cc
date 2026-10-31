@@ -68,10 +68,19 @@ FieldMan::Initialize()
   std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
   if(!m_file_name_shs.IsNull()){
     std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
-    m_shs_map = new S2sFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
+    Double_t map_scale = 1.0;
+    TString scale_src = "default";
+    if( gConf.HasKey("SHSMAPSCALE") ){
+      map_scale = ConfMan::Get<Double_t>("SHSMAPSCALE");
+      scale_src = "conf";
+    }
+    // S2sFieldMap applies factor = measure/calc to map B.
+    m_shs_map = new S2sFieldMap(m_file_name_shs,
+                                valueHSHall * map_scale,
+                                valueHSCalc);
     if(!m_shs_map->Initialize())
       return false;
-    const Double_t factor = valueHSHall / valueHSCalc;
+    const Double_t factor = (valueHSHall * map_scale) / valueHSCalc;
     const Int_t w = 12;
     hddaq::cout << FUNC_NAME << " SHS map scale" << std::endl
                 << "  " << std::setw(w) << std::left << "file" << " = "
@@ -80,6 +89,8 @@ FieldMan::Initialize()
                 << valueHSHall << std::endl
                 << "  " << std::setw(w) << std::left << "valueHSCalc" << " = "
                 << valueHSCalc << std::endl
+                << "  " << std::setw(w) << std::left << "SHSMAPSCALE" << " = "
+                << map_scale << " (" << scale_src << ")" << std::endl
                 << "  " << std::setw(w) << std::left << "factor" << " = "
                 << factor << std::endl;
   }
