@@ -87,6 +87,11 @@ namespace
   static std::vector<Int_t> gLayer;
   static std::vector<Double_t> gPadTheta;
   static std::vector<std::vector<Double_t>> gResParam;
+
+  // StraightLineFit / fcn_line only: local Z and unwrapped theta vs fixed circle.
+  // Filled once at the start of StraightLineFit; not kept in sync elsewhere.
+  static std::vector<Double_t> gLineLocalZ;
+  static std::vector<Double_t> gLineTheta;
   static TVector3 gVertex;
   static TVector3 gVertexRes;
   static Double_t gPar[5] = {0};
@@ -537,50 +542,89 @@ static inline TVector3 ResidualVectXZ(Double_t par[5], TVector3 pos){ //Closest 
 }
 
 //______________________________________________________________________________
-static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos, Double_t padTheta, Double_t theta, std::vector<Double_t> resparam, Bool_t vetoBadClusters){
-
-  Double_t cos_pad    = TMath::Cos(padTheta);
-  Double_t sin_pad    = TMath::Sin(padTheta);
-  Double_t tan_pad    = TMath::Tan(padTheta);
-  Double_t pad_length = tpc::padParameter[layer][tpc::kLength];
-  Double_t pad_radius = tpc::padParameter[layer][tpc::kRadius];
-  TVector3 closest_dist_to_track_xz = ResidualVectXZ(par, TVector3(0., 0., tpc::Z_TARGET));
+// Resolution (+ layer/pull veto). Does not call ResidualVect; caller passes residual
+// when pull veto may run. Overload without residual is for vetoBadClusters==false.
+static inline TVector3
+CalcResolution(
+  Double_t par[5],
+  Int_t layer,
+  TVector3 pos,
+  Double_t padTheta,
+  const std::vector<Double_t>& resparam,
+  Bool_t vetoBadClusters,
+  const TVector3& residual
+)
+{
+  const Double_t cos_pad = TMath::Cos(padTheta);
+  const Double_t sin_pad = TMath::Sin(padTheta);
+  const Double_t tan_pad = TMath::Tan(padTheta);
+  const Double_t pad_length = tpc::padParameter[layer][tpc::kLength];
+  const Double_t pad_radius = tpc::padParameter[layer][tpc::kRadius];
+  const TVector3 closest_dist_to_track_xz
+    = ResidualVectXZ(par, TVector3(0., 0., tpc::Z_TARGET));
 
   // check whether the track is crossing the layer or not
   if (vetoBadClusters &&
       TMath::Abs(closest_dist_to_track_xz.Mag() - pad_radius) < 0.5 * pad_length)
     return TVector3(1.e+10, 1.e+10, 1.e+10);
 
-  //alpha : pad - track angle
-  TVector3 localpos = GlobalToLocal(pos);
-  Double_t tan_track = (localpos.y()-par[kHelixCy])/(localpos.x()-par[kHelixCx]);
-  Double_t tan_diff  = (tan_pad-tan_track)/(1.+tan_pad*tan_track);
-  Double_t alpha     = TMath::ATan(tan_diff);
+  // alpha : pad - track angle
+  const TVector3 localpos = GlobalToLocal(pos);
+  const Double_t tan_track
+    = (localpos.y() - par[kHelixCy]) / (localpos.x() - par[kHelixCx]);
+  const Double_t tan_diff = (tan_pad - tan_track) / (1. + tan_pad * tan_track);
+  const Double_t alpha = TMath::ATan(tan_diff);
 
-  //Calculate resolution
-  //horizontal resolution
-  Double_t param_horizontal[6] = {resparam[0], resparam[1], resparam[2], resparam[3], resparam[4], resparam[5]};
+  // horizontal resolution
+  Double_t param_horizontal[6] = {
+    resparam[0], resparam[1], resparam[2], resparam[3], resparam[4], resparam[5]
+  };
   f_horizontal->SetParameters(param_horizontal);
-  Double_t res_horizontal = f_horizontal->Eval(alpha, pos.y());
+  const Double_t res_horizontal = f_horizontal->Eval(alpha, pos.y());
 
-  //vertical resolution
+  // vertical resolution
   Double_t param_y[4] = {resparam[6], resparam[1], resparam[7], resparam[8]};
   f_drift->SetParameters(param_y);
-  Double_t res_drift = f_drift->Eval(pos.y());
+  const Double_t res_drift = f_drift->Eval(pos.y());
 
-  TVector3 res(res_horizontal*TMath::Abs(cos_pad), res_drift, res_horizontal*TMath::Abs(sin_pad));
+  const TVector3 resolution(
+    res_horizontal * TMath::Abs(cos_pad),
+    res_drift,
+    res_horizontal * TMath::Abs(sin_pad)
+  );
 
-  //Residual/resolution < window
-  if(vetoBadClusters){
-    TVector3 resi = ResidualVect(par, pos, theta);
-    Double_t residual_vertical   = resi.y();
-    Double_t residual_horizontal = TMath::Hypot(resi.x(), resi.z());
-    Double_t pull_t = residual_horizontal / res_horizontal;
-    Double_t pull_y = residual_vertical / res_drift;
-    if (TMath::Hypot(pull_t, pull_y) > PullWindow) return TVector3(2.e+10, 2.e+10, 2.e+10);
+  if (vetoBadClusters) {
+    const Double_t residual_horizontal = TMath::Hypot(residual.x(), residual.z());
+    const Double_t pull_t = residual_horizontal / res_horizontal;
+    const Double_t pull_y = residual.y() / res_drift;
+    if (TMath::Hypot(pull_t, pull_y) > PullWindow)
+      return TVector3(2.e+10, 2.e+10, 2.e+10);
   }
 
-  return res;
+  return resolution;
+}
+
+//______________________________________________________________________________
+static inline TVector3
+CalcResolution(
+  Double_t par[5],
+  Int_t layer,
+  TVector3 pos,
+  Double_t padTheta,
+  const std::vector<Double_t>& resparam,
+  Bool_t vetoBadClusters
+)
+{
+  // No residual: pull veto must not run. Callers with veto need the residual overload.
+  if (vetoBadClusters) {
+    hddaq::cerr << "#E CalcResolution: residual required when "
+                << "vetoBadClusters==true" << std::endl;
+    return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
+  }
+  const TVector3 unused(0., 0., 0.);
+  return CalcResolution(
+    par, layer, pos, padTheta, resparam, false, unused
+  );
 }
 
 //______________________________________________________________________________
@@ -589,8 +633,8 @@ static inline void fcn_helix(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
 
   Double_t chisqr=0.; Int_t dof = 0;
   for(Int_t i=0; i<gNumOfHits; ++i){
-    TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     if (tpc::IsDummyResolutionVec(gRes[i])) continue; // exclude dummy hits in calculation
+    TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     chisqr += TMath::Sq( TMath::Hypot(d.x(), d.z()) / TMath::Hypot(gRes[i].x(), gRes[i].z()) );
     dof++;
     chisqr += TMath::Sq( d.y() / gRes[i].y() );
@@ -606,8 +650,8 @@ static inline void fcn_helixwVertex(Int_t &npar, Double_t *gin, Double_t &f, Dou
 
   Double_t chisqr=0.; Int_t dof = 0;
   for(Int_t i=0; i<gNumOfHits; ++i){
-    TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     if (tpc::IsDummyResolutionVec(gRes[i])) continue; // exclude dummy hits in calculation
+    TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     chisqr += TMath::Sq( TMath::Hypot(d.x(), d.z()) / TMath::Hypot(gRes[i].x(), gRes[i].z()) );
     dof++;
     chisqr += TMath::Sq( d.y() / gRes[i].y() );
@@ -623,31 +667,50 @@ static inline void fcn_helixwVertex(Int_t &npar, Double_t *gin, Double_t &f, Dou
   f = chisqr/(Double_t)(dof - 5);
 }
 
-//______________________________________________________________________________
-static inline void fcn_line(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
+//_____________________________________________________________________________
+static inline void
+PrepareLineFitCache()
+{
+  // Same GlobalToLocal / ATan2 / flipcheck as the former fcn_line body.
+  // Circle (cx, cy, r) and hit set are fixed during StraightLineFit MIGRAD.
+  gLineLocalZ.resize(gNumOfHits);
+  gLineTheta.resize(gNumOfHits);
+  Bool_t flipcheck = false;
+  Double_t prev_theta = 0.;
+  Double_t theta0 = 0.;
+  for (Int_t i = 0; i < gNumOfHits; ++i) {
+    TVector3 pos = GlobalToLocal(gHitPos[i]);
+    Double_t tmp_theta = TMath::ATan2(
+      pos.Y() - gPar[kHelixCy], pos.X() - gPar[kHelixCx]
+    );
+    if (i == 0) theta0 = tmp_theta;
+    if (TMath::Abs(prev_theta - tmp_theta) > TMath::Pi()) flipcheck = true;
+    if (flipcheck) {
+      if (theta0 > 0. && tmp_theta < 0.) tmp_theta += 2.*TMath::Pi();
+      if (theta0 < 0. && tmp_theta > 0.) tmp_theta -= 2.*TMath::Pi();
+    }
+    prev_theta = tmp_theta;
+    gLineLocalZ[i] = pos.Z();
+    gLineTheta[i] = tmp_theta;
+  }
+}
+
+//_____________________________________________________________________________
+static inline void
+fcn_line(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
 {
   // par[0]=z0, par[1]=dz (2-param line fit; not HelixParIndex)
+  // gLineLocalZ / gLineTheta filled by PrepareLineFitCache in StraightLineFit.
   Double_t chisqr = 0.;
   Int_t dof = 0;
 
-  Bool_t flipcheck = false;
-  Double_t prev_theta = 0.; Double_t theta0 = 0.;
-  for(Int_t i=0; i<gNumOfHits; ++i){
-    TVector3 pos = GlobalToLocal(gHitPos[i]);
-    //Check ATan2 function's theta flip (-pi ~ pi)
-    Double_t tmp_theta = TMath::ATan2(pos.Y() - gPar[kHelixCy], pos.X() - gPar[kHelixCx]);
-    if(i==0) theta0 = tmp_theta;
-    if(TMath::Abs(prev_theta - tmp_theta) > TMath::Pi()) flipcheck = true;
-    if(flipcheck){
-      if(theta0>0. && tmp_theta<0.) tmp_theta += 2.*TMath::Pi();
-      if(theta0<0. && tmp_theta>0.) tmp_theta -= 2.*TMath::Pi();
-    }
-    prev_theta = tmp_theta;
-    const Double_t diff_z = pos.Z() - (par[0] + par[1]*gPar[kHelixR]*tmp_theta);
+  for (Int_t i = 0; i < gNumOfHits; ++i) {
+    const Double_t diff_z
+      = gLineLocalZ[i] - (par[0] + par[1]*gPar[kHelixR]*gLineTheta[i]);
     chisqr += TMath::Sq(diff_z / gRes[i].y());
     dof++;
   }
-  if(gMomConstraint) dof += 1; //if there is a momentum constraint
+  if (gMomConstraint) dof += 1; //if there is a momentum constraint
   f = chisqr/(Double_t)(dof - 2);
 }
 
@@ -665,13 +728,19 @@ static inline Double_t CalcChi2(Double_t *HelixPar, Int_t &ndf, Bool_t vetoBadCl
     return TMath::QuietNaN();
 
   ndf = 0; Double_t chisqr = 0.;
-  for(Int_t i=0; i<gNumOfHits; ++i){
-    TVector3 d = ResidualVect(HelixPar, gHitPos[i], gHelixTheta[i]);
-    TVector3 res = CalcResolution(HelixPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
-    if (tpc::IsDummyResolutionVec(res)) continue; // exclude bad clusters
-    chisqr += TMath::Sq( TMath::Hypot(d.x(), d.z()) / TMath::Hypot(res.x(), res.z()) );
+  for (Int_t i = 0; i < gNumOfHits; ++i) {
+    const TVector3 residual   = ResidualVect(HelixPar, gHitPos[i], gHelixTheta[i]);
+    const TVector3 resolution = CalcResolution(
+      HelixPar, gLayer[i], gHitPos[i], gPadTheta[i],
+      gResParam[i], vetoBadClusters, residual
+    );
+    if (tpc::IsDummyResolutionVec(resolution)) continue; // exclude bad clusters
+    chisqr += TMath::Sq(
+      TMath::Hypot(residual.x(), residual.z())
+      / TMath::Hypot(resolution.x(), resolution.z())
+    );
     ndf++;
-    chisqr += TMath::Sq( d.y()/res.y() );
+    chisqr += TMath::Sq(residual.y() / resolution.y());
     ndf++;
   }
   if(gMomConstraint) ndf += 1; //if there is a momentum constraint
@@ -816,6 +885,8 @@ static inline Bool_t StraightLineFit()
                         "gResParam", gResParam.size()))
     return false;
 
+  PrepareLineFitCache();
+
   //pre t-y fit
   // par_li[2]: Minuit line fit (z0, dz) = helix par[kHelixZ0, kHelixDz]
   Double_t par_li[2] = {gPar[kHelixZ0], gPar[kHelixDz]};
@@ -881,9 +952,12 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
   Double_t err[5] = {-999., -999., -999., -999., -999.};
 
   gRes.clear();
-  for(Int_t i=0; i<gNumOfHits; i++){
-    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
-    gRes.push_back(res);
+  for (Int_t i = 0; i < gNumOfHits; i++) {
+    const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+    gRes.push_back(CalcResolution(
+      gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+      gResParam[i], vetoBadClusters, residual
+    ));
   }
 
   // NDF value becomes different. Initialize gChisqr and fit again.
@@ -1637,9 +1711,11 @@ TPCLocalTrackHelix::GetResolutionVect(TPCLTrackHit* hit, Bool_t vetoBadClusters)
   std::vector<Double_t> res_param = hit->GetResolutionParams();
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
 
-  //Convert resolution along the row direction into closets point's x, y, z resolutions
-  TVector3 res = CalcResolution(par, layer, pos, pad_theta, theta, res_param, vetoBadClusters);
-  return res;
+  // Convert resolution along the row direction into closest point's x, y, z resolutions
+  const TVector3 residual = ResidualVect(par, pos, theta);
+  return CalcResolution(
+    par, layer, pos, pad_theta, res_param, vetoBadClusters, residual
+  );
 }
 
 //_____________________________________________________________________________
@@ -2198,10 +2274,10 @@ TPCLocalTrackHelix::DoStraightLineFit(Double_t *par)
 
   Bool_t vetoBadClusters = false;
   gRes.clear();
-  for(Int_t i=0; i<gNumOfHits; i++){
-    Double_t dummy_theta = 0.;
-    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], dummy_theta, gResParam[i], vetoBadClusters);
-    gRes.push_back(res);
+  for (Int_t i = 0; i < gNumOfHits; i++) {
+    gRes.push_back(CalcResolution(
+      gPar, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters
+    ));
   }
 
 #if DebugDisp
@@ -2408,11 +2484,13 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = m_hit_array[i]->GetLocalHitPos();
-  TVector3 res  = CalcResolution(par, layer, position, pad_theta, gHelixTheta[i], res_param, false);
-  TVector3 resi = ResidualVect(par, position, gHelixTheta[i]); // Closest distance
-  residual = resi.Mag();
+  const TVector3 resolution = CalcResolution(par, layer, position, pad_theta, res_param, false);
 
-  //XZ residual < window
+  // residual (out) is the magnitude; residual_vec is the 3D closest-distance vector
+  const TVector3 residual_vec = ResidualVect(par, position, gHelixTheta[i]);
+  residual = residual_vec.Mag();
+
+  // XZ residual < window
   TVector3 residual_xz = ResidualVectXZ(par, position);
   if(m_is_multiloop){
     if(residual_xz.Mag() > ResidualWindowOutXZ) return false;
@@ -2423,13 +2501,15 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
   else if(layer < 10 && residual_xz.Mag() > ResidualWindowInXZ) return false;
   else if(layer >=10 && residual_xz.Mag() > ResidualWindowOutXZ) return false;
 
-  //Residual/resolution < window
-  Double_t residual_vertical = resi.y();
-  Double_t residual_horizontal = TMath::Hypot(resi.x(), resi.z());
-  Double_t resolution_vertical = res.y();
-  Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
-  if(TMath::Abs(residual_vertical) > resolution_vertical*ResidualWindowPullY) return false;
-  if(TMath::Abs(residual_horizontal) > resolution_horizontal*ResidualWindowPullXZ) return false;
+  // Residual/resolution < window
+  const Double_t residual_vertical = residual_vec.y();
+  const Double_t residual_horizontal = TMath::Hypot(residual_vec.x(), residual_vec.z());
+  const Double_t resolution_vertical = resolution.y();
+  const Double_t resolution_horizontal = TMath::Hypot(resolution.x(), resolution.z());
+  if (TMath::Abs(residual_vertical) > resolution_vertical*ResidualWindowPullY)
+    return false;
+  if (TMath::Abs(residual_horizontal) > resolution_horizontal*ResidualWindowPullXZ)
+    return false;
   return true;
 }
 
@@ -2446,8 +2526,7 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = hit->GetPosition();
-  Double_t dummy_theta = 0;
-  TVector3 res = CalcResolution(par, layer, position, padTheta, dummy_theta, resparam, false);
+  const TVector3 resolution = CalcResolution(par, layer, position, padTheta, resparam, false);
 
   // to do: it might be better to optimize for E72 target geometry
   Int_t upstream_tgt = -1;
@@ -2528,14 +2607,14 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
   else if(layer <  10 && residual_xz.Mag() > factor*ResidualWindowInXZ) return false;
   else if(layer >= 10 && residual_xz.Mag() > factor*ResidualWindowOutXZ) return false;
 
-  TVector3 resi = ResidualVect(par, position, theta_range[0], theta_range[1]);
-  residual = resi.Mag();
+  const TVector3 residual_vec = ResidualVect(par, position, theta_range[0], theta_range[1]);
+  residual = residual_vec.Mag();
 
-  //Residual/resolution < window
-  Double_t residual_vertical = resi.y();
-  Double_t residual_horizontal = TMath::Hypot(resi.x(), resi.z());
-  Double_t resolution_vertical = res.y();
-  Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
+  // Residual/resolution < window
+  const Double_t residual_vertical     = residual_vec.y();
+  const Double_t residual_horizontal   = TMath::Hypot(residual_vec.x(), residual_vec.z());
+  const Double_t resolution_vertical   = resolution.y();
+  const Double_t resolution_horizontal = TMath::Hypot(resolution.x(), resolution.z());
 
 #if 1
   if(nolimitation){
@@ -3364,9 +3443,7 @@ TPCLocalTrackHelix::TestMergedTrack()
     gPadTheta.push_back(padTheta);
     std::vector<Double_t> resparam = hitp->GetResolutionParams();
     gResParam.push_back(resparam);
-    Double_t dummy_theta = 0;
-    TVector3 res = CalcResolution(gPar, layer, pos, padTheta, dummy_theta, resparam, vetoBadClusters);
-    gRes.push_back(res);
+    gRes.push_back(CalcResolution(gPar, layer, pos, padTheta, resparam, vetoBadClusters));
   }
   CalcHelixTheta();
 
@@ -3677,9 +3754,12 @@ TPCLocalTrackHelix::TestInvertCharge()
 #endif
 
   gRes.clear();
-  for(Int_t i=0; i<n; ++i){
-    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
-    gRes.push_back(res);
+  for (Int_t i = 0; i < n; ++i) {
+    const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+    gRes.push_back(CalcResolution(
+      gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+      gResParam[i], vetoBadClusters, residual
+    ));
   }
 
   Bool_t status = false;
@@ -3689,11 +3769,18 @@ TPCLocalTrackHelix::TestInvertCharge()
     CalcHelixTheta();
 
     Double_t window = HelixThetaSearchWindow(gPar[kHelixR]);
-    for(Int_t i=0; i<gNumOfHits; ++i){
-      Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
+    for (Int_t i = 0; i < gNumOfHits; ++i) {
+      Double_t theta = EvalTheta(
+        gPar, gHitPos[i],
+        gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window
+      );
       m_hit_t[i] = theta;
       gHelixTheta[i] = theta;
-      gRes[i] = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
+      const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+      gRes[i] = CalcResolution(
+        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+        gResParam[i], vetoBadClusters, residual
+      );
     }
 
     Int_t ndf;
@@ -3721,11 +3808,18 @@ TPCLocalTrackHelix::TestInvertCharge()
       if(!HelixFitInvertCharge()) return false;
       else{
         Double_t window = HelixThetaSearchWindow(gPar[kHelixR]);
-        for(Int_t i=0; i<gNumOfHits; ++i){
-          Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
+        for (Int_t i = 0; i < gNumOfHits; ++i) {
+          Double_t theta = EvalTheta(
+            gPar, gHitPos[i],
+            gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window
+          );
           m_hit_t[i] = theta;
           gHelixTheta[i] = theta;
-          gRes[i] = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
+          const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+          gRes[i] = CalcResolution(
+            gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+            gResParam[i], vetoBadClusters, residual
+          );
         }
 
         Int_t ndf;
@@ -3752,7 +3846,13 @@ TPCLocalTrackHelix::TestInvertCharge()
 #if IterativeResolution
   vetoBadClusters = true;
 
-  for(Int_t i=0; i<gNumOfHits; ++i) gRes[i] = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
+  for (Int_t i = 0; i < gNumOfHits; ++i) {
+    const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+    gRes[i] = CalcResolution(
+      gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+      gResParam[i], vetoBadClusters, residual
+    );
+  }
 
   //Now excluding bad clusters and fitting again.
   HelixFitInvertCharge();
