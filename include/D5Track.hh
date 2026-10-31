@@ -9,6 +9,7 @@
 #include "D5TransMatrix.hh"
 
 class DCLocalTrack;
+class DCLTrackHit;
 
 namespace ROOT {
 namespace Minuit2 {
@@ -54,6 +55,9 @@ private:
 
   std::vector<Double_t> m_par;
 
+  // hit left out of the chi2 (exclusive refit); nullptr for the normal fit
+  const DCLTrackHit* m_excluded_hit;
+
 public:
   Bool_t   CalcMomentum();
   Bool_t   IsFitted() const { return m_is_fitted; }
@@ -89,11 +93,26 @@ public:
 
   Double_t   operator()(const Double_t* par);
 
+  // Exclusive refit: leave hit ihit of BLC1 (blc2=false) or BLC2 out, refit from the
+  // full-fit solution and return the residual of that hit and residual / Res.
+  // Returns false (nothing filled) when not fitted, ndf < 1, Minuit fails or not finite.
+  // The full-fit results are not changed.
+  Bool_t     CalcExclusiveResidual(Bool_t blc2, Int_t ihit,
+                                   Double_t& resi, Double_t& pull);
+
 private:
   static constexpr Int_t kNumFitPar = 5;
 
+  static constexpr UInt_t kMaxCallsFull = 1000000;
+  static constexpr UInt_t kMaxCallsExclusive = 10000;
+
   Int_t      CalcNDF() const;
-  void       SetupMinuitVariables(ROOT::Minuit2::Minuit2Minimizer& minimizer) const;
+  void       SetupMinuitVariables(ROOT::Minuit2::Minuit2Minimizer& minimizer,
+                                  const Double_t* start) const;
+  Bool_t     RunMinuit(const Double_t* start, UInt_t max_calls,
+                       std::vector<Double_t>& xs, Double_t& chi2, Int_t& status);
+  Double_t   PredictLocalPos(const Double_t* par, Bool_t blc2,
+                             const DCLTrackHit* hit) const;
   void       ReadFitParameters(const Double_t* xs);
   Double_t   CalcChi2(const Double_t* par);
 };

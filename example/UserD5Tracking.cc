@@ -34,6 +34,7 @@ namespace
 using hddaq::unpacker::GUnpacker;
 auto& gD5Mtx = D5TransMatrix::GetInstance();
 auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUser = UserParamMan::GetInstance();
 
 TTree* tree;
 
@@ -87,15 +88,21 @@ struct Event
 };
 Event event;
 
-constexpr Double_t MaxBlcChi2Ndf = 100.0;
+// BLC track quality cut on chi2/NDF (DCLocalTrack::GetChiSquare is already chi2/NDF);
+// UserParam D5MaxBlc1Chi2Ndf / D5MaxBlc2Chi2Ndf override the defaults
+constexpr Double_t kDefaultMaxBlc1Chi2Ndf = 50.0;
+constexpr Double_t kDefaultMaxBlc2Chi2Ndf = 20.0;
 
 Double_t
-BlcChi2Ndf(const DCLocalTrack* tr)
+UserParamOr(const TString& key, Double_t def)
 {
-  if (!tr) return std::numeric_limits<Double_t>::infinity();
-  const Int_t ndf = tr->GetNDF();
-  if (ndf <= 0) return std::numeric_limits<Double_t>::infinity();
-  return tr->GetChiSquare() / static_cast<Double_t>(ndf);
+  return gUser.Has(key) ? gUser.GetParameter(key) : def;
+}
+
+Bool_t
+IsGoodBlcTrack(const DCLocalTrack* tr, Double_t max_chi2_ndf)
+{
+  return tr && tr->GetNDF() > 0 && tr->GetChiSquare() < max_chi2_ndf;
 }
 
 void
@@ -218,7 +225,9 @@ ProcessNormal()
 
   dcAna.TrackSearchBcIn();
   dcAna.TrackSearchBcOut();
+  evAna.BcInTracking(dcAna);
   evAna.BcInTracking(dcAna, event.beam_flag);
+  evAna.BcOutTracking(dcAna);
   evAna.BcOutTracking(dcAna, event.beam_flag);
   HF1("Status", event.status++); // BLC track search
 
@@ -257,14 +266,16 @@ ProcessNormal()
     return true;
   }
 
+  const Double_t max_blc1 = UserParamOr("D5MaxBlc1Chi2Ndf", kDefaultMaxBlc1Chi2Ndf);
+  const Double_t max_blc2 = UserParamOr("D5MaxBlc2Chi2Ndf", kDefaultMaxBlc2Chi2Ndf);
   std::vector<Int_t> good_blc1;
   std::vector<Int_t> good_blc2;
   for (Int_t i=0; i<nt1; ++i) {
-    if (BlcChi2Ndf(dcAna.GetTrackBcIn(i)) < MaxBlcChi2Ndf)
+    if (IsGoodBlcTrack(dcAna.GetTrackBcIn(i), max_blc1))
       good_blc1.push_back(i);
   }
   for (Int_t j=0; j<nt2; ++j) {
-    if (BlcChi2Ndf(dcAna.GetTrackBcOut(j)) < MaxBlcChi2Ndf)
+    if (IsGoodBlcTrack(dcAna.GetTrackBcOut(j), max_blc2))
       good_blc2.push_back(j);
   }
 
@@ -309,7 +320,10 @@ ProcessNormal()
       const Int_t j = d5_pairs[k].second;
       D5Track d5tr(dcAna.GetTrackBcIn(i), dcAna.GetTrackBcOut(j));
       if (!d5tr.CalcMomentum()) continue;
-      evAna.D5WireResiduals(d5tr, event.d5_z_out);
+      // exclusive refit per hit (heavy); UserParam D5WireResiExclusive 0 turns it off
+      const Bool_t exclusive = !gUser.Has("D5WireResiExclusive")
+        || gUser.GetParameter("D5WireResiExclusive") != 0.0;
+      evAna.D5WireResiduals(d5tr, event.d5_z_out, event.beam_flag, exclusive);
     }
 
     HF1("Status", event.status++); // D5 fit loop done
