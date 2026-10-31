@@ -1355,11 +1355,12 @@ FitStep(T* Track,
 // FitTrack: Iteratively extend a seed Track by adding clusters and re-fitting.
 //
 // while(true){
+//   if(nstep > MaxFitSteps)                // safety stop (before copy)
+//     -> finalize(Track); break
+//
 //   ExtendedTrack = copy(Track)            // work on a copy; promote on success
 //
-//   if(nstep > MaxFitSteps)                // safety stop
-//     -> finalize(Track); break
-//   else if(nstep > 0 && !AddClusters)     // no good clusters left
+//   if(nstep > 0 && !AddClusters)          // no good clusters left
 //     -> try BadHough / BadTracking pools (last-chance);
 //        if still none -> finalize(Track); break
 //
@@ -1393,14 +1394,10 @@ FitTrack(T* Track, Int_t Houghflag,
 
   Int_t nstep = 0;
   while(true){
-    T *ExtendedTrack = new T(Track);
-    Int_t thr_ncl = 0; // hit-count check is deferred to IsGood() at the end.
-
     // nstep == 0 is the initial iteration: fit the seed track as-is.
     // MaxFitSteps check is harmless at nstep == 0 (always false),
     // and AddClusters is explicitly guarded by 'nstep > 0' below.
     if(nstep > MaxFitSteps){ //Tracking is over
-      delete ExtendedTrack;
       if(IsGood(Track, MinNumOfHits)){
 #if DebugDisp
         Track->Print(FUNC_NAME+" Tracking is over. track is good for tracking");
@@ -1420,7 +1417,11 @@ FitTrack(T* Track, Int_t Houghflag,
       }
       break;
     }
-    else if(nstep > 0 && !AddClusters(ExtendedTrack, ClCont)){
+
+    T *ExtendedTrack = new T(Track);
+    Int_t thr_ncl = 0; // hit-count check is deferred to IsGood() at the end.
+
+    if(nstep > 0 && !AddClusters(ExtendedTrack, ClCont)){
       // No more clusters for addding, then check for clusters of bad tracks.
       Bool_t add_badhough    = AddClusters(ExtendedTrack, ClCont, BadHoughTransform);
       Bool_t add_badtracking = AddClusters(ExtendedTrack, ClCont, BadForTracking);
