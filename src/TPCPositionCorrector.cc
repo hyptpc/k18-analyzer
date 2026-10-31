@@ -36,17 +36,38 @@ TPCPositionCorrector::Correct( const TVector3& pos, Int_t layer, Int_t row  ) co
 TVector3
 TPCPositionCorrector::GetCorrectionVector( const TVector3& pos, Int_t layer, Int_t row ) const
 {
+  // Clamp to endpoint nodes outside [y0, y_last] before any index math.
+  // Comparing real y avoids Int_t truncation that extrapolated in (y0-dy, y0).
+  const Double_t y = pos.Y();
+  const Double_t y_last = m_y0 + m_dy * static_cast<Double_t>(m_n_y - 1);
 
-  Int_t iy1 = Int_t((pos.Y() - m_y0 )/m_dy);
-  Int_t iy2;
+  Int_t iy1 = 0;
+  Int_t iy2 = 0;
+  Double_t wy1 = 1.;
+  Double_t wy2 = 0.;
 
-  Double_t wy1, wy2;
-  if(iy1<0) { iy1=iy2=0; wy1=1.; wy2=0.; }
-  else if(iy1>=m_n_y-1) { iy1=iy2=m_n_y-1; wy1=1.; wy2=0.; }
-  else { iy2=iy1+1; wy1=(m_y0+m_dy*iy2-pos.Y())/m_dy; wy2=1.-wy1; }
+  if( y <= m_y0 || m_n_y == 1 ){
+    iy1 = iy2 = 0;
+    wy1 = 1.;
+    wy2 = 0.;
+  } else if( y >= y_last ){
+    iy1 = iy2 = m_n_y - 1;
+    wy1 = 1.;
+    wy2 = 0.;
+  } else {
+    iy1 = static_cast<Int_t>((y - m_y0) / m_dy);
+    if( iy1 < 0 ){
+      iy1 = 0;
+    }
+    if( iy1 >= m_n_y - 1 ){
+      iy1 = m_n_y - 2;
+    }
+    iy2 = iy1 + 1;
+    wy1 = (m_y0 + m_dy * static_cast<Double_t>(iy2) - y) / m_dy;
+    wy2 = 1. - wy1;
+  }
 
-  TVector3 v = wy1*m_map[layer][row][iy1] + wy2*m_map[layer][row][iy2];
-  return v;
+  return wy1 * m_map[layer][row][iy1] + wy2 * m_map[layer][row][iy2];
 }
 
 //_____________________________________________________________________________
