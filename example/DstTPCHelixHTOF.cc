@@ -3,6 +3,7 @@
 // Combine DstTPCHelixTracking (tpc) + UserHodoscope (hodo) for HTOF TOF PID.
 // Reuses helix parameters from the input tree (no re-tracking).
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iomanip>
@@ -318,6 +319,50 @@ HasValidTofPidInputs(Double_t L_sec, Double_t t_sec, Double_t p_vtx)
       && TMath::Finite(p_vtx) && p_vtx > 0.;
 }
 
+// HTOF segments that share an edge on the octagon (seg 33 and seg 0 meet at the corner of
+// planes 7 and 0). Plane 0: 0 | 1 (above the beam window), 2 (below) | 3 (above), 4 (below) | 5;
+// 1-2 and 3-4 are separated by the window.
+Bool_t
+HtofSegAdjacent(Int_t a, Int_t b)
+{
+  if (a == b) return true;
+  if (a > b) std::swap(a, b);
+  if (a <= 5 && b <= 5) {
+    static const Int_t pairs[][2] = { {0, 1}, {0, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 5} };
+    for (const auto& q : pairs) if (a == q[0] && b == q[1]) return true;
+    return false;
+  }
+  if (a == 0 && b == NumOfSegHTOF - 1) return true;
+  return (b - a == 1);
+}
+
+// Cluster matched to the extrapolated segment: adjacent (or same) segment, cluster time in
+// [time0 + kHtofMatchTmin, time0 + kHtofMatchTmax]; among those, same segment first, then the
+// cluster closest in time to time0. -1 if none.
+const Double_t kHtofMatchTmin = -3.;  // [ns]
+const Double_t kHtofMatchTmax = 30.;  // [ns]
+Int_t
+MatchHtofClusterInTime(Int_t extrap_seg, const std::vector<Double_t>& cl_seg,
+                       const std::vector<Double_t>& cl_time, Double_t time0)
+{
+  Int_t best = -1;
+  Int_t best_d = 2;
+  Double_t best_dt = 1.e9;
+  for (std::size_t i = 0; i < cl_seg.size(); ++i) {
+    if (TMath::IsNaN(cl_seg[i]) || i >= cl_time.size()) continue;
+    const Double_t ctof = cl_time[i] - time0;
+    if (!TMath::Finite(ctof) || ctof < kHtofMatchTmin || ctof > kHtofMatchTmax) continue;
+    const Int_t s = TMath::Nint(cl_seg[i]);
+    if (!HtofSegAdjacent(extrap_seg, s)) continue;
+    const Int_t d = (s == extrap_seg) ? 0 : 1;
+    const Double_t dt = TMath::Abs(ctof);
+    if (d < best_d || (d == best_d && dt < best_dt)) {
+      best_d = d; best_dt = dt; best = static_cast<Int_t>(i);
+    }
+  }
+  return best;
+}
+
 // Vertex of secondary track `it` from the track-pair vertices of the helix DST.
 // close_dist[it][j] and (vx, vy, vz)[it][j] are the closest distance and vertex point of the
 // pair (it, j) (NaN if not calculated). Among the non-beam, non-accidental partners j, the pair
@@ -412,9 +457,9 @@ ProcessTrack(Int_t it, TPCAnalyzer& tpc_ana, TPCEventAnalyzer& event_ana)
     Double_t dist_vtx = 0.;
     if (!helix.ExtrapolateToPoint(vertex, pos_at_vtx, mom_at_vtx, len_vtx, dist_vtx))
       return;
-    event.p_vtx[it] = mom_at_vtx.Mag();
-    if (TMath::IsNaN(event.p_vtx[it]) || event.p_vtx[it] <= 0.)
-      event.p_vtx[it] = event.mom0[it];
+    // |p| is constant along the helix: take the helix DST value (mom0) rather than recomputing it
+    // from the radius with this job's HSFLDCALIB.
+    event.p_vtx[it] = event.mom0[it];
   }
 
   // ---- HTOF extrapolation ----
@@ -445,10 +490,11 @@ ProcessTrack(Int_t it, TPCAnalyzer& tpc_ana, TPCEventAnalyzer& event_ana)
     // Vertex tracks: only candidates beyond the vertex along the helix (L_sec > 0); a backward
     // candidate matched to another particle's cluster would otherwise win and lose the TOF.
     if (have_vtx && cand_len[ic] <= len_vtx) continue;
-    const Int_t icl = TPCAnalyzer::MatchHtofCluster(static_cast<Double_t>(cand_seg[ic]), cl_seg,
-                                                    cl_time, event.time0);
+    // no vertex: only candidates ahead of the track start (the assumed flight direction)
+    if (!have_vtx && cand_len[ic] <= 0.) continue;
+    const Int_t icl = MatchHtofClusterInTime(cand_seg[ic], cl_seg, cl_time, event.time0);
     if (icl < 0) continue;
-    const Double_t d = TMath::Abs(static_cast<Double_t>(cand_seg[ic]) - cl_seg[icl]);
+    const Double_t d = (TMath::Nint(cl_seg[icl]) == cand_seg[ic]) ? 0. : 1.;
     // same |Δseg| across candidates (planes): prefer the cluster closer in time to time0
     const Double_t dt = (TMath::Finite(cl_time[icl]) && TMath::Finite(event.time0))
                         ? TMath::Abs(cl_time[icl] - event.time0) : 1.e9;
