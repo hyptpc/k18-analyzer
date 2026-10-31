@@ -2,7 +2,11 @@
 
 #include "TPCPositionCorrector.hh"
 
+#include <cmath>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "FuncName.hh"
 #include "TPCPadHelper.hh"
@@ -86,8 +90,49 @@ TPCPositionCorrector::Initialize( void )
     return false;
   }
 
-  if( !( ifs >> m_n_y >> m_y0 >> m_dy ) ){
-    hddaq::cerr << FUNC_NAME << " invalid format" << std::endl;
+  // Line-oriented read. Skip blank lines and '#' comment lines
+  // (same convention as ConfMan / TPCParamMan: line[0] == '#').
+  auto skip_blank_or_comment = [](const std::string& line) -> Bool_t {
+    if( line.empty() || line[0] == '#' ){
+      return true;
+    }
+    std::istringstream blank_iss(line);
+    std::string tok;
+    return !(blank_iss >> tok);
+  };
+
+  hddaq::cout << " reading correction map " << std::flush;
+
+  constexpr Double_t k_y_tol = 1.0e-6;
+  Int_t line_no = 0;
+  std::string line;
+  Bool_t header_ok = false;
+  while( std::getline(ifs, line) ){
+    ++line_no;
+    if( skip_blank_or_comment(line) ){
+      continue;
+    }
+    std::istringstream iss(line);
+    if( !(iss >> m_n_y >> m_y0 >> m_dy) ){
+      hddaq::cerr << FUNC_NAME << " parse error in " << m_file_name
+                  << " at line " << line_no
+                  << " (expect n_y y0 dy): " << line << std::endl;
+      return false;
+    }
+    std::string extra;
+    if( iss >> extra ){
+      hddaq::cerr << FUNC_NAME << " parse error in " << m_file_name
+                  << " at line " << line_no
+                  << " (extra token '" << extra << "' in header): "
+                  << line << std::endl;
+      return false;
+    }
+    header_ok = true;
+    break;
+  }
+  if( !header_ok ){
+    hddaq::cerr << FUNC_NAME << " invalid format in " << m_file_name
+                << " (missing header n_y y0 dy)." << std::endl;
     return false;
   }
 
@@ -95,8 +140,12 @@ TPCPositionCorrector::Initialize( void )
     hddaq::cerr << FUNC_NAME << " n_y must be positive." << std::endl;
     return false;
   }
+  if( !(std::isfinite(m_y0) && std::isfinite(m_dy)) || m_dy <= 0. ){
+    hddaq::cerr << FUNC_NAME << " y0/dy must be finite and dy > 0." << std::endl;
+    return false;
+  }
 
-  for(Int_t l=0; l<NumOfLayersTPC; l++){
+  for( Int_t l = 0; l < NumOfLayersTPC; l++ ){
     Int_t nrow = tpc::padParameter[l][1];
     m_map[l].resize( nrow );
     for( auto& x : m_map[l] ){
@@ -104,23 +153,118 @@ TPCPositionCorrector::Initialize( void )
     }
   }
 
-  hddaq::cout << " reading correction map " << std::flush;
+  // Track which (layer,row,iy) cells were filled for a gap/dup warning.
+  std::vector<std::vector<std::vector<char>>> filled(NumOfLayersTPC);
+  for( Int_t l = 0; l < NumOfLayersTPC; l++ ){
+    Int_t nrow = tpc::padParameter[l][1];
+    filled[l].assign(nrow, std::vector<char>(m_n_y, 0));
+  }
 
-  Int_t line = 0;
-  Int_t layer, row;
-  Double_t y, vx, vz;
-  while( ifs.good() ){
-    if( line++%1000==0 ) hddaq::cout << "." << std::flush;
-    ifs >> layer >> row >> y >> vx >> vz;
-    Int_t iy = Int_t( ( y - m_y0 )/m_dy );
-    if( iy >= 0 && iy < m_n_y ){
-      m_map[layer][row][iy].SetX( vx );
-      m_map[layer][row][iy].SetY( 0. );
-      m_map[layer][row][iy].SetZ( vz );
+  Int_t n_data = 0;
+  Int_t n_dup = 0;
+  Int_t n_bad = 0;
+  Int_t n_filled = 0;
+  while( std::getline(ifs, line) ){
+    ++line_no;
+    if( skip_blank_or_comment(line) ){
+      continue;
+    }
+
+    std::istringstream iss(line);
+    Int_t layer = 0;
+    Int_t row = 0;
+    Double_t y = 0.;
+    Double_t vx = 0.;
+    Double_t vz = 0.;
+    if( !(iss >> layer >> row >> y >> vx >> vz) ){
+      hddaq::cerr << FUNC_NAME << " parse error in " << m_file_name
+                  << " at line " << line_no
+                  << " (expect layer row y vx vz): " << line << std::endl;
+      return false;
+    }
+    std::string extra;
+    if( iss >> extra ){
+      hddaq::cerr << FUNC_NAME << " parse error in " << m_file_name
+                  << " at line " << line_no
+                  << " (extra token '" << extra << "'): " << line << std::endl;
+      return false;
+    }
+
+    if( n_data++ % 1000 == 0 ) hddaq::cout << "." << std::flush;
+
+    if( layer < 0 || layer >= NumOfLayersTPC ){
+      ++n_bad;
+      continue;
+    }
+    const Int_t nrow = tpc::padParameter[layer][1];
+    if( row < 0 || row >= nrow ){
+      ++n_bad;
+      continue;
+    }
+    if( !(std::isfinite(y) && std::isfinite(vx) && std::isfinite(vz)) ){
+      ++n_bad;
+      continue;
+    }
+
+    const Double_t iy_f = (y - m_y0) / m_dy;
+    const Int_t iy = static_cast<Int_t>(std::lround(iy_f));
+    if( iy < 0 || iy >= m_n_y ){
+      ++n_bad;
+      continue;
+    }
+    const Double_t y_grid = m_y0 + m_dy * static_cast<Double_t>(iy);
+    if( std::fabs(y - y_grid) > k_y_tol * std::max(1., std::fabs(m_dy)) ){
+      ++n_bad;
+      continue;
+    }
+
+    if( filled[layer][row][iy] ){
+      ++n_dup;
+    }
+    filled[layer][row][iy] = 1;
+    m_map[layer][row][iy].SetX(vx);
+    m_map[layer][row][iy].SetY(0.);
+    m_map[layer][row][iy].SetZ(vz);
+    ++n_filled;
+  }
+
+  if( !ifs.eof() ){
+    hddaq::cerr << FUNC_NAME << " read error in " << m_file_name
+                << " near line " << line_no << std::endl;
+    return false;
+  }
+
+  if( n_filled == 0 ){
+    hddaq::cerr << FUNC_NAME << " no valid map cells in " << m_file_name
+                << " (empty body is not a zero map)." << std::endl;
+    return false;
+  }
+
+  Int_t n_miss = 0;
+  for( Int_t l = 0; l < NumOfLayersTPC; l++ ){
+    const Int_t nrow = tpc::padParameter[l][1];
+    for( Int_t r = 0; r < nrow; r++ ){
+      for( Int_t iy = 0; iy < m_n_y; iy++ ){
+        if( !filled[l][r][iy] ){
+          ++n_miss;
+        }
+      }
     }
   }
 
   hddaq::cout << " done" << std::endl;
+  if( n_bad > 0 ){
+    hddaq::cerr << FUNC_NAME << " skipped " << n_bad
+                << " invalid map rows (layer/row/y/NaN)." << std::endl;
+  }
+  if( n_dup > 0 ){
+    hddaq::cerr << FUNC_NAME << " warning: " << n_dup
+                << " duplicate (layer,row,y) cells overwritten." << std::endl;
+  }
+  if( n_miss > 0 ){
+    hddaq::cerr << FUNC_NAME << " warning: " << n_miss
+                << " missing (layer,row,y) cells left as zero." << std::endl;
+  }
 
   m_is_ready = true;
   return m_is_ready;
