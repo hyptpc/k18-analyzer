@@ -96,7 +96,7 @@ CheckEntries(const std::vector<TTree*>& TTreeCont)
 {
   const Int_t n = TTreeCont.size();
   Bool_t status = true;
-  std::vector<Int_t> entries(n, -1);
+  std::vector<Long64_t> entries(n, -1);
   for(Int_t i=0; i<n; ++i){
     if(!TTreeCont[i]) continue;
     entries[i] = TTreeCont[i]->GetEntries();
@@ -194,7 +194,7 @@ ResetRunNumberCheck()
 // Once per job: all runnums must match (size>=2).
 inline Bool_t
 EnsureRunNumbersMatch(const std::vector<UInt_t>& runnums,
-                      Int_t ievent = -1,
+                      Long64_t ievent = -1,
                       const std::vector<TString>& tree_names = {})
 {
   if (RunNumberCheckedFlag())
@@ -266,8 +266,8 @@ GetEntry(Long64_t ievent)
 //______________________________________________________________________________
 // Require matching event numbers across inputs (size>=2).
 inline Bool_t
-CheckEventNumbers(const std::vector<UInt_t>& evnums, 
-                  Int_t ievent = -1,
+CheckEventNumbers(const std::vector<UInt_t>& evnums,
+                  Long64_t ievent = -1,
                   const std::vector<TString>& tree_names = {})
 {
   if(evnums.size() < 2) return true;
