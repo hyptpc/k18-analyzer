@@ -46,6 +46,8 @@ class TransferMatrixMan
   bool IsReady( void ) const { return m_isready; }
   TString GetFileName() { return FileName; }
   double GetCentralMomentum() const { return CentralMomentum; } 
+  // Overrides the file value, e.g. with the run-by-run D5 central momentum.
+  void SetCentralMomentum(double p0) { CentralMomentum = p0; }
   const double* GetBLC1VIMatrix() const { return BLC1VIele; }
   const double* GetD5Matrix() const { return D5Matrix1st; }
   const double* GetD5Matrix2nd(const int &i) const { return (i<6) ? D5Matrix2nd[i] : 0 ; }

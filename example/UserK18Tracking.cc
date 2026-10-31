@@ -21,6 +21,7 @@
 #include "DCLTrackHit.hh"
 #include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
+#include "D5FieldMan.hh"
 #include "DCTdcCalibMan.hh"
 #include "DetectorID.hh"
 #include "EventAnalyzer.hh"
@@ -43,6 +44,7 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 // non-const ref: CalcBLC1toBLC2 is a non-const method
 auto& gTM = TransferMatrixMan::GetInstance();
+const auto& gD5 = D5FieldMan::GetInstance();
 
 using seg_t = std::vector<Double_t>;
 using tdc_t = std::vector<std::vector<Double_t>>;
@@ -56,7 +58,7 @@ const Int_t    kMatrixOrder = 2;
 // (BcIn frame origin), exit VO = BLC2a/b pair center (1300 mm upstream
 // of FF in the BcOut frame) [mm]
 const Double_t kZVI = 0.;
-const Double_t kZVO = -1300.;
+const Double_t kZVO = -1299.815;
 // max local tracks per side used in the combinatorial fit
 const Int_t    kMaxNTrack = 10;
 
@@ -271,10 +273,57 @@ DoK18Fit(const DCLocalTrack* blc1, const DCLocalTrack* blc2, K18Fit& fit)
 }
 
 //_____________________________________________________________________________
+// Central momentum from the run-by-run D5 field table (conf key "D5"), looked
+// up from the event-header run number whenever it changes. Without the table,
+// or for a run not in it, the TM file value is kept.
+// The beam charge for the HS RK propagation follows the D5 field sign
+// (-1 without the table, for a run not in it, or with D5 off).
+static Int_t gBeamCharge = -1;
+static constexpr Double_t MinD5Field = 0.01; // [T], below this D5 is off
+
+void
+UpdateCentralMomentum(UInt_t run)
+{
+  static Bool_t   s_first = true;
+  static UInt_t   s_run   = 0;
+  static Double_t s_tm_p0 = 0.;
+  if(!gD5.IsReady()) return;
+  if(s_first){
+    s_tm_p0 = gTM.GetCentralMomentum();
+    s_first = false;
+  }
+  else if(run == s_run){
+    return;
+  }
+  s_run = run;
+  Double_t field, rms;
+  if(!gD5.GetField(run, field, rms)){
+    gTM.SetCentralMomentum(s_tm_p0);
+    gBeamCharge = -1;
+    std::cerr << "#W UserK18Tracking run " << run << " not in the D5 table,"
+              << " keep TM central momentum " << s_tm_p0 << " GeV/c" << std::endl;
+    return;
+  }
+  const Double_t p0 = D5FieldMan::CentralMomentum(field);
+  gTM.SetCentralMomentum(p0);
+  gBeamCharge = (std::abs(field) < MinD5Field) ? -1 : (field > 0. ? 1 : -1);
+  std::cout << "#D UserK18Tracking run " << run << " : D5 = " << field
+            << " T -> central momentum " << p0 << " GeV/c, charge "
+            << gBeamCharge << std::endl;
+  if(std::abs(field) < MinD5Field)
+    std::cerr << "#W UserK18Tracking run " << run << " : D5 off,"
+              << " beam charge set to -1" << std::endl;
+  if(rms > D5FieldMan::kMaxRms)
+    std::cerr << "#W UserK18Tracking run " << run << " : D5 rms " << rms
+              << " T, D5 changed during the run" << std::endl;
+}
+
+//_____________________________________________________________________________
 Bool_t
 ProcessBegin()
 {
   event.run_number = gUnpacker.get_run_number();
+  UpdateCentralMomentum(event.run_number);
   event.event_number = gUnpacker.get_event_number();
   event.beam_flag = beam::kUnknown;
   event.trig_flag.clear();
@@ -414,6 +463,26 @@ ProcessNormal()
     event.ndfK18.push_back(fit.ndf);
     event.resK18BcIn.push_back(fit.res1);
     event.resK18BcOut.push_back(fit.res2);
+
+    // Residual diagnostics: local-track residuals and residuals from the
+    // combined K18 transfer-matrix fit, filled for each wire hit.
+    for(Int_t ihit=0, n=blc1->GetNHit(); ihit<n; ++ihit){
+      const auto* hit = blc1->GetHit(ihit);
+      const Int_t plane = hit->GetHit()->PlaneId();
+      root::HF1("K18_BcIn_LocalResidual", hit->GetResidual());
+      root::HF2("K18_BcIn_LocalResidual_vs_Plane", plane, hit->GetResidual());
+      root::HF1("K18_BcIn_FitResidual", fit.res1.at(ihit));
+      root::HF2("K18_BcIn_FitResidual_vs_Plane", plane, fit.res1.at(ihit));
+    }
+    for(Int_t ihit=0, n=blc2->GetNHit(); ihit<n; ++ihit){
+      const auto* hit = blc2->GetHit(ihit);
+      const Int_t plane = hit->GetHit()->PlaneId();
+      root::HF1("K18_BcOut_LocalResidual", hit->GetResidual());
+      root::HF2("K18_BcOut_LocalResidual_vs_Plane", plane, hit->GetResidual());
+      root::HF1("K18_BcOut_FitResidual", fit.res2.at(ihit));
+      root::HF2("K18_BcOut_FitResidual_vs_Plane", plane, fit.res2.at(ihit));
+    }
+
     event.xin.push_back(fit.par[0]);
     event.uin.push_back(fit.par[1]);
     event.yin.push_back(fit.par[2]);
@@ -441,10 +510,15 @@ ProcessNormal()
     event.px.push_back(pz*u);
     event.py.push_back(pz*v);
     event.pz.push_back(pz);
+    root::HF1("K18_Momentum", p);
+    root::HF1("K18_Delta", fit.par[4]);
 
     HSTrack hs(fit.vo[0], fit.vo[2], fit.vo[1], fit.vo[3], p);
+    hs.SetCharge(gBeamCharge);
     hs.Propagate();
     event.rkStatusHS.push_back(hs.IsPassed() ? 1 : 0);
+    // Preserve the standard HSTrack virtual planes for downstream K18/TPC
+    // reconstruction.
     event.xvpHS.push_back(hs.VPX());
     event.yvpHS.push_back(hs.VPY());
     event.zvpHS.push_back(hs.VPZ());
@@ -486,6 +560,26 @@ ConfMan::InitializeHistograms()
 {
   hist::BuildStatus();
   hist::BuildTriggerFlag();
+
+  // K18 wire residuals: local-track fit versus combined transfer-matrix fit.
+  root::HB1("K18_BcIn_LocalResidual;BcIn local residual [mm];Counts",
+            400, -5., 5.);
+  root::HB1("K18_BcOut_LocalResidual;BcOut local residual [mm];Counts",
+            400, -5., 5.);
+  root::HB1("K18_BcIn_FitResidual;BcIn K18-fit residual [mm];Counts",
+            400, -5., 5.);
+  root::HB1("K18_BcOut_FitResidual;BcOut K18-fit residual [mm];Counts",
+            400, -5., 5.);
+  root::HB2("K18_BcIn_LocalResidual_vs_Plane;plane;residual [mm]",
+            8, -0.5, 7.5, 400, -5., 5.);
+  root::HB2("K18_BcOut_LocalResidual_vs_Plane;plane;residual [mm]",
+            8, -0.5, 7.5, 400, -5., 5.);
+  root::HB2("K18_BcIn_FitResidual_vs_Plane;plane;residual [mm]",
+            8, -0.5, 7.5, 400, -5., 5.);
+  root::HB2("K18_BcOut_FitResidual_vs_Plane;plane;residual [mm]",
+            8, -0.5, 7.5, 400, -5., 5.);
+  root::HB1("K18_Momentum;Momentum [GeV/c];Counts", 734, 0., 1.101); // 1.5 MeV/c bins
+  root::HB1("K18_Delta;delta = (p-p0)/p0;Counts", 200, -0.2, 0.2);
 
   tree = new TTree("k18", "Data Summary Table of K18Tracking");
   tree->Branch("run_number", &event.run_number);
@@ -549,6 +643,7 @@ ConfMan::InitializeParameterFiles()
     (InitializeParameter<DCGeomMan>("DCGEO")) &&
     (InitializeParameter<FieldMan>("FLDMAP")) &&
     (InitializeParameter<TransferMatrixMan>("TM")) &&
+    (!HasKey("D5") || InitializeParameter<D5FieldMan>("D5")) &&
     (InitializeParameter<UserParamMan>("USER"));
 }
 
