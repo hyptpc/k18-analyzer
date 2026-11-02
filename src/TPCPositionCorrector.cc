@@ -258,12 +258,16 @@ TPCPositionCorrector::Initialize( void )
                 << " invalid map rows (layer/row/y/NaN)." << std::endl;
   }
   if( n_dup > 0 ){
-    hddaq::cerr << FUNC_NAME << " warning: " << n_dup
-                << " duplicate (layer,row,y) cells overwritten." << std::endl;
+    hddaq::cerr << FUNC_NAME << " error: " << n_dup
+                << " duplicate (layer,row,y) cells in " << m_file_name
+                << std::endl;
+    return false;
   }
   if( n_miss > 0 ){
     hddaq::cerr << FUNC_NAME << " warning: " << n_miss
-                << " missing (layer,row,y) cells left as zero." << std::endl;
+                << " missing (layer,row,y) cells in " << m_file_name
+                << "; refusing incomplete map." << std::endl;
+    return false;
   }
 
   m_is_ready = true;
