@@ -37,6 +37,9 @@ Bool_t DstOpen(std::vector<std::string> arg);
 Bool_t DstRead();
 Bool_t DstRead(Long64_t ievent);
 Bool_t DstRead(Long64_t ievent, DCAnalyzer *DCAna);
+// Int_t overloads kept so that older Dst*.cc copies (defining DstRead(Int_t)) still compile.
+Bool_t DstRead(Int_t ievent);
+Bool_t DstRead(Int_t ievent, DCAnalyzer *DCAna);
 Bool_t DstClose();
 
 //______________________________________________________________________________
