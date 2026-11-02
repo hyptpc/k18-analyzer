@@ -11,6 +11,7 @@
 
 #include <TFile.h>
 #include <TMacro.h>
+#include <TMD5.h>
 #include <TNamed.h>
 #include <TSystem.h>
 
@@ -150,6 +151,29 @@ ConfMan::FilePath(const TString& src) const
 }
 
 //_____________________________________________________________________________
+// Content fingerprint only; does not restore the file. Keep large maps by path.
+static TString
+FileMd5Hex(const TString& path)
+{
+  std::ifstream in(path.Data(), std::ios::binary);
+  if (!in) return "unavailable";
+
+  TMD5 md5;
+  constexpr std::size_t kBufSize = 1 << 20; // 1 MiB
+  std::vector<char> buf(kBufSize);
+  while (in) {
+    in.read(buf.data(), static_cast<std::streamsize>(buf.size()));
+    const auto n = in.gcount();
+    if (n > 0)
+      md5.Update(reinterpret_cast<const UChar_t*>(buf.data()),
+                 static_cast<UInt_t>(n));
+  }
+  if (in.bad()) return "unavailable";
+  md5.Final();
+  return md5.AsString();
+}
+
+//_____________________________________________________________________________
 void
 ConfMan::WriteParameters()
 {
@@ -164,13 +188,14 @@ ConfMan::WriteParameters()
       paramfile.SetName(itr.first);
       paramfile.SetTitle(itr.second);
       // Large files (e.g. the field map) cost GBs as a TMacro, one TObjString
-      // per line: store only their path and size.
+      // per line: store path, size, and md5 fingerprint (not the contents).
       static const Long64_t MaxParamFileSize = 10*1024*1024; // [byte]
       FileStat_t stat;
       if(gSystem->GetPathInfo(itr.second, stat) == 0 &&
          stat.fSize > MaxParamFileSize){
-        paramfile.AddLine(Form("# not stored (%lld bytes): %s",
-                               stat.fSize, itr.second.Data()));
+        const TString md5 = FileMd5Hex(itr.second);
+        paramfile.AddLine(Form("# not stored (%lld bytes, md5=%s): %s",
+                               stat.fSize, md5.Data(), itr.second.Data()));
       }else{
         paramfile.ReadFile(itr.second);
       }
