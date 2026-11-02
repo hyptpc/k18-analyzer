@@ -953,11 +953,18 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
 
   gRes.clear();
   for (Int_t i = 0; i < gNumOfHits; i++) {
-    const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
-    gRes.push_back(CalcResolution(
-      gPar, gLayer[i], gHitPos[i], gPadTheta[i],
-      gResParam[i], vetoBadClusters, residual
-    ));
+    if (vetoBadClusters) {
+      const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+      gRes.push_back(CalcResolution(
+        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+        gResParam[i], true, residual
+      ));
+    } else {
+      gRes.push_back(CalcResolution(
+        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+        gResParam[i], false
+      ));
+    }
   }
 
   // NDF value becomes different. Initialize gChisqr and fit again.
@@ -1711,11 +1718,15 @@ TPCLocalTrackHelix::GetResolutionVect(TPCLTrackHit* hit, Bool_t vetoBadClusters)
   std::vector<Double_t> res_param = hit->GetResolutionParams();
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
 
-  // Convert resolution along the row direction into closest point's x, y, z resolutions
-  const TVector3 residual = ResidualVect(par, pos, theta);
-  return CalcResolution(
-    par, layer, pos, pad_theta, res_param, vetoBadClusters, residual
-  );
+  // Convert resolution along the row direction into closest point's x, y, z resolutions.
+  // Residual (nearest-point search) is only needed for pull veto.
+  if (vetoBadClusters) {
+    const TVector3 residual = ResidualVect(par, pos, theta);
+    return CalcResolution(
+      par, layer, pos, pad_theta, res_param, true, residual
+    );
+  }
+  return CalcResolution(par, layer, pos, pad_theta, res_param, false);
 }
 
 //_____________________________________________________________________________
@@ -3755,11 +3766,18 @@ TPCLocalTrackHelix::TestInvertCharge()
 
   gRes.clear();
   for (Int_t i = 0; i < n; ++i) {
-    const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
-    gRes.push_back(CalcResolution(
-      gPar, gLayer[i], gHitPos[i], gPadTheta[i],
-      gResParam[i], vetoBadClusters, residual
-    ));
+    if (vetoBadClusters) {
+      const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+      gRes.push_back(CalcResolution(
+        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+        gResParam[i], true, residual
+      ));
+    } else {
+      gRes.push_back(CalcResolution(
+        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+        gResParam[i], false
+      ));
+    }
   }
 
   Bool_t status = false;
@@ -3776,11 +3794,18 @@ TPCLocalTrackHelix::TestInvertCharge()
       );
       m_hit_t[i] = theta;
       gHelixTheta[i] = theta;
-      const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
-      gRes[i] = CalcResolution(
-        gPar, gLayer[i], gHitPos[i], gPadTheta[i],
-        gResParam[i], vetoBadClusters, residual
-      );
+      if (vetoBadClusters) {
+        const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+        gRes[i] = CalcResolution(
+          gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+          gResParam[i], true, residual
+        );
+      } else {
+        gRes[i] = CalcResolution(
+          gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+          gResParam[i], false
+        );
+      }
     }
 
     Int_t ndf;
@@ -3815,11 +3840,18 @@ TPCLocalTrackHelix::TestInvertCharge()
           );
           m_hit_t[i] = theta;
           gHelixTheta[i] = theta;
-          const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
-          gRes[i] = CalcResolution(
-            gPar, gLayer[i], gHitPos[i], gPadTheta[i],
-            gResParam[i], vetoBadClusters, residual
-          );
+          if (vetoBadClusters) {
+            const TVector3 residual = ResidualVect(gPar, gHitPos[i], gHelixTheta[i]);
+            gRes[i] = CalcResolution(
+              gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+              gResParam[i], true, residual
+            );
+          } else {
+            gRes[i] = CalcResolution(
+              gPar, gLayer[i], gHitPos[i], gPadTheta[i],
+              gResParam[i], false
+            );
+          }
         }
 
         Int_t ndf;
