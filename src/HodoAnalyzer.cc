@@ -197,9 +197,10 @@ HodoAnalyzer::ReCalcHit(const TString& name, Bool_t applyRecursively)
 Bool_t
 HodoAnalyzer::ReCalcCluster(const TString& name, Bool_t applyRecursively)
 {
-  for(auto& cl: GetClusterContainer(name)){
-    cl->ReCalc(applyRecursively);
-  }
+  if (applyRecursively)
+    ReCalcHit(name);
+  for (auto& cl : GetClusterContainer(name))
+    cl->ReCalc(false);
   return true;
 }
 

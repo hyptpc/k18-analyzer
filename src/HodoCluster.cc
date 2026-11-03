@@ -191,6 +191,7 @@ HodoCluster::ReCalc(Bool_t applyRecursively)
       m_is_good = false;
       return false;
     }
+    m_hit_container[i]->JoinCluster(m_index[i]);
   }
   Calculate();
   return m_is_good;
