@@ -221,11 +221,9 @@ HodoHit::ReCalc(Bool_t /*applyRecursively*/)
 Double_t
 HodoHit::GetDeltaEHighGain(Int_t i, Int_t j) const
 {
-  try {
-    return m_de_high.at(i).at(j);
-  } catch (const std::out_of_range&) {
-    return TMath::QuietNaN();
-  }
+  if (i < 0 || i >= (Int_t)m_de_high.size()) return TMath::QuietNaN();
+  if (j < 0 || j >= (Int_t)m_de_high.at(i).size()) return TMath::QuietNaN();
+  return m_de_high.at(i).at(j);
 }
 
 //_____________________________________________________________________________
