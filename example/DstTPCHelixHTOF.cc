@@ -23,6 +23,7 @@
 #include "DetectorID.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
+#include "HodoParamMan.hh"
 #include "Kinematics.hh"
 #include "RootHelper.hh"
 #include "TPCAnalyzer.hh"
@@ -59,6 +60,55 @@ enum EVtxSrc : Int_t { kVtxNone = 0, kVtxPair = 1, kVtxBeamHelix = 2 };
 const std::vector<TString> kUserParamKeys = {};
 // BeamMom / BeamParticle: optional via Has(); resolved by
 // ResolveBeamCondition(run_num). BeamParticle codes: 0=Pion, 1=Kaon, 2=Proton.
+
+// BH2 time0_seg correction from HDPRM (AorT=1, UorD=10); not used by Hodo mainstream.
+constexpr Int_t kTime0SegCorrUorD = 10;
+constexpr Int_t kBh2PlId = 0; // BH2 HDPRM / BH2Hit PlaneId
+
+struct Time0SegCorr {
+  Bool_t   enabled = false;
+  Double_t corr[NumOfSegBH2] = {};
+};
+Time0SegCorr gT0c;
+
+//_____________________________________________________________________________
+Bool_t
+LoadTime0SegCorr(Time0SegCorr& t0c)
+{
+  t0c = Time0SegCorr{};
+  const auto& gHodo = HodoParamMan::GetInstance();
+  Int_t n_loaded = 0;
+  for (Int_t seg = 0; seg < NumOfSegBH2; ++seg) {
+    Double_t t = 0.;
+    if (gHodo.GetTime(DetIdBH2, kBh2PlId, seg, kTime0SegCorrUorD, 0., t)) {
+      t0c.corr[seg] = -t;
+      ++n_loaded;
+    }
+  }
+  if (n_loaded == 0)
+    return false;
+  t0c.enabled = true;
+  TString msg = Form("Time0SegCorr enabled (%d/%d segs):", n_loaded, NumOfSegBH2);
+  for (Int_t seg = 0; seg < NumOfSegBH2; ++seg)
+    msg += Form(" %.4f", t0c.corr[seg]);
+  spdlog::info("{}", msg.Data());
+  return true;
+}
+
+//_____________________________________________________________________________
+Double_t
+Time0SegCorrAt(const Time0SegCorr& t0c, Double_t time0_seg)
+{
+  if (!t0c.enabled || !TMath::Finite(time0_seg))
+    return 0.;
+  if (time0_seg < 0. || time0_seg > NumOfSegBH2 - 1)
+    return 0.;
+  const Int_t i0 = static_cast<Int_t>(TMath::Floor(time0_seg));
+  if (i0 >= NumOfSegBH2 - 1)
+    return t0c.corr[NumOfSegBH2 - 1];
+  const Double_t f = time0_seg - i0;
+  return (1. - f) * t0c.corr[i0] + f * t0c.corr[i0 + 1];
+}
 
 // BH2 segment position in the TPC frame (same frame as the TPC vertex / helix).
 // BH2 local (segment x) -> global (DCGEO "BH2") -> TPC frame (DCGEO "HypTPC").
@@ -111,6 +161,7 @@ struct Event
 
   Double_t time0;
   Double_t time0_seg;
+  Double_t time0_seg_corr;
 
   Int_t ntTpc;
   std::vector<Int_t> charge;
@@ -177,6 +228,7 @@ struct Event
     beamflag = beam::kUnknown;
     time0 = qnan;
     time0_seg = qnan;
+    time0_seg_corr = 0.;
     ntTpc = 0;
     dst::clear_all(trigpat, trigflag,
                    charge, is_beam, is_accidental, seg_match, tof_valid, vertex_source,
@@ -583,7 +635,8 @@ ProcessTrack(Int_t it, TPCAnalyzer& tpc_ana, TPCEventAnalyzer& event_ana)
     return;
   }
 
-  event.ctof_htof[it] = cl_time[best_cl] - time0;
+  const Double_t c = event.time0_seg_corr;
+  event.ctof_htof[it] = cl_time[best_cl] - time0 - c;
   event.L_sec[it] = cand_len[best_candi] - len_vtx;
 
   {
@@ -769,6 +822,7 @@ dst::DstRead(Long64_t ievent)
   event.beamflag  = **src.beamflag;
   event.time0     = **src.time0;
   event.time0_seg = **src.time0_seg;
+  event.time0_seg_corr = Time0SegCorrAt(gT0c, event.time0_seg);
   HF1("Status", event.status++);
 
   const Int_t nt = **src.ntTpc;
@@ -872,6 +926,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("beam_flag", &event.beamflag);
   tree->Branch("time0", &event.time0);
   tree->Branch("time0_seg", &event.time0_seg);
+  tree->Branch("time0_seg_corr", &event.time0_seg_corr);
   tree->Branch("ntTpc", &event.ntTpc);
   tree->Branch("charge", &event.charge);
   tree->Branch("is_beam", &event.is_beam);
@@ -930,9 +985,15 @@ ConfMan::InitializeHistograms()
 Bool_t
 ConfMan::InitializeParameterFiles()
 {
-  return
-    (InitializeParameter<DCGeomMan>("DCGEO") &&
-     InitializeParameter<UserParamMan>("USER"));
+  if (!(InitializeParameter<DCGeomMan>("DCGEO") &&
+        InitializeParameter<UserParamMan>("USER")))
+    return false;
+  if (HasKey("HDPRM")) {
+    if (!InitializeParameter<HodoParamMan>("HDPRM"))
+      return false;
+    LoadTime0SegCorr(gT0c);
+  }
+  return true;
 }
 
 //_____________________________________________________________________________
