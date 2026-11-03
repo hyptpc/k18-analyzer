@@ -99,10 +99,12 @@ CherenkovHit::Calculate()
   }
   // two-side readout
   else{
+    std::vector<Bool_t> used_d(leading.at(D).size(), false);
     for(Int_t ju=0; ju<(Int_t)leading.at(U).size(); ++ju){
       Double_t lu = leading.at(U).at(ju);
       Double_t clu = cleading.at(U).at(ju);
       for(Int_t jd=0; jd<(Int_t)leading.at(D).size(); ++jd){
+        if(used_d[jd]) continue;
         Double_t ld = leading.at(D).at(jd);
         if(TMath::Abs(lu - ld) < m_max_time_diff){
           Double_t cld = cleading.at(D).at(jd);
@@ -111,6 +113,7 @@ CherenkovHit::Calculate()
           m_ctime_leading.at(U).push_back(clu);
           m_ctime_leading.at(D).push_back(cld);
           m_is_clustered.push_back(false);
+          used_d[jd] = true;
           break;
         }
       }
