@@ -27,13 +27,14 @@ public:
   const std::vector<Double_t>& GetArrayNpe(Int_t ch) const;
   Double_t DeltaE(Int_t j=0) const override { return Npe(j); }  // Compatibility: returns Npe (semantics differ from HodoHit's dE)
   Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const override;  // Returns Npe; i=EChannel. KVC: i=2 -> kSUM(ch=4).
-  virtual Bool_t ReCalc(Bool_t applyRecursively=false) override { return Calculate(); }
+  Bool_t ReCalc(Bool_t applyRecursively=false) override;
 
 private:
   CherenkovHit(const CherenkovHit&);
   CherenkovHit& operator=(const CherenkovHit&);
 
 protected:
+  void ClearCalculated() override;
   // [ch][hit]. AdcHigh only (no m_npe_low; AdcLow unused as in Hodo)
   std::vector<std::vector<Double_t>> m_npe_high;
 };

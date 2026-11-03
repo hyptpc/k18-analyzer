@@ -7,8 +7,6 @@
 
 #include "HodoHit.hh"
 
-#include <std_ostream.hh>
-
 //_____________________________________________________________________________
 class FiberHit : public HodoHit
 {
@@ -58,9 +56,12 @@ public:
   // void     RegisterHits(FLHit* hit) { m_hit_container.push_back(hit); }
 
   virtual void   Print(Option_t* arg="") const;
-  virtual Bool_t ReCalc(Bool_t allpyRecursively=false){ return Calculate(); }
+  Bool_t ReCalc(Bool_t applyRecursively=false) override;
 
   static Bool_t Compare(const FiberHit* left, const FiberHit* right);
+
+protected:
+  void ClearCalculated() override;
 };
 
 //_____________________________________________________________________________

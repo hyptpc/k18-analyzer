@@ -152,7 +152,8 @@ HodoPHCParam::Type1RCorrection(Double_t time, Double_t de) const
 Double_t
 HodoPHCParam::Type1STCorrection(Double_t stof, Double_t btof) const
 {
-  if(m_param_list.size()<2) Exception(FUNC_NAME+" invalid parameter");
+  if (m_param_list.size() < 2)
+    throw Exception(FUNC_NAME + " invalid parameter");
 
   //Correction function to eliminate the correlation between stof and btof
   return stof-(m_param_list[0]*btof + m_param_list[1]);

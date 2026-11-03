@@ -46,6 +46,22 @@ BH2Hit::Calculate()
 }
 
 //_____________________________________________________________________________
+void
+BH2Hit::ClearCalculated()
+{
+  HodoHit::ClearCalculated();
+  m_time_offset = 0.;
+}
+
+//_____________________________________________________________________________
+Bool_t
+BH2Hit::ReCalc(Bool_t /*applyRecursively*/)
+{
+  ClearCalculated();
+  return Calculate();
+}
+
+//_____________________________________________________________________________
 Double_t
 BH2Hit::UTime0(Int_t i) const
 {

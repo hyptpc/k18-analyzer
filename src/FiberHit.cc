@@ -78,13 +78,30 @@ FiberHit::Calculate()
       gPHC.DoCorrection(id, plane, seg, ch, l, de, ctime);
       m_ctime_leading[ch].push_back(ctime);
       m_ctime_trailing[ch].push_back(ctime + tot); // no use
-      m_is_clustered.push_back(false);
     }
   }
+  // One flag per multi-hit (U leading count == GetEntries()).
+  m_is_clustered.assign(m_time_leading[HodoRawHit::kUp].size(), false);
   m_time_trailing = trailing;
   m_is_calculated = true;
 
   return true;
+}
+
+//_____________________________________________________________________________
+void
+FiberHit::ClearCalculated()
+{
+  HodoHit::ClearCalculated();
+  m_position = qnan;
+}
+
+//_____________________________________________________________________________
+Bool_t
+FiberHit::ReCalc(Bool_t /*applyRecursively*/)
+{
+  ClearCalculated();
+  return Calculate();
 }
 
 //_____________________________________________________________________________

@@ -22,7 +22,10 @@ public:
   Double_t UCTime0(Int_t i=0) const;
   Double_t DTime0(Int_t i=0) const;
   Double_t DCTime0(Int_t i=0) const;
-  virtual Bool_t ReCalc(Bool_t applyRecursively=false) { return Calculate(); }
+  Bool_t ReCalc(Bool_t applyRecursively=false) override;
+
+protected:
+  void ClearCalculated() override;
 };
 
 //_____________________________________________________________________________

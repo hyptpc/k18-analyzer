@@ -28,7 +28,7 @@
 #include "UnpackerManager.hh"
 
 #define DEBUG 0
-#define JPARC2025Nov 0 // 1: Old runs (Skip T2+), 0: 2026Apr (T2+)
+#define JPARC2025Nov 1 // 1: Old runs (Skip T2+), 0: 2026Apr (T2+)
 #define CVC_CM_DEBUG 0 // 1: fill cvc_cm_* branches for common-mode checks
 
 namespace
@@ -471,7 +471,7 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_time_u", n.Data()), &time_u[NameHodo[ihodo]]);
     if (f.two_side) {
       tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
-      if (f.has_sum || ihodo == kBH2)
+      if (f.has_sum)
         tree->Branch(Form("%s_time_s", n.Data()), &time_s[NameHodo[ihodo]]);
     }
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
@@ -502,7 +502,7 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
-#if !JPARC2026Apr
+#if JPARC2025Nov
     if (ihodo >= kT2) continue;
 #endif
     const auto f = GetHodoFlags(ihodo);

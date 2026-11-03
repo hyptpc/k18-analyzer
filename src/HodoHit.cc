@@ -179,9 +179,9 @@ HodoHit::Calculate()
     m_ctime_leading.at(E) = cleading.at(E);
   }
   
-  for(Int_t ch=0; ch<m_n_ch; ++ch){
+  for (Int_t ch = 0; ch < m_n_ch; ++ch) {
     m_time_trailing.at(ch) = trailing.at(ch);
-    m_ctime_trailing.at(ch) = trailing.at(ch);
+    m_ctime_trailing.at(ch) = ctrailing.at(ch);
   }
 
   /*
@@ -191,6 +191,41 @@ HodoHit::Calculate()
 
   m_is_calculated = true;
   return (m_ctime_leading.at(U).size() > 0);
+}
+
+//_____________________________________________________________________________
+void
+HodoHit::ClearCalculated()
+{
+  for (Int_t ch = 0; ch < m_n_ch; ++ch) {
+    m_de_high.at(ch).clear();
+    m_de_low.at(ch).clear();
+    m_time_leading.at(ch).clear();
+    m_ctime_leading.at(ch).clear();
+    m_time_trailing.at(ch).clear();
+    m_ctime_trailing.at(ch).clear();
+  }
+  m_is_clustered.clear();
+  m_is_calculated = false;
+}
+
+//_____________________________________________________________________________
+Bool_t
+HodoHit::ReCalc(Bool_t /*applyRecursively*/)
+{
+  ClearCalculated();
+  return Calculate();
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoHit::GetDeltaEHighGain(Int_t i, Int_t j) const
+{
+  try {
+    return m_de_high.at(i).at(j);
+  } catch (const std::out_of_range&) {
+    return TMath::QuietNaN();
+  }
 }
 
 //_____________________________________________________________________________

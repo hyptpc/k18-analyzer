@@ -139,6 +139,23 @@ CherenkovHit::Calculate()
 }
 
 //_____________________________________________________________________________
+void
+CherenkovHit::ClearCalculated()
+{
+  HodoHit::ClearCalculated();
+  for (auto& cont : m_npe_high)
+    cont.clear();
+}
+
+//_____________________________________________________________________________
+Bool_t
+CherenkovHit::ReCalc(Bool_t /*applyRecursively*/)
+{
+  ClearCalculated();
+  return Calculate();
+}
+
+//_____________________________________________________________________________
 // i=EChannel (kUp=0, kDown=1, kExtra=2). Returns Npe from m_npe_high.
 // KVC: i=kExtra -> kSUM(ch=4). BAC: i=kExtra -> Npe(j).
 Double_t

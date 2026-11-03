@@ -3,6 +3,7 @@
 #include "HodoCluster.hh"
 
 #include <algorithm>
+#include <cfloat>
 #include <iostream>
 
 #include <TMath.h>
@@ -67,7 +68,7 @@ HodoCluster::Calculate()
   m_time_diff = 0.;
   m_de        = 0.;
   m_1st_seg   = TMath::QuietNaN();
-  m_1st_time  = (DetectorName() == "BHT") ? DBL_MIN : DBL_MAX;
+  m_1st_time  = (DetectorName() == "BHT") ? -DBL_MAX : DBL_MAX;
   
   Double_t sum_w = 0.;
 
@@ -180,9 +181,15 @@ HodoCluster::Print(Option_t*) const
 Bool_t
 HodoCluster::ReCalc(Bool_t applyRecursively)
 {
-  if(applyRecursively){
-    for(auto& hit: m_hit_container){
+  // Pairing count can change if params change; rebuild clusters then.
+  if (applyRecursively) {
+    for (auto& hit : m_hit_container)
       hit->ReCalc(applyRecursively);
+  }
+  for (Int_t i = 0; i < m_cluster_size; ++i) {
+    if (m_index[i] < 0 || m_index[i] >= m_hit_container[i]->GetEntries()) {
+      m_is_good = false;
+      return false;
     }
   }
   Calculate();

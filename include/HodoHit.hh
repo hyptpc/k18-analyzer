@@ -73,18 +73,17 @@ public:
 
   Int_t GetEntries(Int_t i=0) const
     { return m_ctime_leading.at(i).size(); }
-  virtual Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
-    { return m_de_high.at(i).at(j); }
+  virtual Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const;
   Double_t GetDeltaELowGain(Int_t i, Int_t j=0) const
     { return m_de_low.at(i).at(j); }
   Double_t GetTimeLeading(Int_t i, Int_t j=0) const
     { return m_time_leading.at(i).at(j); }
   Double_t GetTimeTrailing(Int_t i, Int_t j=0) const
-    { return m_time_leading.at(i).at(j); }
+    { return m_time_trailing.at(i).at(j); }
   Double_t GetCTimeLeading(Int_t i, Int_t j=0) const
     { return m_ctime_leading.at(i).at(j); }
   Double_t GetCTimeTrailing(Int_t i, Int_t j=0) const
-    { return m_ctime_leading.at(i).at(j); }
+    { return m_ctime_trailing.at(i).at(j); }
 
   Double_t DeltaEHighGain(Int_t j=0) const;
   Double_t DeltaELowGain(Int_t j=0) const;
@@ -134,9 +133,12 @@ public:
   Bool_t IsClusteredAll();
 
   virtual void   Print(Option_t* arg="") const;
-  virtual Bool_t ReCalc(Bool_t applyRecursively=false){ return Calculate(); }
+  virtual Bool_t ReCalc(Bool_t applyRecursively=false);
 
   static  Bool_t Compare(const HodoHit* left, const HodoHit* right);
+
+protected:
+  virtual void ClearCalculated();
 };
 
 //_____________________________________________________________________________
