@@ -63,6 +63,10 @@ public:
   Double_t  FirstSeg() const { return m_1st_seg; }
   Double_t  FirstTime() const { return m_1st_time; }
   HodoHit*  GetHit(Int_t i) const;
+  Int_t     GetIndex(Int_t i) const { return m_index.at(i); }
+  Double_t  MeanTimeAt(Int_t i) const { return GetHit(i)->MeanTime(GetIndex(i)); }
+  Double_t  CMeanTimeAt(Int_t i) const { return GetHit(i)->CMeanTime(GetIndex(i)); }
+  Double_t  TimeDiffAt(Int_t i) const { return GetHit(i)->TimeDiff(GetIndex(i)); }
   const HodoHC& GetHitContainer() const { return m_hit_container; }
   void      Print(Option_t* opt="") const;
   Bool_t    ReCalc(Bool_t applyRecusively=false);

@@ -255,9 +255,8 @@ HodoAnalyzer::GetTime0Cluster() const
   const HodoCluster* cl_time0 = nullptr;
   Double_t min_mt = DBL_MAX;
   for(const auto& cluster : GetClusterContainer("BH2")){
-    // Double_t mt = cluster->MeanTime();
     for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
-      Double_t mt = cluster->GetHit(j)->MeanTime();
+      Double_t mt = cluster->MeanTimeAt(j);
       if(true
          && TMath::Abs(mt) < TMath::Abs(min_mt)
          && gUser.IsInRange("T0_Time", mt)
@@ -283,8 +282,8 @@ HodoAnalyzer::GetBtof0Cluster() const
   Double_t min_btof = DBL_MAX;
   for(Int_t i=0, n=GetNClusters("BHT"); i<n; ++i){
     const auto& cluster = GetCluster("BHT", i);
-    for(const auto& hit: cluster->GetHitContainer()){
-      Double_t cmt  = hit->CMeanTime();
+    for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
+      Double_t cmt  = cluster->CMeanTimeAt(j);
       Double_t btof = cmt - time0;
       if(true
          && TMath::Abs(btof) < TMath::Abs(min_btof)
@@ -311,13 +310,13 @@ HodoAnalyzer::GetFtof0Cluster() const
   Double_t min_ftof = DBL_MAX;
   for(Int_t i=0, n=GetNClusters("CVC"); i<n; ++i){
     const auto& cluster = GetCluster("CVC", i);
-    for(const auto& hit: cluster->GetHitContainer()){
-      Double_t cmt  = hit->CMeanTime();
+    for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
+      Double_t cmt  = cluster->CMeanTimeAt(j);
       Double_t ftof = cmt - time0;
       if(true
          && TMath::Abs(ftof) < TMath::Abs(min_ftof)
          && gUser.IsInRange("FTOF", ftof)
-         && gUser.IsInRange("CVC_TimeDiff", hit->TimeDiff())
+         && gUser.IsInRange("CVC_TimeDiff", cluster->TimeDiffAt(j))
 #if REQDE
          && gUser.IsInRange("CVC_DeltaE", cluster->DeltaE())
 #endif
@@ -374,8 +373,8 @@ HodoAnalyzer::Btof0() const
   const auto& cl = GetBtof0Cluster();
   if(cl){
     Double_t btof0 = DBL_MAX;
-    for(const auto& hit: cl->GetHitContainer()){
-      Double_t cmt  = hit->CMeanTime();
+    for(Int_t j=0, m=cl->ClusterSize(); j<m; ++j){
+      Double_t cmt  = cl->CMeanTimeAt(j);
       Double_t btof = cmt - Time0();
       if(true
          && TMath::Abs(btof) < TMath::Abs(btof0)
@@ -396,8 +395,8 @@ HodoAnalyzer::Ftof0() const
   const auto& cl = GetFtof0Cluster();
   if(cl){
     Double_t ftof0 = DBL_MAX;
-    for(const auto& hit: cl->GetHitContainer()){
-      Double_t cmt  = hit->CMeanTime();
+    for(Int_t j=0, m=cl->ClusterSize(); j<m; ++j){
+      Double_t cmt  = cl->CMeanTimeAt(j);
       Double_t ftof = cmt - Time0();
       if(true
          && TMath::Abs(ftof) < TMath::Abs(ftof0)
