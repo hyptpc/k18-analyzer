@@ -18,7 +18,7 @@ namespace
 const Int_t SegMask  = 0x03FF;
 const Int_t CidMask  = 0x00FF;
 const Int_t PlidMask = 0x00FF;
-const Int_t UdMask   = 0x0003;
+const Int_t UdMask   = 0x000F;
 const Int_t SegShift  =  0;
 const Int_t CidShift  = 11;
 const Int_t PlidShift = 19;
@@ -78,14 +78,14 @@ HodoParamMan::Initialize()
 {
   if(m_is_ready){
     hddaq::cerr << FUNC_NAME
-		<< " already initialied" << std::endl;
+                << " already initialied" << std::endl;
     return false;
   }
 
   std::ifstream ifs(m_file_name);
   if(!ifs.is_open()){
     hddaq::cerr << FUNC_NAME << " file open fail : "
-		<< m_file_name << std::endl;
+                << m_file_name << std::endl;
     return false;
   }
 
@@ -103,39 +103,44 @@ HodoParamMan::Initialize()
     Double_t p0=qnan, p1=qnan;
     // Double_t p2=qnan, p3=qnan, p4=qnan, p5=qnan;
     if(input_line >> cid >> plid >> seg >> at >> ud >> p0 >> p1){
+      if(ud < 0 || ud > UdMask){
+        hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
+                    << " ===> (" << invalid << "c)" << line << " " << std::endl;
+        continue;
+      }
       Int_t key = KEY(cid, plid, seg, ud);
       if(at == kAdcHigh){
-	auto pre_param = m_AHPContainer[key];
-	auto param = new HodoAParam(p0, p1);
-	m_AHPContainer[key] = param;
-	if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " key = " << key << std::endl;
-	  delete pre_param;
-	}
+        auto pre_param = m_AHPContainer[key];
+        auto param = new HodoAParam(p0, p1);
+        m_AHPContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " key = " << key << std::endl;
+          delete pre_param;
+        }
       }
       else if(at == kTdc){
-	auto pre_param = m_TPContainer[key];
-	auto param = new HodoTParam(p0, p1);
-	m_TPContainer[key] = param;
-	if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " key = " << key << std::endl;
-	  delete pre_param;
-	}
+        auto pre_param = m_TPContainer[key];
+        auto param = new HodoTParam(p0, p1);
+        m_TPContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " key = " << key << std::endl;
+          delete pre_param;
+        }
       }
       else if(at == kAdcLow){
-	auto pre_param = m_ALPContainer[key];
-	auto param = new HodoAParam(p0, p1);
-	m_ALPContainer[key] = param;
-	if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " key = " << key << std::endl;
-	  delete pre_param;
-	}
+        auto pre_param = m_ALPContainer[key];
+        auto param = new HodoAParam(p0, p1);
+        m_ALPContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " key = " << key << std::endl;
+          delete pre_param;
+        }
         // }else if(at == 3){// for fiber position correction
         //   if(input_line  >> p2 >> p3>> p4 >> p5){
         //     HodoFParam *pre_param = m_FPContainer[key];
@@ -143,14 +148,14 @@ HodoParamMan::Initialize()
         //     m_FPContainer[key] = param;
         //     if(pre_param){
         //       hddaq::cerr << FUNC_NAME << ": duplicated key "
-        //   		<< " following record is deleted." << std::endl
-        //   		<< " key = " << key << std::endl;
+        //                   << " following record is deleted." << std::endl
+        //                   << " key = " << key << std::endl;
         //       delete pre_param;
         //     }
         //   }
       }else{
-	hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
-		    << " ===> (" << invalid << "a)" << line << " " << std::endl;
+        hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
+                    << " ===> (" << invalid << "a)" << line << " " << std::endl;
       } /* if(at) */
     }
     else {
