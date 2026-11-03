@@ -83,7 +83,7 @@ HodoCluster::Calculate()
     Double_t de       = hit->DeltaE();
     
     // Add weights and accumulate
-#ifdef USE_WEIGHTED_AVERAGE
+#if USE_WEIGHTED_AVERAGE
     Double_t w = (de > 0.0) ? de : 0.0;
 #else
     Double_t w = 1.0;
