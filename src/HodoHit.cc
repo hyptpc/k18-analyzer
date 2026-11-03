@@ -40,6 +40,8 @@ HodoHit::HodoHit(const HodoRawHit *rhit, Double_t max_time_diff)
     m_max_time_diff(max_time_diff),
     m_n_ch(gUnpackerConf.get_digit_info().get_n_ch(rhit->DetectorId())),
     m_time_offset(0.0),
+    m_adc_cm_u(0.0),
+    m_adc_cm_d(0.0),
     m_de_high(m_n_ch),
     m_de_low(m_n_ch),
     m_time_leading(m_n_ch),
@@ -95,10 +97,16 @@ HodoHit::Calculate()
   data_t ctrailing(m_n_ch);
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
-    // adc
+    // High-gain ADC only: optional U/D common-mode before pedestal/gain.
+    // Low-gain is left unchanged.
     for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
       Double_t de = TMath::QuietNaN();
-      if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
+      Double_t adc_corr = adc;
+      if (ch == U)
+        adc_corr = adc - m_adc_cm_u;
+      else if (ch == D)
+        adc_corr = adc - m_adc_cm_d;
+      if(gHodo.GetDeHighGain(id, plane, seg, ch, adc_corr, de)){
         m_de_high.at(ch).push_back(de);
       }
     }

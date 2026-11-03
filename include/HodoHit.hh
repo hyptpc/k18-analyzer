@@ -34,6 +34,8 @@ protected:
   Double_t          m_max_time_diff; // [ns]
   Int_t             m_n_ch;
   Double_t          m_time_offset;
+  Double_t          m_adc_cm_u; // ADC common-mode (U); 0 = no correction
+  Double_t          m_adc_cm_d; // ADC common-mode (D); 0 = no correction
 
   using data_t = std::vector<std::vector<Double_t>>; // [ch][mhit]
 
@@ -55,6 +57,8 @@ public:
   Int_t             SegmentId() const { return m_raw->SegmentId(); }
   virtual Bool_t    Calculate();
   Bool_t            IsCalculated() const { return m_is_calculated; }
+  void              SetAdcCommonMode(Double_t cm_u, Double_t cm_d)
+    { m_adc_cm_u = cm_u; m_adc_cm_d = cm_d; }
 
   Int_t NumOfChannel() const { return m_n_ch; }
 

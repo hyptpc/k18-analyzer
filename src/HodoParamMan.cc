@@ -199,6 +199,16 @@ HodoParamMan::GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
 }
 
 //_____________________________________________________________________________
+Double_t
+HodoParamMan::GetAdcPedestal(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+{
+  const auto& map = GetAHmap(cid, plid, seg, ud);
+  if (!map)
+    return qnan;
+  return map->Pedestal();
+}
+
+//_____________________________________________________________________________
 // Npe = (adc - ped) / gain. gain = 1-photoelectron in HDPRM (AorT=kAdcHigh). 
 Bool_t
 HodoParamMan::GetNpe(Int_t cid, Int_t plid, Int_t seg,

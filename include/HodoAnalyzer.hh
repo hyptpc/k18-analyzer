@@ -41,13 +41,25 @@ private:
 
 private:
   template <typename T> using map_t = std::map<TString, T>;
+  struct AdcCommonMode {
+    Double_t u = 0.;
+    Double_t d = 0.;
+    Int_t nch_u = 0;
+    Int_t nch_d = 0;
+  };
   const RawData* m_raw_data;
   map_t<HodoHC>  m_hodo_hit_collection;
   map_t<HodoCC>  m_hodo_cluster_collection;
+  std::vector<TString> m_adc_cm_det; // enabled detector names
+  map_t<AdcCommonMode> m_adc_cm;     // key = detector name
 
 public:
   template <typename T=HodoHit>
   Bool_t DecodeHits(const TString& name, Bool_t makeCluster = true);
+
+  /// Enable ADC common-mode for this detector in subsequent DecodeHits (e.g. "CVC").
+  /// Uses HodoRawHit::kUp / kDown only (two-side readout). Not for KVC-like ch maps.
+  void SetAdcCommonModeDetector(const TString& name);
 
   const HodoHC& GetHitContainer(const TString& name) const;
   const HodoCC& GetClusterContainer(const TString& name) const;
@@ -87,10 +99,18 @@ public:
   Double_t Btof0Seg() const;
   Double_t Ftof0Seg() const;
 
+  Double_t AdcCommonModeU(const TString& name) const;
+  Double_t AdcCommonModeD(const TString& name) const;
+  Int_t    AdcCommonModeNChU(const TString& name) const;
+  Int_t    AdcCommonModeNChD(const TString& name) const;
+
   /// Offline Npe (cached). BAC: 1; KVC: NumOfSegKVC; other: empty.
   std::vector<Double_t> GetOfflineNpe(const TString& name) const;
 
 private:
+  Bool_t UpdateAdcCommonMode(const TString& name);
+  const AdcCommonMode& GetAdcCommonMode(const TString& name) const;
+
   /// Key=detector name. Computed on first GetOfflineNpe(name).
   mutable map_t<std::vector<Double_t>> m_offline_npe;
 
@@ -144,11 +164,19 @@ template <typename T>
 inline Bool_t
 HodoAnalyzer::DecodeHits(const TString& name, Bool_t makeCluster)
 {
+  const Bool_t apply_adc_cm =
+    std::find(m_adc_cm_det.begin(), m_adc_cm_det.end(), name) != m_adc_cm_det.end();
+  const Bool_t have_adc_cm =
+    apply_adc_cm && UpdateAdcCommonMode(name);
+  const auto& cm = GetAdcCommonMode(name);
+
   std::vector<T*> CandCont;
   for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
     if(!rhit) continue;
     auto hit = new T(rhit);
-    if(hit && hit->Calculate()){
+    if (have_adc_cm)
+      hit->SetAdcCommonMode(cm.u, cm.d);
+    if(hit->Calculate()){
       CandCont.push_back(hit);
     }else{
       delete hit;

@@ -29,6 +29,7 @@
 
 #define DEBUG 0
 #define JPARC2025Nov 0 // 1: Old runs (Skip T2+), 0: 2026Apr (T2+)
+#define CVC_CM_DEBUG 0 // 1: fill cvc_cm_* branches for common-mode checks
 
 namespace
 {
@@ -87,6 +88,13 @@ Double_t time0;
 Double_t time0_seg;
 Double_t btof0;
 Double_t ftof0;
+
+#if CVC_CM_DEBUG
+Double_t cvc_cm_u;
+Double_t cvc_cm_d;
+Int_t    cvc_cm_nch_u;
+Int_t    cvc_cm_nch_d;
+#endif
 }
 
 //_____________________________________________________________________________
@@ -140,6 +148,13 @@ ProcessBegin()
   btof0 = TMath::QuietNaN();
   ftof0 = TMath::QuietNaN();
 
+#if CVC_CM_DEBUG
+  cvc_cm_u = 0.;
+  cvc_cm_d = 0.;
+  cvc_cm_nch_u = 0;
+  cvc_cm_nch_d = 0;
+#endif
+
   return true;
 }
 
@@ -160,6 +175,7 @@ ProcessNormal()
   
   // hodoAna.DecodeHits<T>(name, makeCluster = true);
   HodoAnalyzer hodoAna(rawData);
+  hodoAna.SetAdcCommonModeDetector("CVC");
   hodoAna.DecodeHits<FiberHit>("BHT");
   hodoAna.DecodeHits<BH2Hit>("BH2");
   for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
@@ -334,6 +350,13 @@ ProcessNormal()
   btof0 = hodoAna.Btof0();
   ftof0 = hodoAna.Ftof0();
 
+#if CVC_CM_DEBUG
+  cvc_cm_u = hodoAna.AdcCommonModeU("CVC");
+  cvc_cm_d = hodoAna.AdcCommonModeD("CVC");
+  cvc_cm_nch_u = hodoAna.AdcCommonModeNChU("CVC");
+  cvc_cm_nch_d = hodoAna.AdcCommonModeNChD("CVC");
+#endif
+
   HF1("Status", 20);
 
   return true;
@@ -498,6 +521,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("time0_seg", &time0_seg);
   tree->Branch("btof0", &btof0);
   tree->Branch("ftof0", &ftof0);
+
+#if CVC_CM_DEBUG
+  tree->Branch("cvc_cm_u", &cvc_cm_u);
+  tree->Branch("cvc_cm_d", &cvc_cm_d);
+  tree->Branch("cvc_cm_nch_u", &cvc_cm_nch_u);
+  tree->Branch("cvc_cm_nch_d", &cvc_cm_nch_d);
+#endif
 
   return true;
 }

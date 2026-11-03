@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
+#include <vector>
 
 #include "BH2Hit.hh"
 #include "CherenkovHelper.hh"
@@ -14,23 +16,151 @@
 #include "FuncName.hh"
 #include "HodoCluster.hh"
 #include "HodoHit.hh"
+#include "HodoParamMan.hh"
+#include "HodoRawHit.hh"
 #include "RawData.hh"
 #include "UserParamMan.hh"
+
+#include <std_ostream.hh>
 
 #define REQDE   0
 
 namespace
 {
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gHodo = HodoParamMan::GetInstance();
+const Int_t kMinAdcCmChannels = 3;
 }
 
 //_____________________________________________________________________________
 HodoAnalyzer::HodoAnalyzer(const RawData& raw_data)
   : m_raw_data(&raw_data),
     m_hodo_hit_collection(),
-    m_hodo_cluster_collection()
+    m_hodo_cluster_collection(),
+    m_adc_cm_det(),
+    m_adc_cm()
 {
   debug::ObjectCounter::increase(ClassName());
+}
+
+//_____________________________________________________________________________
+void
+HodoAnalyzer::SetAdcCommonModeDetector(const TString& name)
+{
+  if (std::find(m_adc_cm_det.begin(), m_adc_cm_det.end(), name)
+      == m_adc_cm_det.end())
+    m_adc_cm_det.push_back(name);
+}
+
+//_____________________________________________________________________________
+const HodoAnalyzer::AdcCommonMode&
+HodoAnalyzer::GetAdcCommonMode(const TString& name) const
+{
+  static const AdcCommonMode zero;
+  const auto it = m_adc_cm.find(name);
+  return (it != m_adc_cm.end()) ? it->second : zero;
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::AdcCommonModeU(const TString& name) const
+{
+  return GetAdcCommonMode(name).u;
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::AdcCommonModeD(const TString& name) const
+{
+  return GetAdcCommonMode(name).d;
+}
+
+//_____________________________________________________________________________
+Int_t
+HodoAnalyzer::AdcCommonModeNChU(const TString& name) const
+{
+  return GetAdcCommonMode(name).nch_u;
+}
+
+//_____________________________________________________________________________
+Int_t
+HodoAnalyzer::AdcCommonModeNChD(const TString& name) const
+{
+  return GetAdcCommonMode(name).nch_d;
+}
+
+//_____________________________________________________________________________
+Bool_t
+HodoAnalyzer::UpdateAdcCommonMode(const TString& name)
+{
+  const TString tdc_key = name + "_TDC";
+  if (!gUser.Has(tdc_key)) {
+    m_adc_cm.erase(name);
+    static std::set<TString> s_warned;
+    if (s_warned.insert(name).second) {
+      hddaq::cerr << FUNC_NAME
+                  << " ADC CM enabled but missing UserParam \""
+                  << tdc_key << "\"" << std::endl;
+    }
+    return false;
+  }
+
+  AdcCommonMode cm;
+  std::vector<Double_t> adc_u;
+  std::vector<Double_t> adc_d;
+  for (const auto& rhit : m_raw_data->GetHodoRawHitContainer(name)) {
+    if (!rhit)
+      continue;
+    const Int_t det_id = rhit->DetectorId();
+    const Int_t plane = rhit->PlaneId();
+    const Int_t seg = rhit->SegmentId();
+    for (const Int_t ch : {HodoRawHit::kUp, HodoRawHit::kDown}) {
+      Bool_t has_signal = false;
+      for (const auto& tdc : rhit->GetArrayTdcLeading(ch)) {
+        if (gUser.IsInRange(tdc_key, tdc)) {
+          has_signal = true;
+          break;
+        }
+      }
+      if (has_signal)
+        continue;
+      const Double_t ped = gHodo.GetAdcPedestal(det_id, plane, seg, ch);
+      if (!std::isfinite(ped))
+        continue;
+      const auto& adcs = rhit->GetArrayAdcHigh(ch);
+      if (adcs.empty())
+        continue;
+      const Double_t ped_sub = adcs.at(0) - ped;
+      if (ch == HodoRawHit::kUp)
+        adc_u.push_back(ped_sub);
+      else
+        adc_d.push_back(ped_sub);
+    }
+  }
+
+  // Sample counts before the min-channel cut. A short side may still get
+  // the other side's CM via fallback; nch stays the raw count.
+  cm.nch_u = static_cast<Int_t>(adc_u.size());
+  cm.nch_d = static_cast<Int_t>(adc_d.size());
+
+  auto median = [](std::vector<Double_t>& v) -> Double_t {
+    if (v.empty())
+      return 0.;
+    std::sort(v.begin(), v.end());
+    const std::size_t n = v.size();
+    if (n % 2)
+      return v[n / 2];
+    return 0.5 * (v[n / 2 - 1] + v[n / 2]);
+  };
+
+  const Bool_t ok_u = cm.nch_u >= kMinAdcCmChannels;
+  const Bool_t ok_d = cm.nch_d >= kMinAdcCmChannels;
+  const Double_t cm_u = ok_u ? median(adc_u) : 0.;
+  const Double_t cm_d = ok_d ? median(adc_d) : 0.;
+  cm.u = ok_u ? cm_u : (ok_d ? cm_d : 0.);
+  cm.d = ok_d ? cm_d : (ok_u ? cm_u : 0.);
+  m_adc_cm[name] = cm;
+  return true;
 }
 
 //_____________________________________________________________________________
