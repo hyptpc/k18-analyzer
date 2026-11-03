@@ -97,14 +97,6 @@ FiberHit::ClearCalculated()
 }
 
 //_____________________________________________________________________________
-Bool_t
-FiberHit::ReCalc(Bool_t /*applyRecursively*/)
-{
-  ClearCalculated();
-  return Calculate();
-}
-
-//_____________________________________________________________________________
 Double_t
 FiberHit::MeanTimeOverThreshold(Int_t j) const
 {

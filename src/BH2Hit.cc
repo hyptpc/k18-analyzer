@@ -54,14 +54,6 @@ BH2Hit::ClearCalculated()
 }
 
 //_____________________________________________________________________________
-Bool_t
-BH2Hit::ReCalc(Bool_t /*applyRecursively*/)
-{
-  ClearCalculated();
-  return Calculate();
-}
-
-//_____________________________________________________________________________
 Double_t
 BH2Hit::UTime0(Int_t i) const
 {

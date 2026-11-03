@@ -22,7 +22,6 @@ public:
   Double_t UCTime0(Int_t i=0) const;
   Double_t DTime0(Int_t i=0) const;
   Double_t DCTime0(Int_t i=0) const;
-  Bool_t ReCalc(Bool_t applyRecursively=false) override;
 
 protected:
   void ClearCalculated() override;

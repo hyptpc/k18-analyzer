@@ -56,7 +56,6 @@ public:
   // void     RegisterHits(FLHit* hit) { m_hit_container.push_back(hit); }
 
   virtual void   Print(Option_t* arg="") const;
-  Bool_t ReCalc(Bool_t applyRecursively=false) override;
 
   static Bool_t Compare(const FiberHit* left, const FiberHit* right);
 
