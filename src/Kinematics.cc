@@ -1944,10 +1944,10 @@ LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
   if(pyi1>0) scan_range1[1] = yi1 + lambdavtx_xivtx_cut/(p_unit1.y());
   else scan_range1[0] = yi1 - lambdavtx_xivtx_cut/(p_unit1.y());
 
-  Double_t xi2 = -2.*Xlambda2.x();
+  Double_t xi2 = -1.*Xlambda2.x();
   Double_t yi2 = Xlambda2.z() - tpc::ZTarget;
   Double_t zi2 = Xlambda2.y();
-  Double_t pxi2 = -2.*Plambda2.x();
+  Double_t pxi2 = -1.*Plambda2.x();
   Double_t pyi2 = Plambda2.z();
   Double_t pzi2 = Plambda2.y();
   Double_t ui2 = -pxi2/pyi2, vi2 = pzi2/pyi2;
