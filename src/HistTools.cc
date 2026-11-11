@@ -353,14 +353,17 @@ BuildHodoHit(Bool_t flag_beam_particle)
     }
 
     // BAC Sum: S_online (seg4), offline_sum (event). Time/CTime_seg S. No a,b,c,d.
+    // *_AwT: raw TDC in BAC_TDC (same selection as raw AwT).
     {
       auto name = "BAC";
       Double_t nseg = static_cast<Double_t>(NumOfSegBAC);
       const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
       const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       HB1(Form("%s_Hit_Npe_offline_sum%s; Npe; count", name, b), npe_bins);
+      HB1(Form("%s_Hit_Npe_offline_sum_AwT%s; Npe (raw TDC in BAC_TDC); count", name, b), npe_bins);
       for(Int_t i=0; i<nseg; ++i){
         HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online_AwT%s; Npe (raw TDC in BAC_TDC); count", name, i, b), npe_bins);
         HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),  hr_time_bins);
         HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hr_time_bins);
       }
@@ -383,8 +386,9 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
-    // KVC Sum (kExtra): 
-    // Hit_Npe_seg S_offline (raw-based per seg), S_online+a,b,c,d. 
+    // KVC Sum (kExtra):
+    // Hit_Npe_seg S_offline (raw-based per seg), S_online+a,b,c,d.
+    // *_AwT: raw SUM TDC in KVC_TDC (same selection as raw AwT).
     // Time/CTime_seg S, Sum_Hit_HitPat/Multi
     {
       auto name = "KVC";
@@ -395,10 +399,16 @@ BuildHodoHit(Bool_t flag_beam_particle)
       for(Int_t i=0; i<nseg; ++i){
         HB1(Form("%s_Hit_Npe_seg%dS_offline%s; Npe; count", name, i, b), npe_bins);
         HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b),  npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_offline_AwT%s; Npe (raw TDC in KVC_TDC); count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online_AwT%s; Npe (raw TDC in KVC_TDC); count", name, i, b),  npe_bins);
         HB1(Form("%s_Hit_Npe_seg%dS_offline_T1%s; Npe; count", name, i, b), npe_bins);
         HB1(Form("%s_Hit_Npe_seg%dS_online_T1%s; Npe; count", name, i, b),  npe_bins);
-        for(Int_t c=0; c<4; ++c)
+        HB1(Form("%s_Hit_Npe_seg%dS_offline_T1_AwT%s; Npe (raw TDC in KVC_TDC); count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online_T1_AwT%s; Npe (raw TDC in KVC_TDC); count", name, i, b),  npe_bins);
+        for(Int_t c=0; c<4; ++c){
           HB1(Form("%s_Hit_Npe_seg%d%s%s; Npe; count", name, i, abcd[c], b), npe_bins);
+          HB1(Form("%s_Hit_Npe_seg%d%s_AwT%s; Npe (raw TDC in KVC_TDC); count", name, i, abcd[c], b), npe_bins);
+        }
         HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),  hr_time_bins);
         HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hr_time_bins);
       }

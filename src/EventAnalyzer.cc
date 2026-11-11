@@ -444,10 +444,11 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
 
-  // BAC Sum (seg4): NpeSum=online; offline filled above.
+  // BAC Sum (seg4): NpeSum=online (ADC index 0, once per hit); offline filled above.
   {
     static const Char_t* name = "BAC";
     auto offsum_npe = hodoAna.GetOfflineNpe(name);
+    Bool_t offline_awt_filled = false;
     if(!offsum_npe.empty()) HF1(Form("BAC_Hit_Npe_offline_sum%s", b), offsum_npe[0]);
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
@@ -456,13 +457,32 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       auto seg = hit->SegmentId();
       if(seg != 4) continue;  // online only for segment 4
       Bool_t is_good = false;
+      Bool_t in_window = false;
+      const auto* raw = hit->GetRawHit();
+      if(raw){
+        for(const auto& t: raw->GetArrayTdcLeading(HodoRawHit::kUp)){
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            in_window = true;
+        }
+      }
       for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kUp); j<m; ++j){
-        HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), hit->NpeSum(j));
         HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTUp(j));
         HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTUp(j));
         is_good = true;
       }
       if(is_good){
+        // NPE from ADC entry 0 only (not TDC multiplicity).
+        const Double_t npe_online = hit->NpeSum(0);
+        if(TMath::Finite(npe_online)){
+          HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), npe_online);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dS_online_AwT%s", name, seg, b), npe_online);
+        }
+        if(in_window && !offline_awt_filled && !offsum_npe.empty()
+           && TMath::Finite(offsum_npe[0])){
+          HF1(Form("BAC_Hit_Npe_offline_sum_AwT%s", b), offsum_npe[0]);
+          offline_awt_filled = true;
+        }
         HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
         ++multi;
       }
@@ -493,7 +513,8 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
   }
 
-  // KVC Sum: offline per seg above; online NpeSum(kSUM), GetNpe(kA..kD).
+  // KVC Sum: offline per seg; online NpeSum(kSUM), GetNpe(kA..kD).
+  // NPE uses ADC entry 0 once per hit (not TDC multiplicity).
   {
     static const Char_t* name = "KVC";
     auto offsum_npe = hodoAna.GetOfflineNpe(name);
@@ -504,23 +525,68 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       if(!hit) continue;
       auto seg = hit->SegmentId();
       Bool_t is_good = false;
+      Bool_t in_window = false;
+      const auto* raw = hit->GetRawHit();
+      if(raw){
+        for(const auto& t: raw->GetArrayTdc(HodoRawHit::EChannelKVC::kSUM)){
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            in_window = true;
+        }
+      }
       for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
-        HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), hit->NpeSum(j));
-        HF1(Form("%s_Hit_Npe_seg%dS_offline%s", name, seg, b), offsum_npe[seg]);
-        HF1(Form("%s_Hit_Npe_seg%da%s", name, seg, b), hit->GetNpe(0, j));
-        HF1(Form("%s_Hit_Npe_seg%db%s", name, seg, b), hit->GetNpe(1, j));
-        HF1(Form("%s_Hit_Npe_seg%dc%s", name, seg, b), hit->GetNpe(2, j));
-        HF1(Form("%s_Hit_Npe_seg%dd%s", name, seg, b), hit->GetNpe(3, j));
         HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTExtra(j));
         HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTExtra(j));
-        // T1 counter hit exists: fill on/off sum.
-        if(t1_hit && seg >= 0 && seg < (Int_t)offsum_npe.size()){
-          HF1(Form("%s_Hit_Npe_seg%dS_online_T1%s", name, seg, b), hit->NpeSum(j));
-          HF1(Form("%s_Hit_Npe_seg%dS_offline_T1%s", name, seg, b), offsum_npe[seg]);
-        }
         is_good = true;
       }
       if(is_good){
+        const Double_t npe_online = hit->NpeSum(0);
+        const Double_t npe_a = hit->GetNpe(0, 0);
+        const Double_t npe_b = hit->GetNpe(1, 0);
+        const Double_t npe_c = hit->GetNpe(2, 0);
+        const Double_t npe_d = hit->GetNpe(3, 0);
+        const Bool_t offline_ok = (seg >= 0 && seg < (Int_t)offsum_npe.size()
+                                   && TMath::Finite(offsum_npe[seg]));
+        if(TMath::Finite(npe_online)){
+          HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), npe_online);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dS_online_AwT%s", name, seg, b), npe_online);
+        }
+        if(offline_ok){
+          HF1(Form("%s_Hit_Npe_seg%dS_offline%s", name, seg, b), offsum_npe[seg]);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dS_offline_AwT%s", name, seg, b), offsum_npe[seg]);
+        }
+        if(TMath::Finite(npe_a)){
+          HF1(Form("%s_Hit_Npe_seg%da%s", name, seg, b), npe_a);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%da_AwT%s", name, seg, b), npe_a);
+        }
+        if(TMath::Finite(npe_b)){
+          HF1(Form("%s_Hit_Npe_seg%db%s", name, seg, b), npe_b);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%db_AwT%s", name, seg, b), npe_b);
+        }
+        if(TMath::Finite(npe_c)){
+          HF1(Form("%s_Hit_Npe_seg%dc%s", name, seg, b), npe_c);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dc_AwT%s", name, seg, b), npe_c);
+        }
+        if(TMath::Finite(npe_d)){
+          HF1(Form("%s_Hit_Npe_seg%dd%s", name, seg, b), npe_d);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dd_AwT%s", name, seg, b), npe_d);
+        }
+        // T1: presence of a T1 hit only (not a time-coincidence cut).
+        if(t1_hit && offline_ok){
+          if(TMath::Finite(npe_online)){
+            HF1(Form("%s_Hit_Npe_seg%dS_online_T1%s", name, seg, b), npe_online);
+            if(in_window)
+              HF1(Form("%s_Hit_Npe_seg%dS_online_T1_AwT%s", name, seg, b), npe_online);
+          }
+          HF1(Form("%s_Hit_Npe_seg%dS_offline_T1%s", name, seg, b), offsum_npe[seg]);
+          if(in_window)
+            HF1(Form("%s_Hit_Npe_seg%dS_offline_T1_AwT%s", name, seg, b), offsum_npe[seg]);
+        }
         HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
         ++multi;
       }
