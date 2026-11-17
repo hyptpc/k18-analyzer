@@ -3,6 +3,7 @@
 #include "EventAnalyzer.hh"
 
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,8 @@
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
 
+#define UNIQUEBHT  0
+
 namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
@@ -43,6 +46,40 @@ const auto& gUser = UserParamMan::GetInstance();
 const auto& gHodo = HodoParamMan::GetInstance();
 using root::HF1;
 using root::HF2;
+
+#if UNIQUEBHT
+// Both U/D raw TDCs of paired entry j in BHT_TDC → kBoth;
+// otherwise → kNotBoth; raw TDC not recovered → kUnknown.
+enum class BhtWindowStatus { kBoth, kNotBoth, kUnknown };
+
+//_____________________________________________________________________________
+BhtWindowStatus
+BhtEntryWindowStatus(const HodoHit* hit, Int_t j)
+{
+  const auto* raw = hit->GetRawHit();
+  if (!raw) return BhtWindowStatus::kUnknown;
+  const Int_t id = raw->DetectorId();
+  const Int_t plane = raw->PlaneId();
+  const Int_t seg = raw->SegmentId();
+  for (const auto ch : {HodoRawHit::kUp, HodoRawHit::kDown}) {
+    const Double_t time = hit->GetT(ch, j);
+    if (!TMath::Finite(time)) return BhtWindowStatus::kUnknown;
+    Bool_t found = false;
+    Bool_t in_range = false;
+    for (const auto& tdc : raw->GetArrayTdcLeading(ch)) {
+      Double_t t = TMath::QuietNaN();
+      if (!gHodo.GetTime(id, plane, seg, ch, tdc, t)) continue;
+      if (t != time) continue;
+      found = true;
+      in_range = gUser.IsInRange("BHT_TDC", tdc);
+      break;
+    }
+    if (!found) return BhtWindowStatus::kUnknown;
+    if (!in_range) return BhtWindowStatus::kNotBoth;
+  }
+  return BhtWindowStatus::kBoth;
+}
+#endif
 }
 
 //_____________________________________________________________________________
@@ -640,6 +677,32 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 
   // BTOF / FTOF
   {
+#if UNIQUEBHT
+    // seg → accepted paired entry index when exactly one BHT_TDC hit.
+    std::map<Int_t, Int_t> unique_bht_entry;
+    {
+      std::map<Int_t, std::vector<Int_t>> in_window;
+      std::map<Int_t, Bool_t> unknown_seg;
+      for (Int_t i1 = 0, n1 = hodoAna.GetNHits("BHT"); i1 < n1; ++i1) {
+        const auto& hit1 = hodoAna.GetHit("BHT", i1);
+        const Int_t seg1 = hit1->SegmentId();
+        for (Int_t j1 = 0, m1 = hit1->GetEntries(); j1 < m1; ++j1) {
+          const auto status = BhtEntryWindowStatus(hit1, j1);
+          if (status == BhtWindowStatus::kUnknown) {
+            unknown_seg[seg1] = true;
+            break;
+          }
+          if (status == BhtWindowStatus::kBoth)
+            in_window[seg1].push_back(j1);
+        }
+      }
+      for (const auto& kv : in_window) {
+        if (unknown_seg[kv.first]) continue;
+        if (kv.second.size() == 1)
+          unique_bht_entry[kv.first] = kv.second.front();
+      }
+    }
+#endif
     for(Int_t i2=0, n2=hodoAna.GetNHits("BH2"); i2<n2; ++i2){
       const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
       auto seg2 = hit2->SegmentId();
@@ -675,6 +738,14 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
                 HF1(Form("T0_seg%d_TimeOffset%s", seg2, b), mt2 - mt1);
               if(name == "CVC" && !gUser.IsInRange("CVC_TimeDiff", hit1->TimeDiff(j1)))
                  continue;
+#if UNIQUEBHT
+              // Skip PHC fills for non-unique BHT segments; keep T0_TimeOffset above.
+              if (name == "BHT") {
+                const auto it = unique_bht_entry.find(seg1);
+                if (it == unique_bht_entry.end() || it->second != j1)
+                  continue;
+              }
+#endif
               HF2(Form("%s_seg%dU_%s_vs_DeltaE%s", n, seg1, key, b), au1, ct0-tu1);
               HF2(Form("%s_seg%dD_%s_vs_DeltaE%s", n, seg1, key, b), ad1, ct0-td1);
               HF2(Form("%s_seg%dU_C%s_vs_DeltaE%s", n, seg1, key, b), au1, cbtof);
