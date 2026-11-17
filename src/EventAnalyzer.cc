@@ -367,10 +367,10 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
           HF1(Form("%s_Hit_TOT_seg%d%s%s", name, seg, UorD[ud], b), tot);
           HF1(Form("%s_Hit_DeltaE_seg%d%s%s", name, seg, UorD[ud], b), de);
         }
-        auto mt = hit->MeanTime();
-        auto cmt = hit->CMeanTime();
-        auto mtot = hit->MeanTOT();
-        auto de = hit->DeltaE();
+        auto mt = hit->MeanTime(j);
+        auto cmt = hit->CMeanTime(j);
+        auto mtot = hit->MeanTOT(j);
+        auto de = hit->DeltaE(j);
         HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
         HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
         HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, b), mtot);
