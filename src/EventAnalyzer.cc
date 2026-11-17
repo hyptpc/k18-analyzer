@@ -656,12 +656,21 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
           for(Int_t i1=0, n1=hodoAna.GetNHits(name); i1<n1; ++i1){
             const auto& hit1 = hodoAna.GetHit(name, i1);
             auto seg1 = hit1->SegmentId();
-            auto au1 = hit1->GetAUp(), ad1 = hit1->GetADown(), a1 = hit1->DeltaE();
+            // CVC (single ADC): amplitude is entry 0 for all times.
+            // BHT (FiberHit): amplitude is per leading; taken inside j1.
+            Double_t au1 = hit1->GetAUp();
+            Double_t ad1 = hit1->GetADown();
+            Double_t a1 = hit1->DeltaE();
             for(Int_t j1=0, m1=hit1->GetEntries(); j1<m1; ++j1){
               auto tu1 = hit1->GetTUp(j1), td1 = hit1->GetTDown(j1);
               // auto ctu1 = hit1->GetCTUp(j1), ctd1 = hit1->GetCTDown(j1);
               auto mt1 = hit1->MeanTime(j1), cmt1 = hit1->CMeanTime(j1);
               auto cbtof = ct0 - cmt1;
+              if(name == "BHT"){
+                au1 = hit1->GetAUp(j1);
+                ad1 = hit1->GetADown(j1);
+                a1 = hit1->DeltaE(j1);
+              }
               if(name == "BHT" && TMath::Abs(seg1 - NumOfSegBHT/2) < 2) // center seg
                 HF1(Form("T0_seg%d_TimeOffset%s", seg2, b), mt2 - mt1);
               if(name == "CVC" && !gUser.IsInRange("CVC_TimeDiff", hit1->TimeDiff(j1)))
