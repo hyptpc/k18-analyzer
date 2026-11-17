@@ -23,6 +23,12 @@ public:
   HSTrack(Double_t xout, Double_t yout,
           Double_t uout, Double_t vout, Double_t p);
 
+  // Global exit (x,y,u,v at z) → HypTPC-local HSTrack for RK.
+  // Uses DCGEO HypTPC via Global2LocalPos/Dir; StartZ = local z of the exit.
+  static HSTrack GlobalToHypTPC(Double_t x_global, Double_t y_global,
+                                Double_t u_global, Double_t v_global,
+                                Double_t z_global, Double_t p);
+
   // Default false: legacy 10 mm VP grid + pad-required filter (other users).
   // true: 1 mm VP in target z-band (incl. Z_TARGET) and keep padless VPs there.
   void EnableDenseTargetVP(Bool_t enable = true) { m_dense_target_vp = enable; }

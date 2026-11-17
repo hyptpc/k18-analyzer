@@ -8,8 +8,10 @@
 
 #include <TMath.h>
 
+#include "DCGeomMan.hh"
 #include "FieldMan.hh"
 #include "RungeKuttaUtilities.hh"
+#include "ThreeVector.hh"
 #include "TPCPadHelper.hh"
 
 namespace
@@ -84,6 +86,37 @@ HSTrack::HSTrack(Double_t xout, Double_t yout,
     m_vp_momentum()
 {
   FillInvalidResults();
+}
+
+//_____________________________________________________________________________
+HSTrack
+HSTrack::GlobalToHypTPC(
+  Double_t x_global,
+  Double_t y_global,
+  Double_t u_global,
+  Double_t v_global,
+  Double_t z_global,
+  Double_t p
+)
+{
+  auto& geom = DCGeomMan::GetInstance();
+  const ThreeVector pos_local
+    = geom.Global2LocalPos("HypTPC",
+                           ThreeVector(x_global, y_global, z_global));
+  const ThreeVector dir_local
+    = geom.Global2LocalDir("HypTPC",
+                           ThreeVector(u_global, v_global, 1.));
+
+  Double_t u_local = u_global;
+  Double_t v_local = v_global;
+  if (TMath::Abs(dir_local.z()) > 1.e-12) {
+    u_local = dir_local.x() / dir_local.z();
+    v_local = dir_local.y() / dir_local.z();
+  }
+
+  HSTrack hs(pos_local.x(), pos_local.y(), u_local, v_local, p);
+  hs.SetStartZ(pos_local.z());
+  return hs;
 }
 
 //_____________________________________________________________________________
