@@ -3,7 +3,6 @@
 #ifndef LH2_ELOSS_MAN_HH
 #define LH2_ELOSS_MAN_HH
 
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -12,11 +11,20 @@
 #include <TVector3.h>
 
 //_____________________________________________________________________________
-// Flat text map of LH2 momentum loss (block format).
-// Header: 12 geometry keys [mm] (HolderWindowHalfPhi in deg).
-// Grids:  grid <particle> <region> <exit> <holder>
-//         then axes p / L / cos and np*nL rows of Loss [MeV/c].
-// Cylinder axis is Y in the TPC frame (target centre from the header).
+// LH2 momentum-loss map. Values are numbers only; keys label them
+// ('#' starts a comment).
+//   - Geometry: one "<key> <value>" line per Geometry field, any order, all
+//     required (TargetRadius ... HolderBottomY) [mm; HolderWindowHalfPhi deg].
+//   - Grid blocks, each
+//       particle <EParticle>
+//       region   <ERegion>
+//       exit     <EExit>
+//       holder   <EHolder>
+//       p axis [MeV/c]
+//       L axis [mm]
+//       cos axis
+//       np*nL rows: p L loss(cos_0) ... loss(cos_n) [MeV/c]  (p outer, L inner)
+// Cylinder axis is Y in the TPC frame (target centre from the geometry keys).
 class Lh2ElossMan
 {
 public:
@@ -113,6 +121,7 @@ public:
 private:
   // Line reader for the map file (defined in .cc).
   struct MapReader;
+  struct MapLine;
 
   static Int_t GridIndex(Int_t particle, Int_t region, Int_t exit, Int_t holder);
   static Int_t NGridSlots()
@@ -130,10 +139,9 @@ private:
 
   static Segment RayInCylinder(const TVector3& x, const TVector3& u,
                                const Cylinder& c);
-  static Bool_t ReadAxis(MapReader& in, const char* name,
+  static Bool_t ReadAxis(MapReader& in, const char* what,
                          std::vector<Double_t>& axis);
-  static Bool_t ReadRow(MapReader& in, Double_t p, Double_t L, Int_t nc,
-                        Double_t* loss);
+  static Bool_t ReadBody(MapReader& in, Grid& gr);
 
   Cylinder Liquid() const;
   Cylinder Vessel() const;
@@ -145,9 +153,8 @@ private:
   void SetLiquidPath(const TVector3& x, const TVector3& u, Track& trk) const;
   void SetHolderExit(const TVector3& x, const TVector3& u, Track& trk) const;
 
-  Bool_t ReadGeoKey(MapReader& in, const std::string& key,
-                    std::istringstream& iss);
-  Bool_t ReadGrid(MapReader& in, std::istringstream& iss);
+  Bool_t ReadGeoKey(MapReader& in, const MapLine& ln);
+  Bool_t ReadGrid(MapReader& in, const MapLine& first);
   Bool_t CheckGeometry(MapReader& in) const;
   Bool_t CheckGrids(MapReader& in) const;
   std::string MissingGrids(Int_t particle) const;

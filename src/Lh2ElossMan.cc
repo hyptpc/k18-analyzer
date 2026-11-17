@@ -6,6 +6,7 @@
 #include <cmath>
 #include <fstream>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -19,24 +20,6 @@ namespace
 {
 constexpr Double_t kEps = 1.e-12;
 constexpr Double_t kInf = std::numeric_limits<Double_t>::infinity();
-
-const char* const kParticleName[] = {"proton", "pion", "kaon"};
-const char* const kRegionName[] = {"vessel", "gap", "gap_cross"};
-const char* const kExitName[] = {"side", "cap"};
-const char* const kHolderName[] = {"window", "g10"};
-
-static_assert(sizeof(kParticleName) / sizeof(kParticleName[0])
-                == Lh2ElossMan::kNParticle,
-              "kParticleName size");
-static_assert(sizeof(kRegionName) / sizeof(kRegionName[0])
-                == Lh2ElossMan::kNRegion,
-              "kRegionName size");
-static_assert(sizeof(kExitName) / sizeof(kExitName[0])
-                == Lh2ElossMan::kNExit,
-              "kExitName size");
-static_assert(sizeof(kHolderName) / sizeof(kHolderName[0])
-                == Lh2ElossMan::kNHolder,
-              "kHolderName size");
 
 // Ten grids required per particle in the map (gap has side only; L = 0).
 const Int_t kRequiredGrid[][3] = {
@@ -54,6 +37,7 @@ const Int_t kRequiredGrid[][3] = {
 constexpr Int_t kNRequiredGrid
   = static_cast<Int_t>(sizeof(kRequiredGrid) / sizeof(kRequiredGrid[0]));
 
+// Geometry keys ("<key> <value>" lines, any order, each exactly once).
 struct GeoKey
 {
   const char* name;
@@ -79,18 +63,29 @@ constexpr Int_t kNGeoKey
   = static_cast<Int_t>(sizeof(kGeoKeys) / sizeof(kGeoKeys[0]));
 
 //_____________________________________________________________________________
-Int_t
-IndexOf(
-  const char* const* names,
-  Int_t n,
-  const std::string& s
+const GeoKey*
+FindGeoKey(
+  const std::string& key
 )
 {
-  for (Int_t i = 0; i < n; ++i) {
-    if (s == names[i])
-      return i;
+  for (const GeoKey& g : kGeoKeys) {
+    if (key == g.name)
+      return &g;
   }
-  return -1;
+  return nullptr;
+}
+
+//_____________________________________________________________________________
+// Integer enum value in [0, n); -1 otherwise.
+Int_t
+ToTag(
+  Double_t v,
+  Int_t n
+)
+{
+  if (!(v >= 0. && v < n) || v != std::floor(v))
+    return -1;
+  return static_cast<Int_t>(v);
 }
 
 //_____________________________________________________________________________
@@ -104,6 +99,16 @@ StrictlyIncreasing(
       return false;
   }
   return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+AllFinite(
+  const std::vector<Double_t>& v
+)
+{
+  return std::all_of(v.begin(), v.end(),
+                     [](Double_t x) { return std::isfinite(x); });
 }
 
 //_____________________________________________________________________________
@@ -137,13 +142,29 @@ AxisWeight(
 }  // namespace
 
 //_____________________________________________________________________________
+// Reads the map line by line. A line is an optional leading key followed by
+// numbers; '#' starts a comment.
+struct Lh2ElossMan::MapLine
+{
+  std::string key;  // empty if the line starts with a number
+  std::vector<Double_t> v;
+};
+
+//_____________________________________________________________________________
 struct Lh2ElossMan::MapReader
 {
+  enum EStatus { kLine, kEof, kBadToken };
+  using Line = MapLine;
+
   std::ifstream ifs;
   TString file;
   Int_t nline = 0;
 
-  Bool_t Next(std::istringstream& iss);
+  EStatus Next(Line& ln);
+  // Next line that must exist, have no key and be numeric.
+  Bool_t ExpectNumbers(std::vector<Double_t>& v, const char* what);
+  // Next line that must be "<key> <one value>".
+  Bool_t ExpectKey(const char* key, Double_t& value);
   // Error at the current line; always returns false.
   Bool_t Error(const TString& msg) const;
   // Error about the whole file (no line number); always returns false.
@@ -151,29 +172,63 @@ struct Lh2ElossMan::MapReader
 };
 
 //_____________________________________________________________________________
-// Skip blank / comment-only lines; set iss to the next line that has a token.
-Bool_t
+Lh2ElossMan::MapReader::EStatus
 Lh2ElossMan::MapReader::Next(
-  std::istringstream& iss
+  Line& ln
 )
 {
   std::string raw;
   while (std::getline(ifs, raw)) {
     ++nline;
-    const auto hash = raw.find('#');
-    if (hash != std::string::npos)
-      raw.erase(hash);
-    iss.clear();
-    iss.str(raw);
-    std::string tok;
-    if (!(iss >> tok))
+    raw.erase(std::min(raw.find('#'), raw.size()));
+    std::istringstream iss(raw);
+    std::string first;
+    if (!(iss >> first))
       continue;
-    // Rewind so the caller can parse the full line from the first token.
-    iss.clear();
-    iss.str(raw);
-    return true;
+    ln.key.clear();
+    ln.v.clear();
+    std::istringstream num(first);
+    Double_t x = 0.;
+    if (num >> x && num.eof())
+      ln.v.push_back(x);
+    else
+      ln.key = first;
+    while (iss >> x)
+      ln.v.push_back(x);
+    return iss.eof() ? kLine : kBadToken;
   }
-  return false;
+  return kEof;
+}
+
+//_____________________________________________________________________________
+Bool_t
+Lh2ElossMan::MapReader::ExpectNumbers(
+  std::vector<Double_t>& v,
+  const char* what
+)
+{
+  Line ln;
+  const EStatus st = Next(ln);
+  if (st == kEof)
+    return Error(Form("unexpected end of file reading %s", what));
+  if (st == kBadToken || !ln.key.empty())
+    return Error(Form("non-numeric token in %s", what));
+  v = std::move(ln.v);
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+Lh2ElossMan::MapReader::ExpectKey(
+  const char* key,
+  Double_t& value
+)
+{
+  Line ln;
+  if (Next(ln) != kLine || ln.key != key || ln.v.size() != 1)
+    return Error(Form("expected '%s <value>'", key));
+  value = ln.v[0];
+  return true;
 }
 
 //_____________________________________________________________________________
@@ -194,63 +249,6 @@ Lh2ElossMan::MapReader::FileError(
 {
   spdlog::error("{}: {}", file.Data(), msg.Data());
   return false;
-}
-
-//_____________________________________________________________________________
-Bool_t
-Lh2ElossMan::ReadAxis(
-  MapReader& in,
-  const char* name,
-  std::vector<Double_t>& axis
-)
-{
-  std::istringstream iss;
-  if (!in.Next(iss))
-    return in.Error(Form("unexpected EOF reading %s axis", name));
-  std::string label;
-  if (!(iss >> label) || label != name)
-    return in.Error(Form("expected '%s' axis", name));
-  Double_t v = 0.;
-  while (iss >> v) {
-    if (!std::isfinite(v))
-      return in.Error(Form("non-finite %s axis value", name));
-    axis.push_back(v);
-  }
-  if (axis.empty() || !StrictlyIncreasing(axis))
-    return in.Error(Form("invalid %s axis", name));
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-Lh2ElossMan::ReadRow(
-  MapReader& in,
-  Double_t p,
-  Double_t L,
-  Int_t nc,
-  Double_t* loss
-)
-{
-  std::istringstream iss;
-  if (!in.Next(iss))
-    return in.Error("unexpected EOF in grid body");
-  Double_t pv = 0.;
-  Double_t Lv = 0.;
-  if (!(iss >> pv >> Lv))
-    return in.Error("bad grid row");
-  if (pv != p || Lv != L)
-    return in.Error(Form("p/L mismatch (got %g %g, expected %g %g)",
-                         pv, Lv, p, L));
-  for (Int_t ic = 0; ic < nc; ++ic) {
-    Double_t val = 0.;
-    if (!(iss >> val) || !std::isfinite(val) || val < 0.)
-      return in.Error("bad loss value");
-    loss[ic] = val;
-  }
-  Double_t junk = 0.;
-  if (iss >> junk)
-    return in.Error("extra tokens in grid row");
-  return true;
 }
 
 //_____________________________________________________________________________
@@ -286,6 +284,7 @@ Lh2ElossMan::GridIndex(
 }
 
 //_____________________________________________________________________________
+// Missing required grids as "region exit holder" triplets; empty if complete.
 std::string
 Lh2ElossMan::MissingGrids(
   Int_t particle
@@ -295,18 +294,12 @@ Lh2ElossMan::MissingGrids(
     return "invalid particle";
   std::string miss;
   for (Int_t i = 0; i < kNRequiredGrid; ++i) {
-    const Int_t rg = kRequiredGrid[i][0];
-    const Int_t ex = kRequiredGrid[i][1];
-    const Int_t ho = kRequiredGrid[i][2];
-    if (!GridAt(particle, rg, ex, ho).Empty())
+    const Int_t* g = kRequiredGrid[i];
+    if (!GridAt(particle, g[0], g[1], g[2]).Empty())
       continue;
     if (!miss.empty())
       miss += ", ";
-    miss += kRegionName[rg];
-    miss += ' ';
-    miss += kExitName[ex];
-    miss += ' ';
-    miss += kHolderName[ho];
+    miss += Form("%d %d %d", g[0], g[1], g[2]);
   }
   return miss;
 }
@@ -345,6 +338,7 @@ Lh2ElossMan::Initialize(
 }
 
 //_____________________________________________________________________________
+// Top level: geometry key lines and grid blocks (each starts with "particle").
 Bool_t
 Lh2ElossMan::Initialize()
 {
@@ -360,12 +354,15 @@ Lh2ElossMan::Initialize()
   if (!in.ifs.is_open())
     return in.Error("cannot open");
 
-  std::istringstream iss;
-  while (in.Next(iss)) {
-    std::string key;
-    iss >> key;
+  MapLine ln;
+  for (;;) {
+    const auto st = in.Next(ln);
+    if (st == MapReader::kEof)
+      break;
+    if (st == MapReader::kBadToken)
+      return in.Error("non-numeric value");
     const Bool_t ok
-      = (key == "grid") ? ReadGrid(in, iss) : ReadGeoKey(in, key, iss);
+      = (ln.key == "particle") ? ReadGrid(in, ln) : ReadGeoKey(in, ln);
     if (!ok)
       return false;
   }
@@ -381,87 +378,21 @@ Lh2ElossMan::Initialize()
 Bool_t
 Lh2ElossMan::ReadGeoKey(
   MapReader& in,
-  const std::string& key,
-  std::istringstream& iss
+  const MapLine& ln
 )
 {
-  const GeoKey* gkey = nullptr;
-  for (Int_t i = 0; i < kNGeoKey; ++i) {
-    if (key == kGeoKeys[i].name) {
-      gkey = &kGeoKeys[i];
-      break;
-    }
-  }
-  if (!gkey)
-    return in.Error(Form("unknown key '%s'", key.c_str()));
-  if (!std::isnan(m_geom.*(gkey->member)))
-    return in.Error(Form("duplicate key '%s'", key.c_str()));
-
-  Double_t val = 0.;
-  if (!(iss >> val) || !std::isfinite(val))
-    return in.Error(Form("invalid value for '%s'", key.c_str()));
-  std::string extra;
-  if (iss >> extra)
-    return in.Error(Form("extra tokens for '%s'", key.c_str()));
-  if (gkey->positive && !(val > 0.))
-    return in.Error(Form("'%s' must be > 0", key.c_str()));
-
-  m_geom.*(gkey->member) = val;
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-Lh2ElossMan::ReadGrid(
-  MapReader& in,
-  std::istringstream& iss
-)
-{
-  std::string s_pa, s_rg, s_ex, s_ho;
-  if (!(iss >> s_pa >> s_rg >> s_ex >> s_ho))
-    return in.Error("bad grid header");
-  std::string extra;
-  if (iss >> extra)
-    return in.Error("extra tokens in grid header");
-
-  const Int_t pa = IndexOf(kParticleName, kNParticle, s_pa);
-  const Int_t rg = IndexOf(kRegionName, kNRegion, s_rg);
-  const Int_t ex = IndexOf(kExitName, kNExit, s_ex);
-  const Int_t ho = IndexOf(kHolderName, kNHolder, s_ho);
-  if (pa < 0 || rg < 0 || ex < 0 || ho < 0)
-    return in.Error(Form("unknown grid name (%s %s %s %s)",
-                         s_pa.c_str(), s_rg.c_str(), s_ex.c_str(),
-                         s_ho.c_str()));
-  // gap vertices never exit through a liquid surface; only side grids exist.
-  if (rg == kGap && ex != kSide)
-    return in.Error("gap grid must use exit side");
-
-  Grid& slot = GridAt(pa, rg, ex, ho);
-  if (!slot.Empty())
-    return in.Error("duplicate grid");
-
-  Grid gr;
-  if (!ReadAxis(in, "p", gr.p) || !ReadAxis(in, "L", gr.L)
-      || !ReadAxis(in, "cos", gr.cos))
-    return false;
-
-  const Int_t np = static_cast<Int_t>(gr.p.size());
-  const Int_t nL = static_cast<Int_t>(gr.L.size());
-  const Int_t nc = static_cast<Int_t>(gr.cos.size());
-  gr.loss.assign(static_cast<std::size_t>(np * nL * nc), 0.);
-
-  // Row order is p outer, L inner; each row must match the axis values exactly.
-  for (Int_t ip = 0; ip < np; ++ip) {
-    for (Int_t iL = 0; iL < nL; ++iL) {
-      const std::size_t base
-        = static_cast<std::size_t>((ip * nL + iL) * nc);
-      if (!ReadRow(in, gr.p[static_cast<std::size_t>(ip)],
-                   gr.L[static_cast<std::size_t>(iL)], nc,
-                   &gr.loss[base]))
-        return false;
-    }
-  }
-  slot = std::move(gr);
+  if (ln.key.empty())
+    return in.Error("number line outside a grid block");
+  const GeoKey* g = FindGeoKey(ln.key);
+  if (!g)
+    return in.Error(Form("unknown key '%s'", ln.key.c_str()));
+  if (!std::isnan(m_geom.*(g->member)))
+    return in.Error(Form("duplicate key '%s'", g->name));
+  if (ln.v.size() != 1 || !std::isfinite(ln.v[0]))
+    return in.Error(Form("'%s' needs one finite value", g->name));
+  if (g->positive && !(ln.v[0] > 0.))
+    return in.Error(Form("'%s' must be > 0", g->name));
+  m_geom.*(g->member) = ln.v[0];
   return true;
 }
 
@@ -471,9 +402,104 @@ Lh2ElossMan::CheckGeometry(
   MapReader& in
 ) const
 {
-  for (Int_t i = 0; i < kNGeoKey; ++i) {
-    if (std::isnan(m_geom.*(kGeoKeys[i].member)))
-      return in.FileError(Form("missing key '%s'", kGeoKeys[i].name));
+  for (const GeoKey& g : kGeoKeys) {
+    if (std::isnan(m_geom.*(g.member)))
+      return in.FileError(Form("missing key '%s'", g.name));
+  }
+  // Nested cylinders: liquid inside vessel inside holder.
+  const Geometry& g = m_geom;
+  if (!(g.target_radius <= g.vessel_radius
+        && g.vessel_radius < g.holder_inner_radius
+        && g.holder_inner_radius < g.holder_radius
+        && g.target_half_height <= g.vessel_half_height))
+    return in.FileError("geometry is not nested (liquid <= vessel < holder)");
+  return true;
+}
+
+//_____________________________________________________________________________
+// Block: particle / region / exit / holder lines, then axes and rows.
+Bool_t
+Lh2ElossMan::ReadGrid(
+  MapReader& in,
+  const MapLine& first
+)
+{
+  if (first.v.size() != 1)
+    return in.Error("expected 'particle <value>'");
+  Double_t t[4] = {first.v[0], 0., 0., 0.};
+  if (!in.ExpectKey("region", t[1]) || !in.ExpectKey("exit", t[2])
+      || !in.ExpectKey("holder", t[3]))
+    return false;
+  const Int_t pa = ToTag(t[0], kNParticle);
+  const Int_t rg = ToTag(t[1], kNRegion);
+  const Int_t ex = ToTag(t[2], kNExit);
+  const Int_t ho = ToTag(t[3], kNHolder);
+  if (pa < 0 || rg < 0 || ex < 0 || ho < 0)
+    return in.Error("grid label out of range"
+                    " (particle 0-2 region 0-2 exit 0-1 holder 0-1)");
+  // gap vertices never exit through a liquid surface; only side grids exist.
+  if (rg == kGap && ex != kSide)
+    return in.Error("gap grid must use exit 0 (side)");
+  Grid& slot = GridAt(pa, rg, ex, ho);
+  if (!slot.Empty())
+    return in.Error("duplicate grid");
+
+  Grid gr;
+  if (!ReadAxis(in, "p axis", gr.p) || !ReadAxis(in, "L axis", gr.L)
+      || !ReadAxis(in, "cos axis", gr.cos))
+    return false;
+  if (!ReadBody(in, gr))
+    return false;
+  slot = std::move(gr);
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+Lh2ElossMan::ReadAxis(
+  MapReader& in,
+  const char* what,
+  std::vector<Double_t>& axis
+)
+{
+  if (!in.ExpectNumbers(axis, what))
+    return false;
+  if (!AllFinite(axis) || !StrictlyIncreasing(axis))
+    return in.Error(Form("%s must be finite and strictly increasing", what));
+  return true;
+}
+
+//_____________________________________________________________________________
+// Rows "p L loss(cos_0) ... loss(cos_n)", p outer and L inner; p and L must
+// repeat the axis values exactly.
+Bool_t
+Lh2ElossMan::ReadBody(
+  MapReader& in,
+  Grid& gr
+)
+{
+  const std::size_t nL = gr.L.size();
+  const std::size_t nc = gr.cos.size();
+  gr.loss.clear();
+  gr.loss.reserve(gr.p.size() * nL * nc);
+  std::vector<Double_t> row;
+  for (const Double_t p : gr.p) {
+    for (const Double_t L : gr.L) {
+      if (!in.ExpectNumbers(row, "grid row"))
+        return false;
+      if (row.size() != 2 + nc)
+        return in.Error(Form("grid row needs %zu values, got %zu",
+                             2 + nc, row.size()));
+      if (row[0] != p || row[1] != L)
+        return in.Error(Form("p/L mismatch (got %g %g, expected %g %g)",
+                             row[0], row[1], p, L));
+      for (std::size_t ic = 0; ic < nc; ++ic) {
+        const Double_t val = row[2 + ic];
+        if (!std::isfinite(val) || val < 0.)
+          return in.Error("loss must be finite and >= 0");
+        gr.loss.push_back(val);
+      }
+    }
   }
   return true;
 }
@@ -490,8 +516,9 @@ Lh2ElossMan::CheckGrids(
       continue;
     const std::string miss = MissingGrids(pa);
     if (!miss.empty())
-      return in.FileError(Form("%s grids incomplete: missing %s",
-                               kParticleName[pa], miss.c_str()));
+      return in.FileError(Form("particle %d grids incomplete,"
+                               " missing (region exit holder): %s",
+                               pa, miss.c_str()));
   }
   return true;
 }
