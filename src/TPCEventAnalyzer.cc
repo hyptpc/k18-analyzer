@@ -721,6 +721,99 @@ TPCEventAnalyzer::FillHelixK0ShortMassHist(const TPCVertex* vertex)
 }
 
 //_____________________________________________________________________________
+// All HTOF candidates of a helix (before the cluster match).
+void
+TPCEventAnalyzer::FillHelixHtofCandHist(const std::vector<Int_t>& seg,
+                                        const std::vector<Double_t>& len,
+                                        const std::vector<Double_t>& abs_s,
+                                        const std::vector<Double_t>& drho,
+                                        const std::vector<Double_t>& horizontal,
+                                        const std::vector<Double_t>& vertical)
+{
+  HF1("HTOF_Cand_N", seg.size());
+  for (std::size_t i = 0; i < seg.size(); ++i) {
+    HF1("HTOF_Cand_Seg", seg[i]);
+    HF1("HTOF_Cand_Len", len[i]);
+    HF1("HTOF_Cand_AbsS", abs_s[i]);
+    HF1("HTOF_Cand_dRho", drho[i]);
+    HF1("HTOF_Cand_H", horizontal[i]);
+    HF1("HTOF_Cand_V", vertical[i]);
+  }
+}
+
+//_____________________________________________________________________________
+// Stage reached by a track (EStage in example/DstTPCHelixHTOF.cc).
+void
+TPCEventAnalyzer::FillHelixHtofStage(Int_t stage)
+{
+  HF1("HTOF_Stage", stage);
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHtofMatchHist(Double_t abs_s, Double_t drho,
+                                         Double_t horizontal, Double_t vertical,
+                                         Int_t dseg, Double_t L_sec)
+{
+  HF1("HTOF_Match_AbsS", abs_s);
+  HF1("HTOF_Match_dRho", drho);
+  HF1("HTOF_Match_H", horizontal);
+  HF1("HTOF_Match_V", vertical);
+  HF1("HTOF_Match_dSeg", dseg);
+  if (std::isfinite(L_sec))
+    HF1("HTOF_Match_Lsec", L_sec);
+}
+
+//_____________________________________________________________________________
+// Tracks with TOF (tof_valid). 1/beta = c t_sec / L_sec; the *Pid versions use the dE/dx bits.
+void
+TPCEventAnalyzer::FillHelixHtofTofHist(Double_t ctof_htof, Double_t L_sec, Double_t L_beam,
+                                       Double_t m2, Int_t vertex_source,
+                                       Double_t p_vtx, Int_t charge, Int_t pid,
+                                       Double_t t_sec,
+                                       Double_t dt_pi, Double_t dt_k, Double_t dt_p,
+                                       Double_t extrap_seg)
+{
+  HF1("HTOF_Ctof", ctof_htof);
+  HF1("HTOF_Lsec", L_sec);
+  HF1("HTOF_Lbeam", L_beam);
+  HF1("HTOF_M2", m2);
+  HF1(Form("HTOF_M2_VtxSrc%d", vertex_source), m2);
+  HF1("HTOF_dT_Pi", dt_pi);
+  HF1("HTOF_dT_K", dt_k);
+  HF1("HTOF_dT_P", dt_p);
+  HF2("HTOF_dT_Pi_vs_Seg", extrap_seg, dt_pi);
+  HF2("HTOF_dT_Pi_vs_Lsec", L_sec, dt_pi);
+  const Double_t poq = p_vtx * charge;
+  const Double_t inv_beta = MathTools::C() * t_sec / L_sec;
+  HF2("HTOF_InvBeta_vs_PoQ", poq, inv_beta);
+  if (pid & 0x1) HF2("HTOF_InvBeta_vs_PoQ_PiPid", poq, inv_beta);
+  if (pid & 0x2) HF2("HTOF_InvBeta_vs_PoQ_KPid", poq, inv_beta);
+  if (pid & 0x4) HF2("HTOF_InvBeta_vs_PoQ_PPid", poq, inv_beta);
+}
+
+//_____________________________________________________________________________
+// Pair-vertex tracks with the LH2 TOF (conf LH2ELOSS).
+// dt_p_lh2 - dt_p = expected time without LH2 - expected time with LH2.
+void
+TPCEventAnalyzer::FillHelixHtofLh2Hist(Double_t L_lh2, Double_t dt_pi_lh2,
+                                       Double_t dt_p_lh2, Double_t dt_p, Double_t p_vtx)
+{
+  if (!std::isfinite(L_lh2))
+    return;
+  HF1("HTOF_Llh2", L_lh2);
+  if (std::isfinite(dt_pi_lh2))
+    HF1("HTOF_dT_Pi_lh2", dt_pi_lh2);
+  if (!std::isfinite(dt_p_lh2))
+    return;
+  HF1("HTOF_dT_P_lh2", dt_p_lh2);
+  if (std::isfinite(dt_p)) {
+    HF1("HTOF_dTdiff_P", dt_p_lh2 - dt_p);
+    HF2("HTOF_dTdiff_P_vs_P", p_vtx, dt_p_lh2 - dt_p);
+  }
+}
+
+//_____________________________________________________________________________
 void
 TPCEventAnalyzer::FillCoBoClockTime(const TString& prefix,
                                     Int_t layer, Int_t row,

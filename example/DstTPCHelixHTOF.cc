@@ -11,7 +11,6 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <optional>
 #include <vector>
 
 #include <TMath.h>
@@ -28,9 +27,11 @@
 #include "HistTools.hh"
 #include "HodoParamMan.hh"
 #include "Kinematics.hh"
+#include "Lh2ElossMan.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "TPCAnalyzer.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCPadHelper.hh"
 #include "ThreeVector.hh"
@@ -38,6 +39,9 @@
 
 #include <UnpackerManager.hh>
 #include <spdlog/spdlog.h>
+
+// 1: also fill the LH2 TOF branches for beam tracks (kVtxBeamHelix) into separate *_beam branches.
+#define HTOF_LH2_INCLUDE_BEAM 0
 
 namespace
 {
@@ -49,6 +53,7 @@ auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
+auto&       gLh2Eloss = Lh2ElossMan::GetInstance();
 
 const Double_t qnan = TMath::QuietNaN();
 const std::vector<TString> kUserParamKeys = {};
@@ -80,59 +85,6 @@ Bool_t   gTime0SegCorrEnabled = false;
 
 // BH2 segment geometry (as in src/DCTrackSearch.cc): 0-origin, -X to +X, centre = seg 7.
 const Double_t kBh2SegPitch = 14.0 + 0.5; // width + gap [mm]
-
-// Per-track output branches: X(type, name, default value).
-#define HTOF_TRACK_BRANCHES(X)            \
-  X(Int_t,    charge,               0)    \
-  X(Int_t,    is_beam,              0)    \
-  X(Int_t,    is_accidental,        0)    \
-  X(Int_t,    pid,                  0)    \
-  X(Double_t, dEdx,                 qnan) \
-  X(Double_t, mom0,                 qnan) \
-  X(Int_t,    vertex_source,        kVtxNone) \
-  X(Double_t, vtx_x,                qnan) \
-  X(Double_t, vtx_y,                qnan) \
-  X(Double_t, vtx_z,                qnan) \
-  X(Double_t, p_vtx,                qnan) \
-  X(Int_t,    seg_match,            0)    \
-  X(Double_t, extrap_seg,           qnan) \
-  X(Int_t,    extrap_plane,         -1)   \
-  X(Double_t, extrap_x,             qnan) \
-  X(Double_t, extrap_y,             qnan) \
-  X(Double_t, extrap_z,             qnan) \
-  X(Double_t, extrap_horizontal,    qnan) \
-  X(Double_t, extrap_vertical,      qnan) \
-  X(Double_t, extrap_cos_incidence, qnan) \
-  X(Double_t, match_cl_seg,         qnan) \
-  X(Double_t, match_raw_seg,        qnan) \
-  X(Double_t, match_hit_seg,        qnan) \
-  X(Double_t, htof_adc_u,           qnan) \
-  X(Double_t, htof_adc_d,           qnan) \
-  X(Double_t, htof_adc_s,           qnan) \
-  X(Double_t, htof_de_u,            qnan) \
-  X(Double_t, htof_de_d,            qnan) \
-  X(Double_t, htof_de_s,            qnan) \
-  X(Int_t,    tof_valid,            0)    \
-  X(Double_t, ctof_htof,            qnan) \
-  X(Double_t, L_beam,               qnan) \
-  X(Double_t, L_sec,                qnan) \
-  X(Double_t, t_beam,               qnan) \
-  X(Double_t, t_sec,                qnan) \
-  X(Double_t, m2,                   qnan) \
-  X(Double_t, dt_pi,                qnan) \
-  X(Double_t, dt_k,                 qnan) \
-  X(Double_t, dt_p,                 qnan) \
-  X(Double_t, nsigma_pi,            qnan) \
-  X(Double_t, nsigma_k,             qnan) \
-  X(Double_t, nsigma_p,             qnan)
-
-// One track of the output.
-struct TrackRow
-{
-#define X(type, name, init) type name = init;
-  HTOF_TRACK_BRANCHES(X)
-#undef X
-};
 }
 
 namespace dst
@@ -154,43 +106,150 @@ Bool_t SetupReaders();
 //_____________________________________________________________________________
 struct Event
 {
+  // --- run / event ---
   Int_t status;
   UInt_t runnum;
   UInt_t evnum;
+  Int_t beamflag;
+
+  // --- trigger (from helix) ---
   std::vector<Double_t> trigpat;
   std::vector<std::vector<Double_t>> trigflag;
-  Int_t beamflag;
+
+  // --- BH2 time0 (from hodo) ---
   Double_t time0;
   Double_t time0_seg;
-  Double_t time0_seg_corr;
+  Double_t time0_seg_corr; // subtracted from ctof_htof
+
+  // --- per-track: copied from helix ---
   Int_t ntTpc;
-#define X(type, name, init) std::vector<type> name;
-  HTOF_TRACK_BRANCHES(X)
-#undef X
+  std::vector<Int_t> charge;
+  std::vector<Int_t> is_beam;
+  std::vector<Int_t> is_accidental;
+  std::vector<Int_t> pid; // dE/dx PID bits: bit0 = pi, bit1 = K, bit2 = p
+  std::vector<Double_t> dEdx;
+  std::vector<Double_t> mom0;
+
+  // --- per-track: vertex ---
+  std::vector<Int_t> vertex_source; // EVtxSrc
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> p_vtx; // = mom0 when a vertex exists
+
+  // --- per-track: HTOF match ---
+  std::vector<Int_t> seg_match;
+  std::vector<Double_t> extrap_seg;
+  std::vector<Int_t> extrap_plane;
+  std::vector<Double_t> extrap_x;
+  std::vector<Double_t> extrap_y;
+  std::vector<Double_t> extrap_z;
+  std::vector<Double_t> extrap_horizontal;    // on-face tangential [mm], signed
+  std::vector<Double_t> extrap_vertical;      // on-face Y - y_offset [mm]
+  std::vector<Double_t> extrap_cos_incidence; // |cos| to the face normal
+  std::vector<Double_t> match_cl_seg;
+  std::vector<Double_t> match_raw_seg; // segment of htof_adc_*
+  std::vector<Double_t> match_hit_seg; // segment of htof_de_*
+  std::vector<Double_t> htof_adc_u;
+  std::vector<Double_t> htof_adc_d;
+  std::vector<Double_t> htof_adc_s;
+  std::vector<Double_t> htof_de_u;
+  std::vector<Double_t> htof_de_d;
+  std::vector<Double_t> htof_de_s;
+
+  // --- per-track: TOF ---
+  std::vector<Int_t> tof_valid;
+  std::vector<Double_t> ctof_htof; // HTOF - time0 - time0_seg_corr [ns]
+  std::vector<Double_t> L_beam;    // BH2 -> vertex [mm]
+  std::vector<Double_t> L_sec;     // vertex -> HTOF along the helix [mm]
+  std::vector<Double_t> t_beam;    // BH2 -> vertex flight of the beam [ns]
+  std::vector<Double_t> t_sec;     // ctof_htof - t_beam [ns]
+  std::vector<Double_t> m2;
+  std::vector<Double_t> dt_pi;     // t_sec - expected time if pi (not a species assignment)
+  std::vector<Double_t> dt_k;
+  std::vector<Double_t> dt_p;
+  std::vector<Double_t> nsigma_pi;
+  std::vector<Double_t> nsigma_k;
+  std::vector<Double_t> nsigma_p;
+
+  // --- per-track: TOF with the LH2 segment (conf LH2ELOSS, pair vertex only) ---
+  std::vector<Double_t> L_lh2;
+  std::vector<Int_t> lh2_exit;
+  std::vector<Double_t> dt_pi_lh2;
+  std::vector<Double_t> dt_k_lh2;
+  std::vector<Double_t> dt_p_lh2;
+#if HTOF_LH2_INCLUDE_BEAM
+  std::vector<Double_t> L_lh2_beam;
+  std::vector<Int_t> lh2_exit_beam;
+  std::vector<Double_t> dt_pi_lh2_beam;
+  std::vector<Double_t> dt_k_lh2_beam;
+  std::vector<Double_t> dt_p_lh2_beam;
+#endif
 
   void clear()
   {
     status = 0;
     runnum = 0;
     evnum = 0;
-    trigpat.clear();
-    trigflag.clear();
     beamflag = beam::kUnknown;
     time0 = qnan;
     time0_seg = qnan;
     time0_seg_corr = 0.;
     ntTpc = 0;
-#define X(type, name, init) name.clear();
-    HTOF_TRACK_BRANCHES(X)
-#undef X
+    dst::clear_all(trigpat, trigflag,
+                   charge, is_beam, is_accidental, pid, dEdx, mom0,
+                   vertex_source, vtx_x, vtx_y, vtx_z, p_vtx,
+                   seg_match, extrap_seg, extrap_plane, extrap_x, extrap_y, extrap_z,
+                   extrap_horizontal, extrap_vertical, extrap_cos_incidence,
+                   match_cl_seg, match_raw_seg, match_hit_seg,
+                   htof_adc_u, htof_adc_d, htof_adc_s, htof_de_u, htof_de_d, htof_de_s,
+                   tof_valid, ctof_htof, L_beam, L_sec, t_beam, t_sec, m2,
+                   dt_pi, dt_k, dt_p, nsigma_pi, nsigma_k, nsigma_p,
+                   L_lh2, lh2_exit, dt_pi_lh2, dt_k_lh2, dt_p_lh2);
+#if HTOF_LH2_INCLUDE_BEAM
+    dst::clear_all(L_lh2_beam, lh2_exit_beam, dt_pi_lh2_beam, dt_k_lh2_beam, dt_p_lh2_beam);
+#endif
   }
 
-  void push(const TrackRow& row)
+  void resizeTracks(Int_t n)
   {
-    ++ntTpc;
-#define X(type, name, init) name.push_back(row.name);
-    HTOF_TRACK_BRANCHES(X)
-#undef X
+    ntTpc = n;
+    dst::resize_all(n,
+                    charge, is_beam, is_accidental, pid, dEdx, mom0,
+                    vertex_source, vtx_x, vtx_y, vtx_z, p_vtx,
+                    seg_match, extrap_seg, extrap_plane, extrap_x, extrap_y, extrap_z,
+                    extrap_horizontal, extrap_vertical, extrap_cos_incidence,
+                    match_cl_seg, match_raw_seg, match_hit_seg,
+                    htof_adc_u, htof_adc_d, htof_adc_s, htof_de_u, htof_de_d, htof_de_s,
+                    tof_valid, ctof_htof, L_beam, L_sec, t_beam, t_sec, m2,
+                    dt_pi, dt_k, dt_p, nsigma_pi, nsigma_k, nsigma_p,
+                    L_lh2, lh2_exit, dt_pi_lh2, dt_k_lh2, dt_p_lh2);
+#if HTOF_LH2_INCLUDE_BEAM
+    dst::resize_all(n, L_lh2_beam, lh2_exit_beam, dt_pi_lh2_beam, dt_k_lh2_beam, dt_p_lh2_beam);
+#endif
+    for (Int_t i = 0; i < n; ++i) {
+      charge[i] = is_beam[i] = is_accidental[i] = pid[i] = 0;
+      dEdx[i] = mom0[i] = qnan;
+      vertex_source[i] = kVtxNone;
+      vtx_x[i] = vtx_y[i] = vtx_z[i] = p_vtx[i] = qnan;
+      seg_match[i] = 0;
+      extrap_plane[i] = -1;
+      extrap_seg[i] = extrap_x[i] = extrap_y[i] = extrap_z[i] = qnan;
+      extrap_horizontal[i] = extrap_vertical[i] = extrap_cos_incidence[i] = qnan;
+      match_cl_seg[i] = match_raw_seg[i] = match_hit_seg[i] = qnan;
+      htof_adc_u[i] = htof_adc_d[i] = htof_adc_s[i] = qnan;
+      htof_de_u[i] = htof_de_d[i] = htof_de_s[i] = qnan;
+      tof_valid[i] = 0;
+      ctof_htof[i] = L_beam[i] = L_sec[i] = t_beam[i] = t_sec[i] = m2[i] = qnan;
+      dt_pi[i] = dt_k[i] = dt_p[i] = qnan;
+      nsigma_pi[i] = nsigma_k[i] = nsigma_p[i] = qnan;
+      L_lh2[i] = dt_pi_lh2[i] = dt_k_lh2[i] = dt_p_lh2[i] = qnan;
+      lh2_exit[i] = -1;
+#if HTOF_LH2_INCLUDE_BEAM
+      L_lh2_beam[i] = dt_pi_lh2_beam[i] = dt_k_lh2_beam[i] = dt_p_lh2_beam[i] = qnan;
+      lh2_exit_beam[i] = -1;
+#endif
+    }
   }
 };
 
@@ -343,9 +402,9 @@ GetBeamInfo(UInt_t runnum)
 
 //_____________________________________________________________________________
 Bool_t
-IsBeamOrAccidental(Int_t i)
+IsBeamOrAccidental(Int_t it)
 {
-  return (**src.is_beam)[i] == 1 || (**src.is_accidental)[i] == 1;
+  return event.is_beam[it] == 1 || event.is_accidental[it] == 1;
 }
 
 //_____________________________________________________________________________
@@ -373,10 +432,12 @@ MakeHelix(Int_t it, TPCLocalTrackHelix& helix)
   const Double_t tmin = (**src.helix_theta_min)[it];
   const Double_t tmax = (**src.helix_theta_max)[it];
   if (TMath::IsNaN(tmin) || TMath::IsNaN(tmax)) return false;
-  Double_t par[5] = { (**src.helix_cx)[it], (**src.helix_cy)[it], (**src.helix_z0)[it],
-                      (**src.helix_r)[it], (**src.helix_dz)[it] };
+  Double_t par[5] = {
+    (**src.helix_cx)[it], (**src.helix_cy)[it], (**src.helix_z0)[it],
+    (**src.helix_r)[it], (**src.helix_dz)[it]
+  };
   helix.SetParam(par);
-  helix.SetCharge((**src.charge)[it]);
+  helix.SetCharge(event.charge[it]);
   helix.SetMint(tmin);
   helix.SetMaxt(tmax);
   helix.SetIsThetaCalculated(true);
@@ -387,12 +448,12 @@ MakeHelix(Int_t it, TPCLocalTrackHelix& helix)
 // Pair vertex of secondary track it: the non-beam, non-accidental partner with the smallest
 // closest distance in the helix DST.
 Bool_t
-FindPairVertex(Int_t it, Int_t nt, TVector3& vertex)
+FindPairVertex(Int_t it, TVector3& vertex)
 {
   if (it >= static_cast<Int_t>((**src.closeDistTpc).size())) return false;
   const auto& dist = (**src.closeDistTpc)[it];
   Double_t best = std::numeric_limits<Double_t>::max();
-  for (Int_t j = 0; j < nt && j < static_cast<Int_t>(dist.size()); ++j) {
+  for (Int_t j = 0; j < event.ntTpc && j < static_cast<Int_t>(dist.size()); ++j) {
     if (j == it || IsBeamOrAccidental(j) || !(dist[j] < best)) continue;
     const TVector3 v((**src.vtxTpc)[it][j], (**src.vtyTpc)[it][j], (**src.vtzTpc)[it][j]);
     if (TMath::IsNaN(v.X()) || TMath::IsNaN(v.Y()) || TMath::IsNaN(v.Z())) continue;
@@ -406,7 +467,7 @@ FindPairVertex(Int_t it, Int_t nt, TVector3& vertex)
 // Beam / accidental tracks: helix extrapolated to the target. Secondaries: pair vertex.
 // Either way the vertex must be inside the target cylinder.
 Int_t
-FindVertex(Int_t it, Int_t nt, const TPCLocalTrackHelix& helix, TVector3& vertex)
+FindVertex(Int_t it, const TPCLocalTrackHelix& helix, TVector3& vertex)
 {
   if (IsBeamOrAccidental(it)) {
     TVector3 mom;
@@ -415,26 +476,9 @@ FindVertex(Int_t it, Int_t nt, const TPCLocalTrackHelix& helix, TVector3& vertex
       return kVtxBeamHelix;
     return kVtxNone;
   }
-  if (FindPairVertex(it, nt, vertex) && tpc::IsInsideTargetCylinder(vertex))
+  if (FindPairVertex(it, vertex) && tpc::IsInsideTargetCylinder(vertex))
     return kVtxPair;
   return kVtxNone;
-}
-
-//_____________________________________________________________________________
-void
-FillCandHist(const TPCAnalyzer& tpc_ana, const HtofCands& c)
-{
-  HF1("HTOF_Cand_N", c.seg.size());
-  for (std::size_t i = 0; i < c.seg.size(); ++i) {
-    Double_t abs_s = qnan, drho = qnan;
-    tpc_ana.HtofMatchResidual(c.plane[i], c.pos[i], abs_s, drho);
-    HF1("HTOF_Cand_Seg", c.seg[i]);
-    HF1("HTOF_Cand_Len", c.len[i]);
-    HF1("HTOF_Cand_AbsS", abs_s);
-    HF1("HTOF_Cand_dRho", drho);
-    HF1("HTOF_Cand_H", c.h[i]);
-    HF1("HTOF_Cand_V", c.v[i]);
-  }
 }
 
 //_____________________________________________________________________________
@@ -464,164 +508,231 @@ MatchHtof(const HtofCands& c, Double_t len_min)
 
 //_____________________________________________________________________________
 void
-FillMatch(TrackRow& row, const TPCAnalyzer& tpc_ana, const HtofCands& c, const HtofMatch& m)
+FillCandHist(TPCEventAnalyzer& event_ana, const TPCAnalyzer& tpc_ana, const HtofCands& c)
+{
+  const std::size_t n = c.seg.size();
+  std::vector<Double_t> abs_s(n, qnan), drho(n, qnan);
+  for (std::size_t i = 0; i < n; ++i)
+    tpc_ana.HtofMatchResidual(c.plane[i], c.pos[i], abs_s[i], drho[i]);
+  event_ana.FillHelixHtofCandHist(c.seg, c.len, abs_s, drho, c.h, c.v);
+}
+
+//_____________________________________________________________________________
+void
+FillMatch(Int_t it, const TPCAnalyzer& tpc_ana, const HtofCands& c, const HtofMatch& m)
 {
   const Int_t i = m.cand;
-  row.seg_match = 1;
-  row.extrap_seg = c.seg[i];
-  row.extrap_plane = c.plane[i];
-  row.extrap_x = c.pos[i].X();
-  row.extrap_y = c.pos[i].Y();
-  row.extrap_z = c.pos[i].Z();
-  row.extrap_horizontal = c.h[i];
-  row.extrap_vertical = c.v[i];
+  event.seg_match[it] = 1;
+  event.extrap_seg[it] = c.seg[i];
+  event.extrap_plane[it] = c.plane[i];
+  event.extrap_x[it] = c.pos[i].X();
+  event.extrap_y[it] = c.pos[i].Y();
+  event.extrap_z[it] = c.pos[i].Z();
+  event.extrap_horizontal[it] = c.h[i];
+  event.extrap_vertical[it] = c.v[i];
   if (c.mom[i].Mag() > 0.)
-    row.extrap_cos_incidence = TMath::Abs(c.mom[i].Unit().Dot(tpc_ana.HtofPlaneNormal(c.plane[i])));
-  row.match_cl_seg = (**src.htof_cl_seg)[m.cl];
+    event.extrap_cos_incidence[it]
+      = TMath::Abs(c.mom[i].Unit().Dot(tpc_ana.HtofPlaneNormal(c.plane[i])));
+  event.match_cl_seg[it] = (**src.htof_cl_seg)[m.cl];
 }
 
 //_____________________________________________________________________________
 // ADC (raw-indexed) and dE (hit-indexed) of the segment closest to the matched cluster;
 // match_raw_seg / match_hit_seg tell which segment they belong to.
 void
-FillAdcDe(TrackRow& row)
+FillAdcDe(Int_t it)
 {
-  const Int_t ir = TPCAnalyzer::MatchHtofBySeg(row.match_cl_seg, **src.htof_raw_seg);
+  const Double_t cl_seg = event.match_cl_seg[it];
+  const Int_t ir = TPCAnalyzer::MatchHtofBySeg(cl_seg, **src.htof_raw_seg);
   if (ir >= 0 && ir < static_cast<Int_t>((**src.htof_adc_s).size())) {
-    row.match_raw_seg = (**src.htof_raw_seg)[ir];
-    row.htof_adc_u = (**src.htof_adc_u)[ir];
-    row.htof_adc_d = (**src.htof_adc_d)[ir];
-    row.htof_adc_s = (**src.htof_adc_s)[ir];
+    event.match_raw_seg[it] = (**src.htof_raw_seg)[ir];
+    event.htof_adc_u[it] = (**src.htof_adc_u)[ir];
+    event.htof_adc_d[it] = (**src.htof_adc_d)[ir];
+    event.htof_adc_s[it] = (**src.htof_adc_s)[ir];
   }
-  const Int_t ih = TPCAnalyzer::MatchHtofBySeg(row.match_cl_seg, **src.htof_hit_seg);
+  const Int_t ih = TPCAnalyzer::MatchHtofBySeg(cl_seg, **src.htof_hit_seg);
   if (ih >= 0 && ih < static_cast<Int_t>((**src.htof_de_s).size())) {
-    row.match_hit_seg = (**src.htof_hit_seg)[ih];
-    row.htof_de_u = (**src.htof_de_u)[ih];
-    row.htof_de_d = (**src.htof_de_d)[ih];
-    row.htof_de_s = (**src.htof_de_s)[ih];
+    event.match_hit_seg[it] = (**src.htof_hit_seg)[ih];
+    event.htof_de_u[it] = (**src.htof_de_u)[ih];
+    event.htof_de_d[it] = (**src.htof_de_d)[ih];
+    event.htof_de_s[it] = (**src.htof_de_s)[ih];
   }
 }
 
 //_____________________________________________________________________________
 void
-FillMatchHist(const TPCAnalyzer& tpc_ana, const HtofCands& c, const HtofMatch& m, Double_t L_sec)
+FillMatchHist(TPCEventAnalyzer& event_ana, const TPCAnalyzer& tpc_ana,
+              const HtofCands& c, const HtofMatch& m, Double_t L_sec)
 {
   Double_t abs_s = qnan, drho = qnan;
   tpc_ana.HtofMatchResidual(c.plane[m.cand], c.pos[m.cand], abs_s, drho);
-  HF1("HTOF_Match_AbsS", abs_s);
-  HF1("HTOF_Match_dRho", drho);
-  HF1("HTOF_Match_H", c.h[m.cand]);
-  HF1("HTOF_Match_V", c.v[m.cand]);
-  HF1("HTOF_Match_dSeg", m.dseg);
-  if (TMath::Finite(L_sec)) HF1("HTOF_Match_Lsec", L_sec);
+  event_ana.FillHelixHtofMatchHist(abs_s, drho, c.h[m.cand], c.v[m.cand], m.dseg, L_sec);
 }
 
 //_____________________________________________________________________________
-// TOF of a matched track with a vertex. Secondary flight time = (HTOF - time0 - BH2 correction)
+// t_sec minus the expected time of particle X when the LH2 part of the path is flown at the
+// momentum before the LH2 loss (trapezoid between vertex and LH2 exit) and the rest at the
+// TPC momentum p. Returns dt_plain when there is no LH2 path.
+Double_t
+DtWithLh2(Double_t t_sec, Double_t p, Double_t L_sec, Double_t dt_plain,
+          Double_t mass, Int_t particle, const Lh2ElossMan::Track& trk)
+{
+  if (!gLh2Eloss.HasParticle(particle)) return qnan;
+  if (!(trk.L > 0.)) return dt_plain;
+  if (!(trk.L < L_sec)) return qnan;
+
+  Lh2ElossMan::Track trk_exit = trk;
+  trk_exit.L = 0.;
+  const Double_t dp = gLh2Eloss.Loss(trk, p * 1.e3, particle);           // [MeV/c]
+  const Double_t dp_exit = gLh2Eloss.Loss(trk_exit, p * 1.e3, particle); // wall only
+  if (!TMath::Finite(dp) || !TMath::Finite(dp_exit)) return qnan;
+
+  const Double_t p_vtx = p + dp * 1.e-3;
+  const Double_t p_exit = p + dp_exit * 1.e-3;
+  if (!(p_vtx > 0.) || !(p_exit > 0.)) return qnan;
+  const Double_t inv_beta_vtx = TMath::Sqrt(mass * mass + p_vtx * p_vtx) / p_vtx;
+  const Double_t inv_beta_exit = TMath::Sqrt(mass * mass + p_exit * p_exit) / p_exit;
+  const Double_t t_lh2 = 0.5 * trk.L * (inv_beta_vtx + inv_beta_exit) / MathTools::C();
+  const Double_t t_rest = Kinematics::CalcTimeOfFlight(p, L_sec - trk.L, mass);
+  if (!TMath::Finite(t_lh2) || !TMath::Finite(t_rest)) return qnan;
+  return t_sec - (t_lh2 + t_rest);
+}
+
+//_____________________________________________________________________________
+// LH2 TOF branches of track it (pair vertex; also beam tracks with HTOF_LH2_INCLUDE_BEAM).
+void
+FillLh2Tof(Int_t it, const TVector3& vertex, const TVector3& mom_at_vtx)
+{
+  if (!gLh2Eloss.IsReady()) return;
+  const Bool_t is_pair = (event.vertex_source[it] == kVtxPair);
+#if HTOF_LH2_INCLUDE_BEAM
+  const Bool_t is_beam = (event.vertex_source[it] == kVtxBeamHelix);
+#else
+  const Bool_t is_beam = false;
+#endif
+  if (!is_pair && !is_beam) return;
+
+  const auto trk = gLh2Eloss.Classify(vertex, mom_at_vtx);
+  const Double_t p = event.p_vtx[it];
+  const Double_t L = event.L_sec[it];
+  const Double_t t = event.t_sec[it];
+  const Double_t dt_pi = DtWithLh2(t, p, L, event.dt_pi[it], pdg::PionMass(), Lh2ElossMan::kPion, trk);
+  const Double_t dt_k = DtWithLh2(t, p, L, event.dt_k[it], pdg::KaonMass(), Lh2ElossMan::kKaon, trk);
+  const Double_t dt_p = DtWithLh2(t, p, L, event.dt_p[it], pdg::ProtonMass(), Lh2ElossMan::kProton, trk);
+  if (is_pair) {
+    event.L_lh2[it] = trk.L;
+    event.lh2_exit[it] = trk.exit;
+    event.dt_pi_lh2[it] = dt_pi;
+    event.dt_k_lh2[it] = dt_k;
+    event.dt_p_lh2[it] = dt_p;
+  }
+#if HTOF_LH2_INCLUDE_BEAM
+  else {
+    event.L_lh2_beam[it] = trk.L;
+    event.lh2_exit_beam[it] = trk.exit;
+    event.dt_pi_lh2_beam[it] = dt_pi;
+    event.dt_k_lh2_beam[it] = dt_k;
+    event.dt_p_lh2_beam[it] = dt_p;
+  }
+#endif
+}
+
+//_____________________________________________________________________________
+// TOF of matched track it with a vertex. Secondary flight time = (HTOF - time0 - BH2 correction)
 // minus the beam flight BH2 -> vertex. dt_X are "if it were X" residuals, not an assignment.
 Int_t
-FillTof(TrackRow& row, const TVector3& vertex, const BeamInfo& beam, Double_t cl_time)
+FillTof(Int_t it, const TVector3& vertex, const TVector3& mom_at_vtx,
+        const BeamInfo& beam, Double_t cl_time)
 {
   if (!TMath::Finite(event.time0) || !TMath::Finite(cl_time)) return kStageBadTime;
-  row.ctof_htof = cl_time - event.time0 - event.time0_seg_corr;
-  row.L_beam = (vertex - Bh2SegPositionTpc(event.time0_seg)).Mag();
+  event.ctof_htof[it] = cl_time - event.time0 - event.time0_seg_corr;
+  event.L_beam[it] = (vertex - Bh2SegPositionTpc(event.time0_seg)).Mag();
   if (beam.Valid())
-    row.t_beam = Kinematics::CalcTimeOfFlight(beam.mom, row.L_beam, beam.mass);
-  if (!TMath::Finite(row.t_beam)) return kStageNoBeam;
-  row.t_sec = row.ctof_htof - row.t_beam;
-  const Double_t p = row.p_vtx, L = row.L_sec, t = row.t_sec;
+    event.t_beam[it] = Kinematics::CalcTimeOfFlight(beam.mom, event.L_beam[it], beam.mass);
+  if (!TMath::Finite(event.t_beam[it])) return kStageNoBeam;
+  event.t_sec[it] = event.ctof_htof[it] - event.t_beam[it];
+
+  const Double_t p = event.p_vtx[it], L = event.L_sec[it], t = event.t_sec[it];
   if (!(t > 0.) || !(p > 0.)) return kStageBadTof;
-  const Double_t poq = p * row.charge;
-  row.m2 = Kinematics::MassSquare(p, L, t);
-  row.dt_pi = t - Kinematics::CalcTimeOfFlight(p, L, pdg::PionMass());
-  row.dt_k  = t - Kinematics::CalcTimeOfFlight(p, L, pdg::KaonMass());
-  row.dt_p  = t - Kinematics::CalcTimeOfFlight(p, L, pdg::ProtonMass());
-  row.nsigma_pi = Kinematics::HypTPCHTOFNsigmaPion(poq, L, t);
-  row.nsigma_k  = Kinematics::HypTPCHTOFNsigmaKaon(poq, L, t);
-  row.nsigma_p  = Kinematics::HypTPCHTOFNsigmaProton(poq, L, t);
-  row.tof_valid = 1;
+  const Double_t poq = p * event.charge[it];
+  event.m2[it] = Kinematics::MassSquare(p, L, t);
+  event.dt_pi[it] = t - Kinematics::CalcTimeOfFlight(p, L, pdg::PionMass());
+  event.dt_k[it]  = t - Kinematics::CalcTimeOfFlight(p, L, pdg::KaonMass());
+  event.dt_p[it]  = t - Kinematics::CalcTimeOfFlight(p, L, pdg::ProtonMass());
+  event.nsigma_pi[it] = Kinematics::HypTPCHTOFNsigmaPion(poq, L, t);
+  event.nsigma_k[it]  = Kinematics::HypTPCHTOFNsigmaKaon(poq, L, t);
+  event.nsigma_p[it]  = Kinematics::HypTPCHTOFNsigmaProton(poq, L, t);
+  FillLh2Tof(it, vertex, mom_at_vtx);
+  event.tof_valid[it] = 1;
   return kStageTof;
 }
 
 //_____________________________________________________________________________
 void
-FillTofHist(const TrackRow& row)
+FillTofHist(TPCEventAnalyzer& event_ana, Int_t it)
 {
-  HF1("HTOF_Ctof", row.ctof_htof);
-  HF1("HTOF_Lsec", row.L_sec);
-  HF1("HTOF_Lbeam", row.L_beam);
-  HF1("HTOF_M2", row.m2);
-  HF1(Form("HTOF_M2_VtxSrc%d", row.vertex_source), row.m2);
-  HF1("HTOF_dT_Pi", row.dt_pi);
-  HF1("HTOF_dT_K", row.dt_k);
-  HF1("HTOF_dT_P", row.dt_p);
-  HF2("HTOF_dT_Pi_vs_Seg", row.extrap_seg, row.dt_pi);
-  HF2("HTOF_dT_Pi_vs_Lsec", row.L_sec, row.dt_pi);
-  const Double_t poq = row.p_vtx * row.charge;
-  const Double_t inv_beta = MathTools::C() * row.t_sec / row.L_sec;
-  HF2("HTOF_InvBeta_vs_PoQ", poq, inv_beta);
-  if (row.pid & 0x1) HF2("HTOF_InvBeta_vs_PoQ_PiPid", poq, inv_beta);
-  if (row.pid & 0x2) HF2("HTOF_InvBeta_vs_PoQ_KPid", poq, inv_beta);
-  if (row.pid & 0x4) HF2("HTOF_InvBeta_vs_PoQ_PPid", poq, inv_beta);
+  event_ana.FillHelixHtofTofHist(event.ctof_htof[it], event.L_sec[it], event.L_beam[it],
+                                 event.m2[it], event.vertex_source[it],
+                                 event.p_vtx[it], event.charge[it], event.pid[it],
+                                 event.t_sec[it],
+                                 event.dt_pi[it], event.dt_k[it], event.dt_p[it],
+                                 event.extrap_seg[it]);
+  if (event.vertex_source[it] == kVtxPair)
+    event_ana.FillHelixHtofLh2Hist(event.L_lh2[it], event.dt_pi_lh2[it],
+                                   event.dt_p_lh2[it], event.dt_p[it], event.p_vtx[it]);
 }
 
 //_____________________________________________________________________________
 // Track part after the vertex: HTOF candidates, cluster match, ADC/dE and TOF.
 // Returns the stage reached (EStage).
 Int_t
-ProcessHtof(TrackRow& row, const TPCLocalTrackHelix& helix, const TPCAnalyzer& tpc_ana,
-            const TVector3& vertex, Double_t len_vtx, const BeamInfo& beam)
+ProcessHtof(Int_t it, const TPCLocalTrackHelix& helix,
+            TPCEventAnalyzer& event_ana, const TPCAnalyzer& tpc_ana,
+            const TVector3& vertex, Double_t len_vtx, const TVector3& mom_at_vtx,
+            const BeamInfo& beam)
 {
   HtofCands c;
   if (!tpc_ana.ExtrapolateToHTOF(&helix, c.seg, c.pos, c.mom, c.len, c.plane, c.h, c.v))
     c = HtofCands{};
-  FillCandHist(tpc_ana, c);
-  const Bool_t have_vtx = (row.vertex_source != kVtxNone);
+  FillCandHist(event_ana, tpc_ana, c);
+  const Bool_t have_vtx = (event.vertex_source[it] != kVtxNone);
   // With a vertex: only candidates beyond it; without: only ahead of the track start.
   const HtofMatch m = MatchHtof(c, have_vtx ? len_vtx : 0.);
   if (!m.Found())
     return c.seg.empty() ? kStageNoCandidate : kStageNoCluster;
-  FillMatch(row, tpc_ana, c, m);
-  FillAdcDe(row);
-  if (have_vtx) row.L_sec = c.len[m.cand] - len_vtx;
-  FillMatchHist(tpc_ana, c, m, row.L_sec);
+  FillMatch(it, tpc_ana, c, m);
+  FillAdcDe(it);
+  if (have_vtx) event.L_sec[it] = c.len[m.cand] - len_vtx;
+  FillMatchHist(event_ana, tpc_ana, c, m, event.L_sec[it]);
   if (!have_vtx) return kStageNoVertex;
-  return FillTof(row, vertex, beam, (**src.htof_cl_time)[m.cl]);
+  return FillTof(it, vertex, mom_at_vtx, beam, (**src.htof_cl_time)[m.cl]);
 }
 
 //_____________________________________________________________________________
-TrackRow
-ProcessTrack(Int_t it, Int_t nt, const TPCAnalyzer& tpc_ana, const BeamInfo& beam)
+void
+ProcessTrack(Int_t it, TPCEventAnalyzer& event_ana, const TPCAnalyzer& tpc_ana,
+             const BeamInfo& beam)
 {
-  TrackRow row;
-  row.charge        = (**src.charge)[it];
-  row.is_beam       = (**src.is_beam)[it];
-  row.is_accidental = (**src.is_accidental)[it];
-  row.pid           = (**src.pid)[it];
-  row.dEdx          = (**src.dEdx)[it];
-  row.mom0          = (**src.mom0)[it];
-
   TPCLocalTrackHelix helix;
-  if (!MakeHelix(it, helix)) return row;
+  if (!MakeHelix(it, helix)) return;
 
-  TVector3 vertex;
-  row.vertex_source = FindVertex(it, nt, helix, vertex);
+  TVector3 vertex, mom_at_vtx;
+  event.vertex_source[it] = FindVertex(it, helix, vertex);
   Double_t len_vtx = 0.;
-  if (row.vertex_source != kVtxNone) {
-    row.vtx_x = vertex.X();
-    row.vtx_y = vertex.Y();
-    row.vtx_z = vertex.Z();
-    TVector3 pos, mom;
+  if (event.vertex_source[it] != kVtxNone) {
+    event.vtx_x[it] = vertex.X();
+    event.vtx_y[it] = vertex.Y();
+    event.vtx_z[it] = vertex.Z();
+    TVector3 pos;
     Double_t dist = 0.;
-    if (!helix.ExtrapolateToPoint(vertex, pos, mom, len_vtx, dist)) return row;
+    if (!helix.ExtrapolateToPoint(vertex, pos, mom_at_vtx, len_vtx, dist)) return;
     // |p| is constant along the helix: use the helix DST value (mom0).
-    row.p_vtx = row.mom0;
+    event.p_vtx[it] = event.mom0[it];
   }
 
-  const Int_t stage = ProcessHtof(row, helix, tpc_ana, vertex, len_vtx, beam);
-  HF1("HTOF_Stage", stage);
-  if (row.tof_valid) FillTofHist(row);
-  return row;
+  const Int_t stage = ProcessHtof(it, helix, event_ana, tpc_ana, vertex, len_vtx, mom_at_vtx, beam);
+  event_ana.FillHelixHtofStage(stage);
+  if (event.tof_valid[it]) FillTofHist(event_ana, it);
 }
 }
 
@@ -746,12 +857,23 @@ dst::DstRead(Long64_t ievent)
 
   const Int_t nt = **src.ntTpc;
   if (nt <= 0) return true;
+  event.resizeTracks(nt);
+  // All tracks are copied first: the pair vertex of a track looks at the tags of the others.
+  for (Int_t it = 0; it < nt; ++it) {
+    event.charge[it]        = (**src.charge)[it];
+    event.is_beam[it]       = (**src.is_beam)[it];
+    event.is_accidental[it] = (**src.is_accidental)[it];
+    event.pid[it]           = (**src.pid)[it];
+    event.dEdx[it]          = (**src.dEdx)[it];
+    event.mom0[it]          = (**src.mom0)[it];
+  }
   HF1("Status", event.status++);
 
+  static TPCEventAnalyzer event_ana;
   const TPCAnalyzer tpc_ana;
   const BeamInfo beam = GetBeamInfo(event.runnum);
   for (Int_t it = 0; it < nt; ++it)
-    event.push(ProcessTrack(it, nt, tpc_ana, beam));
+    ProcessTrack(it, event_ana, tpc_ana, beam);
   HF1("Status", event.status++);
 
   return true;
@@ -779,47 +901,45 @@ Bool_t
 dst::SetupReaders()
 {
   if (!dst::SetupReader(kHelix, "kHelix")) return false;
-  auto* rh = TTreeReaderCont[kHelix];
-  dst::SetBranch(rh, "run_number", src.runnum_tpc);
-  dst::SetBranch(rh, "event_number", src.evnum_tpc);
-  dst::SetBranch(rh, "trig_pat", src.trigpat);
-  dst::SetBranch(rh, "trig_flag", src.trigflag);
-  dst::SetBranch(rh, "ntTpc", src.ntTpc);
-  dst::SetBranch(rh, "helix_cx", src.helix_cx);
-  dst::SetBranch(rh, "helix_cy", src.helix_cy);
-  dst::SetBranch(rh, "helix_z0", src.helix_z0);
-  dst::SetBranch(rh, "helix_r", src.helix_r);
-  dst::SetBranch(rh, "helix_dz", src.helix_dz);
-  dst::SetBranch(rh, "helix_theta_min", src.helix_theta_min);
-  dst::SetBranch(rh, "helix_theta_max", src.helix_theta_max);
-  dst::SetBranch(rh, "charge", src.charge);
-  dst::SetBranch(rh, "is_beam", src.is_beam);
-  dst::SetBranch(rh, "is_accidental", src.is_accidental);
-  dst::SetBranch(rh, "pid", src.pid);
-  dst::SetBranch(rh, "dEdx", src.dEdx);
-  dst::SetBranch(rh, "mom0", src.mom0);
-  dst::SetBranch(rh, "closeDistTpc", src.closeDistTpc);
-  dst::SetBranch(rh, "vtxTpc", src.vtxTpc);
-  dst::SetBranch(rh, "vtyTpc", src.vtyTpc);
-  dst::SetBranch(rh, "vtzTpc", src.vtzTpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "run_number", src.runnum_tpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "event_number", src.evnum_tpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "trig_pat", src.trigpat);
+  dst::SetBranch(TTreeReaderCont[kHelix], "trig_flag", src.trigflag);
+  dst::SetBranch(TTreeReaderCont[kHelix], "ntTpc", src.ntTpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_cx", src.helix_cx);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_cy", src.helix_cy);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_z0", src.helix_z0);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_r", src.helix_r);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_dz", src.helix_dz);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_theta_min", src.helix_theta_min);
+  dst::SetBranch(TTreeReaderCont[kHelix], "helix_theta_max", src.helix_theta_max);
+  dst::SetBranch(TTreeReaderCont[kHelix], "charge", src.charge);
+  dst::SetBranch(TTreeReaderCont[kHelix], "is_beam", src.is_beam);
+  dst::SetBranch(TTreeReaderCont[kHelix], "is_accidental", src.is_accidental);
+  dst::SetBranch(TTreeReaderCont[kHelix], "pid", src.pid);
+  dst::SetBranch(TTreeReaderCont[kHelix], "dEdx", src.dEdx);
+  dst::SetBranch(TTreeReaderCont[kHelix], "mom0", src.mom0);
+  dst::SetBranch(TTreeReaderCont[kHelix], "closeDistTpc", src.closeDistTpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "vtxTpc", src.vtxTpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "vtyTpc", src.vtyTpc);
+  dst::SetBranch(TTreeReaderCont[kHelix], "vtzTpc", src.vtzTpc);
 
   if (!dst::SetupReader(kHodo, "kHodo")) return false;
-  auto* rd = TTreeReaderCont[kHodo];
-  dst::SetBranch(rd, "run_number", src.runnum_hodo);
-  dst::SetBranch(rd, "event_number", src.evnum_hodo);
-  dst::SetBranch(rd, "beam_flag", src.beamflag);
-  dst::SetBranch(rd, "time0", src.time0);
-  dst::SetBranch(rd, "time0_seg", src.time0_seg);
-  dst::SetBranch(rd, "htof_cl_seg", src.htof_cl_seg);
-  dst::SetBranch(rd, "htof_cl_time", src.htof_cl_time);
-  dst::SetBranch(rd, "htof_hit_seg", src.htof_hit_seg);
-  dst::SetBranch(rd, "htof_raw_seg", src.htof_raw_seg);
-  dst::SetBranch(rd, "htof_adc_u", src.htof_adc_u);
-  dst::SetBranch(rd, "htof_adc_d", src.htof_adc_d);
-  dst::SetBranch(rd, "htof_adc_s", src.htof_adc_s);
-  dst::SetBranch(rd, "htof_de_u", src.htof_de_u);
-  dst::SetBranch(rd, "htof_de_d", src.htof_de_d);
-  dst::SetBranch(rd, "htof_de_s", src.htof_de_s);
+  dst::SetBranch(TTreeReaderCont[kHodo], "run_number", src.runnum_hodo);
+  dst::SetBranch(TTreeReaderCont[kHodo], "event_number", src.evnum_hodo);
+  dst::SetBranch(TTreeReaderCont[kHodo], "beam_flag", src.beamflag);
+  dst::SetBranch(TTreeReaderCont[kHodo], "time0", src.time0);
+  dst::SetBranch(TTreeReaderCont[kHodo], "time0_seg", src.time0_seg);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_cl_seg", src.htof_cl_seg);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_cl_time", src.htof_cl_time);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_hit_seg", src.htof_hit_seg);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_raw_seg", src.htof_raw_seg);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_adc_u", src.htof_adc_u);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_adc_d", src.htof_adc_d);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_adc_s", src.htof_adc_s);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_de_u", src.htof_de_u);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_de_d", src.htof_de_d);
+  dst::SetBranch(TTreeReaderCont[kHodo], "htof_de_s", src.htof_de_s);
 
   return true;
 }
@@ -841,10 +961,66 @@ ConfMan::InitializeHistograms()
   tree->Branch("time0", &event.time0);
   tree->Branch("time0_seg", &event.time0_seg);
   tree->Branch("time0_seg_corr", &event.time0_seg_corr);
+
   tree->Branch("ntTpc", &event.ntTpc);
-#define X(type, name, init) tree->Branch(#name, &event.name);
-  HTOF_TRACK_BRANCHES(X)
-#undef X
+  tree->Branch("charge", &event.charge);
+  tree->Branch("is_beam", &event.is_beam);
+  tree->Branch("is_accidental", &event.is_accidental);
+  tree->Branch("pid", &event.pid);
+  tree->Branch("dEdx", &event.dEdx);
+  tree->Branch("mom0", &event.mom0);
+
+  tree->Branch("vertex_source", &event.vertex_source);
+  tree->Branch("vtx_x", &event.vtx_x);
+  tree->Branch("vtx_y", &event.vtx_y);
+  tree->Branch("vtx_z", &event.vtx_z);
+  tree->Branch("p_vtx", &event.p_vtx);
+
+  tree->Branch("seg_match", &event.seg_match);
+  tree->Branch("extrap_seg", &event.extrap_seg);
+  tree->Branch("extrap_plane", &event.extrap_plane);
+  tree->Branch("extrap_x", &event.extrap_x);
+  tree->Branch("extrap_y", &event.extrap_y);
+  tree->Branch("extrap_z", &event.extrap_z);
+  tree->Branch("extrap_horizontal", &event.extrap_horizontal);
+  tree->Branch("extrap_vertical", &event.extrap_vertical);
+  tree->Branch("extrap_cos_incidence", &event.extrap_cos_incidence);
+  tree->Branch("match_cl_seg", &event.match_cl_seg);
+  tree->Branch("match_raw_seg", &event.match_raw_seg);
+  tree->Branch("match_hit_seg", &event.match_hit_seg);
+  tree->Branch("htof_adc_u", &event.htof_adc_u);
+  tree->Branch("htof_adc_d", &event.htof_adc_d);
+  tree->Branch("htof_adc_s", &event.htof_adc_s);
+  tree->Branch("htof_de_u", &event.htof_de_u);
+  tree->Branch("htof_de_d", &event.htof_de_d);
+  tree->Branch("htof_de_s", &event.htof_de_s);
+
+  tree->Branch("tof_valid", &event.tof_valid);
+  tree->Branch("ctof_htof", &event.ctof_htof);
+  tree->Branch("L_beam", &event.L_beam);
+  tree->Branch("L_sec", &event.L_sec);
+  tree->Branch("t_beam", &event.t_beam);
+  tree->Branch("t_sec", &event.t_sec);
+  tree->Branch("m2", &event.m2);
+  tree->Branch("dt_pi", &event.dt_pi);
+  tree->Branch("dt_k", &event.dt_k);
+  tree->Branch("dt_p", &event.dt_p);
+  tree->Branch("nsigma_pi", &event.nsigma_pi);
+  tree->Branch("nsigma_k", &event.nsigma_k);
+  tree->Branch("nsigma_p", &event.nsigma_p);
+
+  tree->Branch("L_lh2", &event.L_lh2);
+  tree->Branch("lh2_exit", &event.lh2_exit);
+  tree->Branch("dt_pi_lh2", &event.dt_pi_lh2);
+  tree->Branch("dt_k_lh2", &event.dt_k_lh2);
+  tree->Branch("dt_p_lh2", &event.dt_p_lh2);
+#if HTOF_LH2_INCLUDE_BEAM
+  tree->Branch("L_lh2_beam", &event.L_lh2_beam);
+  tree->Branch("lh2_exit_beam", &event.lh2_exit_beam);
+  tree->Branch("dt_pi_lh2_beam", &event.dt_pi_lh2_beam);
+  tree->Branch("dt_k_lh2_beam", &event.dt_k_lh2_beam);
+  tree->Branch("dt_p_lh2_beam", &event.dt_p_lh2_beam);
+#endif
 
   return true;
 }
@@ -860,6 +1036,10 @@ ConfMan::InitializeParameterFiles()
     if (!InitializeParameter<HodoParamMan>("HDPRM"))
       return false;
     LoadTime0SegCorr();
+  }
+  if (HasKey("LH2ELOSS")) {
+    if (!InitializeParameter<Lh2ElossMan>("LH2ELOSS"))
+      return false;
   }
   return true;
 }

@@ -1339,6 +1339,7 @@ BuildTPCHelixK0Short()
 void
 BuildTPCHelixHTOF()
 {
+  // Binning lives here (nbins, min, max). Pass these arrays to HB*, not bare literals.
   const Double_t bins_ncand[3]   = {10., -0.5, 9.5};
   const Double_t bins_seg[3]     = {34., -0.5, 33.5};
   const Double_t bins_len[3]     = {200., -500., 1500.};
@@ -1354,6 +1355,9 @@ BuildTPCHelixHTOF()
   const Double_t bins_dt[3]      = {200., -20., 20.};
   const Double_t bins_poq[3]     = {150., -1.5, 1.5};
   const Double_t bins_invbeta[3] = {120., 0., 4.0};
+  const Double_t bins_llh2[3]    = {100., 0., 100.};
+  const Double_t bins_dtdiff[3]  = {100., -0.2, 0.2};
+  const Double_t bins_p[3]       = {100., 0., 1.5};
 
   // Stage reached per track: see EStage in example/DstTPCHelixHTOF.cc.
   HB1("HTOF_Stage;stage;Counts", bins_stage);
@@ -1392,5 +1396,14 @@ BuildTPCHelixHTOF()
   HB2("HTOF_InvBeta_vs_PoQ_PiPid;q#timesp [GeV/c];1/#beta (#pi pid)", bins_poq, bins_invbeta);
   HB2("HTOF_InvBeta_vs_PoQ_KPid;q#timesp [GeV/c];1/#beta (K pid)", bins_poq, bins_invbeta);
   HB2("HTOF_InvBeta_vs_PoQ_PPid;q#timesp [GeV/c];1/#beta (p pid)", bins_poq, bins_invbeta);
+
+  // Pair-vertex LH2 expected-TOF (optional LH2ELOSS).
+  HB1("HTOF_Llh2;L_{LH2} [mm];Counts", bins_llh2);
+  HB1("HTOF_dT_Pi_lh2;t_{sec}-t_{calc,lh2}(#pi) [ns];Counts", bins_dt);
+  HB1("HTOF_dT_P_lh2;t_{sec}-t_{calc,lh2}(p) [ns];Counts", bins_dt);
+  HB1("HTOF_dTdiff_P;dt_p_lh2-dt_p [ns];Counts", bins_dtdiff);
+  HB2("HTOF_dTdiff_P_vs_P;p_{vtx} [GeV/c];dt_p_lh2-dt_p [ns]", bins_p, bins_dtdiff);
 }
+
+
 }
