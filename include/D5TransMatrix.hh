@@ -9,9 +9,10 @@
 class D5TransMatrix
 {
 public:
-  // Default reference planes [mm] in FF (overridden by D5TransferMatrix.param)
+  // Default reference planes [mm] (overridden by D5TransferMatrix.param):
+  // RefZIn in the BLC1 track frame, RefZOut in FF
   static constexpr Double_t RefZIn  = 0.0;
-  static constexpr Double_t RefZOut = -1300.885;
+  static constexpr Double_t RefZOut = -1299.815;
 
   static const TString& ClassName();
   static D5TransMatrix& GetInstance();

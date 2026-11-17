@@ -64,8 +64,8 @@ D5TransMatrix::Initialize()
   }
 
   Clear();
-  ResetRefPlanesToDefault();
 
+  Bool_t has_mom = false, has_z_in = false, has_z_out = false, has_1st = false;
   std::string line;
   while (std::getline(ifs, line)) {
     if (line.empty() || line[0] == '#') continue;
@@ -74,13 +74,13 @@ D5TransMatrix::Initialize()
     iss >> key;
 
     if (key == "CentralMomentum:") {
-      iss >> m_central_momentum;
+      has_mom = static_cast<Bool_t>(iss >> m_central_momentum);
     } else if (key == "D5ZIn:") {
-      iss >> m_d5_z_in;
+      has_z_in = static_cast<Bool_t>(iss >> m_d5_z_in);
     } else if (key == "D5ZOut:") {
-      iss >> m_d5_z_out;
+      has_z_out = static_cast<Bool_t>(iss >> m_d5_z_out);
     } else if (key == "D5Matrix:") {
-      Int_t order;
+      Int_t order = 0;
       iss >> order;
       if (order == 1) {
         // R-matrix: 6 rows x 6 cols
@@ -89,6 +89,7 @@ D5TransMatrix::Initialize()
             ifs >> m_matrix_1st[i][j];
           }
         }
+        has_1st = !ifs.fail();
       } else if (order >= 21 && order <= 25) {
         // T-block for out[order-21]; 6x6 in par-index (j,k)
         const Int_t idx = order - 21;
@@ -98,7 +99,24 @@ D5TransMatrix::Initialize()
           }
         }
       }
+      if (ifs.fail()) {
+        std::cerr << FUNC_NAME << " broken D5Matrix: " << order
+                  << " block in " << m_file_name << std::endl;
+        Clear();
+        return false;
+      }
     }
+  }
+
+  if (!has_mom || m_central_momentum <= 0.0 || !has_1st) {
+    std::cerr << FUNC_NAME << " missing CentralMomentum or D5Matrix: 1 in "
+              << m_file_name << std::endl;
+    Clear();
+    return false;
+  }
+  if (!has_z_in || !has_z_out) {
+    std::cerr << FUNC_NAME << " D5ZIn/D5ZOut not given in " << m_file_name
+              << ", using defaults" << std::endl;
   }
 
   m_z_ref_ready = true;
