@@ -976,14 +976,6 @@ BuildTPCTracking(Bool_t calib_flag)
   HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
   HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
   HB2("Transverse_Diffusion;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize01;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 1)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize02;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize03plus;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} > 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
-    HB2(Form("Transverse_Diffusion_Drift%02d_%02dcm;X_{cluster}-X_{pad} [mm];A/A_{sum}",
-             10 * drift_bin, 10 * (drift_bin + 1)),
-        TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  }
 
   HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPCTrk_HitPat");
@@ -1234,22 +1226,6 @@ BuildTPCHelixTracking(Bool_t calib_flag)
   HB1("TPCCl_dE_Pion;Cluster dE (pion PID);Counts", TPC_BINS_DE);
   HB2("TPCCl_dE_vs_Layer;Layer;Cluster dE", TPC_BINS_LAYER, TPC_BINS_DE);
   HB2("Transverse_Diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize01;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 1)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize02;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} = 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  HB2("Transverse_Diffusion_ClusterSize03plus;X_{cluster_center}-X_{pad};A/A_{sum} (N_{cluster} > 2)", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
-    HB2(Form("Transverse_Diffusion_Drift%02d_%02dcm;X_{cluster_center}-X_{pad};A/A_{sum}",
-             10 * drift_bin, 10 * (drift_bin + 1)),
-        TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  }
-  const char* cluster_size_names[] = {"01", "02", "03plus"};
-  for (const auto* cluster_size_name : cluster_size_names) {
-    for (Int_t drift_bin = 0; drift_bin < 7; ++drift_bin) {
-      HB2(Form("Transverse_Diffusion_ClusterSize%s_Drift%02d_%02dcm;X_{cluster_center}-X_{pad};A/A_{sum}",
-               cluster_size_name, 10 * drift_bin, 10 * (drift_bin + 1)),
-          TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-    }
-  }
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
     HB1(Form("TPCHit_HitPat_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
@@ -1289,32 +1265,6 @@ BuildTPCHelixLambda()
   HB1("Lambda_TargetToVtxY;TargetCenter#rightarrowVertex Y [mm];Counts", TPC_BINS_POS_Y);
   HB1("Lambda_TargetToVtxZ;TargetCenter#rightarrowVertex Z [mm];Counts", TPC_BINS_POS_X);
   HB1("Lambda_TargetToVtxDotMom;cos#theta((TargetCenter#rightarrowVertex),P_{#Lambda});Counts", 200, -1.0, 1.0);
-}
-
-//_____________________________________________________________________________
-void
-BuildTPCLambdaEta()
-{
-  HB1("LambdaEta_Mass;M(p#pi^{-}) [GeV/c^{2}];Counts", 500, 1.05, 1.25);
-  HB1("LambdaEta_CloseDist;Closest distance [mm];Counts", 500, 0.0, 50.0);
-  HB1("LambdaEta_VtxX;Vertex X [mm];Counts", TPC_BINS_POS_X);
-  HB1("LambdaEta_VtxY;Vertex Y [mm];Counts", TPC_BINS_POS_Y);
-  HB1("LambdaEta_VtxZ;Vertex Z [mm];Counts", TPC_BINS_POS_X);
-
-  HB1("LambdaEta_Proton_MomX;Proton P_{x} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Proton_MomY;Proton P_{y} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Proton_MomZ;Proton P_{z} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Proton_Mom;Proton |P| at vertex [GeV/c];Counts", TPC_BINS_MOM0);
-
-  HB1("LambdaEta_Pion_MomX;#pi^{-} P_{x} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Pion_MomY;#pi^{-} P_{y} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Pion_MomZ;#pi^{-} P_{z} at vertex [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Pion_Mom;#pi^{-} |P| at vertex [GeV/c];Counts", TPC_BINS_MOM0);
-
-  HB1("LambdaEta_Lambda_MomX;#Lambda P_{x} [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Lambda_MomY;#Lambda P_{y} [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Lambda_MomZ;#Lambda P_{z} [GeV/c];Counts", TPC_BINS_SIGNED_P);
-  HB1("LambdaEta_Lambda_Mom;#Lambda |P| [GeV/c];Counts", TPC_BINS_MOM0);
 }
 
 //_____________________________________________________________________________

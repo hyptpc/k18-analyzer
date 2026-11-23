@@ -17,11 +17,26 @@ namespace
 const auto& gConf = ConfMan::GetInstance();
 const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
 const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-// const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
-// const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
-// E72 HS field was stable through beamtime; use fixed Hall/Calc scale values.
-const Double_t valueHSHall = 0.7872;
-const Double_t valueHSCalc = 0.780;
+const Double_t valueHSHall = hs_field::kHall;
+const Double_t valueHSCalc = hs_field::kCalc;
+}
+
+//_____________________________________________________________________________
+Bool_t
+hs_field::IsOn()
+{
+  static const Bool_t is_on =
+    !ConfMan::GetInstance().HasKey("HSFLDHALL")
+    || ConfMan::Get<Double_t>("HSFLDHALL") >= 0.1;
+  return is_on;
+}
+
+//_____________________________________________________________________________
+Double_t
+hs_field::TPCField()
+{
+  static const Double_t field = IsOn() ? kCalib*kHall/kCalc : 0.;
+  return field;
 }
 
 namespace

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "FuncName.hh"
+#include "ConfMan.hh"
 
 #include <std_ostream.hh>
 
@@ -83,7 +84,21 @@ D5FieldMan::GetField( UInt_t run, Double_t& field, Double_t& rms ) const
 
 //_____________________________________________________________________________
 Double_t
+D5FieldMan::FieldFactor( void )
+{
+  static const Double_t s_factor = [](){
+    if( ConfMan::GetInstance().HasKey( "D5FLDFACTOR" ) )
+      return ConfMan::Get<Double_t>( "D5FLDFACTOR" );
+    hddaq::cout << FUNC_NAME << " D5FLDFACTOR not in conf, use default "
+                << kDefaultFieldFactor << std::endl;
+    return kDefaultFieldFactor;
+  }();
+  return s_factor;
+}
+
+//_____________________________________________________________________________
+Double_t
 D5FieldMan::CentralMomentum( Double_t field )
 {
-  return 0.299792458 * std::abs( field ) * kRadius * kFieldFactor;
+  return 0.299792458 * std::abs( field ) * kRadius * FieldFactor();
 }

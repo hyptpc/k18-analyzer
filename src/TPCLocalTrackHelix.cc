@@ -55,6 +55,7 @@ z = p[kHelixZ0] + p[kHelixDz]*p[kHelixR]*(theta);
 
 #include "ConfMan.hh"
 #include "DebugCounter.hh"
+#include "FieldMan.hh"
 #include "FuncName.hh"
 #include "HoughTransform.hh"
 #include "Kinematics.hh"
@@ -74,10 +75,6 @@ namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
 
-  // B-field
-  const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
-  const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
   // For Minuit / fit workspace (static globals for fcn_* callbacks)
   static Int_t gNumOfHits;
@@ -97,6 +94,12 @@ namespace
   static Double_t gPar[5] = {0};
   static Double_t gChisqr = 1.e+10;
   static Bool_t gMomConstraint = false; //w or w/o momentum constraint
+  // Fix helix R to the K18 RK value under the momentum constraint.
+  // false: RK params are only the starting point and R is fitted freely.
+  const Bool_t FixRadiusWithRK = false;
+  // Use the K18 RK helix params as initial values of the K18 track fit.
+  // false: start from the track's own pre-fit (circle + straight-line fit of the hits).
+  const Bool_t UseRKInitialParams = false;
   static Bool_t gMultiLoop = false;
   static Int_t gBadHits;
   static Int_t gMinuitStatus;
@@ -286,7 +289,7 @@ namespace
   //______________________________________________________________________________
   Double_t HelixRToPt(Double_t helix_r) // helix_r [mm] -> p_t [GeV/c]
   {
-    const Double_t B = HS_field_0 * (HS_field_Hall / HS_field_Hall_calc); // [T]
+    const Double_t B = hs_field::TPCField(); // [T]
     return TMath::Abs(helix_r) * (tpc::C_LIGHT * B) * 0.001; // [GeV/c]
   }
 
@@ -640,7 +643,7 @@ static inline void fcn_helix(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
     chisqr += TMath::Sq( d.y() / gRes[i].y() );
     dof++;
   }
-  if(gMomConstraint) dof += 1; //if there is a momentum constraint
+  if(gMomConstraint && FixRadiusWithRK) dof += 1; //if there is a momentum constraint
   f = chisqr/(Double_t)(dof - 5);
 }
 
@@ -710,7 +713,7 @@ fcn_line(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
     chisqr += TMath::Sq(diff_z / gRes[i].y());
     dof++;
   }
-  if (gMomConstraint) dof += 1; //if there is a momentum constraint
+  if(gMomConstraint && FixRadiusWithRK) dof += 1; //if there is a momentum constraint
   f = chisqr/(Double_t)(dof - 2);
 }
 
@@ -743,7 +746,7 @@ static inline Double_t CalcChi2(Double_t *HelixPar, Int_t &ndf, Bool_t vetoBadCl
     chisqr += TMath::Sq(residual.y() / resolution.y());
     ndf++;
   }
-  if(gMomConstraint) ndf += 1; //if there is a momentum constraint
+  if(gMomConstraint && FixRadiusWithRK) ndf += 1; //if there is a momentum constraint
   if(ndf < 6) return 1.e+10;
   return chisqr/(Double_t)(ndf-5);
 }
@@ -971,7 +974,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
   Int_t ndf;
   if(vetoBadClusters){
     gChisqr = CalcChi2(gPar, ndf, vetoBadClusters);
-    gBadHits = NBadFromNdf(gNumOfHits, ndf, gMomConstraint ? 1 : 0);
+    gBadHits = NBadFromNdf(gNumOfHits, ndf, (gMomConstraint && FixRadiusWithRK) ? 1 : 0);
     if(!TMath::Finite(gChisqr) || gChisqr >= InvalidChi2) return false;
   }
 
@@ -995,7 +998,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
     else minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
 
-  if(gMomConstraint) minuit -> FixParameter(3);
+  if(gMomConstraint && FixRadiusWithRK) minuit -> FixParameter(3);
 
   minuit->Command("SET STRategy 0");
   arglist[0] = 1000.;
@@ -1040,7 +1043,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
       gPar[kHelixR] = par[kHelixR];
       gPar[kHelixDz] = par[kHelixDz];
       gMinuitStatus = icstat;
-      gBadHits = NBadFromNdf(gNumOfHits, ndf, gMomConstraint ? 1 : 0);
+      gBadHits = NBadFromNdf(gNumOfHits, ndf, (gMomConstraint && FixRadiusWithRK) ? 1 : 0);
       status = true;
     }
     arglist[0] = arglist[0]*5;
@@ -1174,7 +1177,7 @@ static inline Bool_t HelixFitInvertCharge(){
       gPar[kHelixR]  = par[kHelixR];
       gPar[kHelixDz] = par[kHelixDz];
       gMinuitStatus = icstat;
-      gBadHits = NBadFromNdf(gNumOfHits, ndf, gMomConstraint ? 1 : 0);
+      gBadHits = NBadFromNdf(gNumOfHits, ndf, (gMomConstraint && FixRadiusWithRK) ? 1 : 0);
       status = true;
     }
     arglist[0] = arglist[0]*5.;
@@ -1369,7 +1372,7 @@ static inline Double_t CircleFit(Int_t IsBeam)
     if(IsBeam==1) minuit->mnparm(i, name[i], par_circ[i], fit_step[i], low_limit_beam[i], up_limit_beam[i], ierflg_circ);
     else minuit->mnparm(i, name[i], par_circ[i], fit_step[i], low_limit[i], up_limit[i], ierflg_circ);
   }
-  if(gMomConstraint) minuit->FixParameter(2);
+  if(gMomConstraint && FixRadiusWithRK) minuit->FixParameter(2);
 
   minuit->Command("SET STRategy 0");
 
@@ -1668,7 +1671,7 @@ TPCLocalTrackHelix::GetNDF() const
 
   Int_t nhit = GetNHit();
   Int_t ndf = 2*nhit - 5;
-  if(gMomConstraint) ndf += 1;
+  if(gMomConstraint && FixRadiusWithRK) ndf += 1;
   return ndf;
 }
 
@@ -2001,29 +2004,45 @@ TPCLocalTrackHelix::DoHelixTrackFit(Double_t RKpar[5]) //for beam track fitting
                 m_cx, m_cy, m_z0, m_r, m_dz);
 #endif
 
-  //1. calculate chisqr by using RK parameters
-  SetParam(RKpar);
-  CalcHelixTheta();
-  Int_t ndf;
-  Double_t RKChisqr = CalcChi2(RKpar, ndf, vetoBadClusters);
-  if(RKChisqr>10.){
-    //2. calculate chisqr with pre-fitting parameters (gChisqr)
-    if(!DoPreFit(RKpar)) return false;
+  if(UseRKInitialParams){
+    //1. calculate chisqr by using RK parameters
+    SetParam(RKpar);
+    CalcHelixTheta();
+    Int_t ndf;
+    Double_t RKChisqr = CalcChi2(RKpar, ndf, vetoBadClusters);
+    if(RKChisqr>10.){
+      //2. calculate chisqr with pre-fitting parameters (gChisqr)
+      if(!DoPreFit(RKpar)) return false;
 
 #if DebugDisp
-    DebugHelixPar(FUNC_NAME + Form(" Helix params after pre-fitting (w/ constraints from RK)\n    chisqr: %g", gChisqr),
+      DebugHelixPar(FUNC_NAME + Form(" Helix params after pre-fitting (w/ constraints from RK)\n    chisqr: %g", gChisqr),
+                    gPar);
+#endif
+    }
+
+    //Compare 1 & 2 and choose the better one
+    if(gChisqr > RKChisqr){
+      gChisqr = RKChisqr;
+      gPar[kHelixCx] = RKpar[kHelixCx];
+      gPar[kHelixCy] = RKpar[kHelixCy];
+      gPar[kHelixZ0] = RKpar[kHelixZ0];
+      gPar[kHelixR] = RKpar[kHelixR];
+      gPar[kHelixDz] = RKpar[kHelixDz];
+    }
+  }
+  else{
+    //Pre-fitting from the track's own params (previous fit result, or 0 at the first call)
+    gPar[kHelixCx] = m_cx;
+    gPar[kHelixCy] = m_cy;
+    gPar[kHelixZ0] = m_z0;
+    gPar[kHelixR] = m_r;
+    gPar[kHelixDz] = m_dz;
+    if(!DoPreFit(gPar)) return false;
+
+#if DebugDisp
+    DebugHelixPar(FUNC_NAME + Form(" Helix params after pre-fitting (w/o RK initial params)\n    chisqr: %g", gChisqr),
                   gPar);
 #endif
-  }
-
-  //Compare 1 & 2 and choose the better one
-  if(gChisqr > RKChisqr){
-    gChisqr = RKChisqr;
-    gPar[kHelixCx] = RKpar[kHelixCx];
-    gPar[kHelixCy] = RKpar[kHelixCy];
-    gPar[kHelixZ0] = RKpar[kHelixZ0];
-    gPar[kHelixR] = RKpar[kHelixR];
-    gPar[kHelixDz] = RKpar[kHelixDz];
   }
   SetParam(gPar);
   CalcHelixTheta();
@@ -4138,7 +4157,7 @@ TPCLocalTrackHelix::GetMomentumCovarianceVect(){
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetTransverseMomentumResolution(){
-  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t B = hs_field::TPCField();
   Double_t dt = abs(m_max_t - m_min_t);
   if(dt > 2*acos(-1) )dt = 2*acos(-1);
 

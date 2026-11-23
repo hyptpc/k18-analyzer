@@ -18,6 +18,7 @@
 
 #include "ConfMan.hh"
 #include "DebugCounter.hh"
+#include "FieldMan.hh"
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "ThreeVector.hh"
@@ -60,7 +61,6 @@ namespace
   const Int_t MaxIteration = 3;
   const Int_t MaxPeaks = 20;
   const Double_t MaxChisqr = 1000.;
-  const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
   const auto& ResParamInnerLayerHSOn = gTPC.TPCResolutionParams(true, false); //B=1 T, Inner layers
   const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, true); //B=1 T, Outer layers
   const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, false); //B=0, Inner layers
@@ -96,8 +96,8 @@ TPCHit::TPCHit(TPCRawHit* rhit)
 {
   debug::ObjectCounter::increase(ClassName());
 
-  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
-  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  if(!hs_field::IsOn()&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(!hs_field::IsOn()&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
   else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
   else m_res_param = ResParamOuterLayerHSOn;
 }
@@ -149,8 +149,8 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     }
   }
 
-  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
-  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  if(!hs_field::IsOn()&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(!hs_field::IsOn()&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
   else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
   else m_res_param = ResParamOuterLayerHSOn;
 }

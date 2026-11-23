@@ -9,6 +9,19 @@
 #include <TVector3.h>
 
 class S2sFieldMap;
+
+// E72 HS field was stable through beamtime; fixed Hall/Calc scale values.
+// Shared by the SHS field map (RK) and the TPC uniform-field helix.
+namespace hs_field
+{
+constexpr Double_t kHall  = 0.7872;
+constexpr Double_t kCalc  = 0.780;
+constexpr Double_t kCalib = 0.987; // |By| of SHS map (_HS0) at TPC center [T]
+// HS is off only when HSFLDHALL < 0.1 is written in the conf file.
+Bool_t   IsOn();
+// Uniform field used by TPC helix tracking [T]; 0 when HS is off.
+Double_t TPCField();
+}
 class FieldElements;
 
 typedef std::vector<FieldElements*> FEContainer;

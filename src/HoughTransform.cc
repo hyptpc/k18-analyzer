@@ -12,6 +12,7 @@
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
+#include "FieldMan.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
 #include "TPCCluster.hh"
@@ -35,9 +36,6 @@ static Int_t cannum = 0;
 namespace
 {
   const auto qnan = TMath::QuietNaN();
-  const Double_t& HSfield_Calib = ConfMan::Get<Double_t>("HSFLDCALIB");
-  const Double_t& HSfield_Calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
   const Double_t MIN_HOUGH_THRESHOLD_SCALE = 0.5;
 
   // HoughXZ binning
@@ -425,7 +423,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   // Equation
   // (x - (r + rd)*cos(theta))^2 + (y - (r + rd)*sin(theta))^2 = r^2
   // p = r * tpc::C_LIGHT * magnetic_field;
-  Double_t magnetic_field = HSfield_Calib * (HSfield_Hall / HSfield_Calc);
+  Double_t magnetic_field = hs_field::TPCField();
   Bool_t status = true;
 
 #if DebugEvDisp

@@ -267,6 +267,8 @@ public:
   Double_t Getz0Exclusive(Int_t i) const { return m_z0_exclusive[i]; }
   Double_t GetrExclusive(Int_t i) const { return m_r_exclusive[i]; }
   Double_t GetdzExclusive(Int_t i) const { return m_dz_exclusive[i]; }
+  Double_t GetChiSquareExclusive(Int_t i) const { return m_chisqr_exclusive[i]; }
+  Bool_t   IsFittedExclusive() const { return m_is_fitted_exclusive; }
 
   //Re-fit with the vertex constraint
   Bool_t DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res);

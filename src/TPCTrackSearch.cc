@@ -40,6 +40,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #include <string>
 
 #include "ConfMan.hh"
+#include "FieldMan.hh"
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
@@ -156,10 +157,6 @@ namespace
   std::vector<Double_t> Yhough_x;
   std::vector<Double_t> Yhough_y;
 
-  // B-field
-  const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
-  const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
   //_____________________________________________________________________________
   // ReassignClustersNearTheTarget: closest hit in target volume (local coords).
