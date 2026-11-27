@@ -10,9 +10,9 @@
 //_____________________________________________________________________________
 // Run-by-run D5 field (param/D5): mean D5 field [T] and its rms during each run.
 // The K18 central momentum follows from the D5 field:
-//   p0 [GeV/c] = 0.299792458 * |B| [T] * R [m] * FieldFactor
-// FieldFactor is read from the conf key "D5FLDFACTOR"
-// (kDefaultFieldFactor if the key is absent).
+//   p0 [GeV/c] = 0.299792458 * |B| [T] * R [m] * FieldFactor + MomentumOffset
+// FieldFactor is read from the conf key "D5FLDFACTOR" (kDefaultFieldFactor if absent),
+// MomentumOffset [GeV/c] from "D5MOMOFFSET" (kDefaultMomentumOffset if absent).
 class D5FieldMan
 {
 public:
@@ -20,8 +20,9 @@ public:
   static D5FieldMan&    GetInstance( void );
   ~D5FieldMan( void );
 
-  static constexpr Double_t kRadius      = 1.8984; // D5 bending radius [m]
-  static constexpr Double_t kDefaultFieldFactor = 1.1;
+  static constexpr Double_t kRadius      = 2.0408; // D5 bending radius [m]
+  static constexpr Double_t kDefaultFieldFactor = 1.0;
+  static constexpr Double_t kDefaultMomentumOffset = 0.0; // [GeV/c]
   // A run whose D5 rms exceeds this changed D5 during the run [T].
   static constexpr Double_t kMaxRms      = 1.e-3;
 
@@ -43,6 +44,7 @@ public:
   // false if the run is not in the table
   Bool_t   GetField( UInt_t run, Double_t& field, Double_t& rms ) const;
   static Double_t FieldFactor( void );
+  static Double_t MomentumOffset( void );
   static Double_t CentralMomentum( Double_t field );
 };
 

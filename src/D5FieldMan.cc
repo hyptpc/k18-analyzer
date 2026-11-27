@@ -98,7 +98,21 @@ D5FieldMan::FieldFactor( void )
 
 //_____________________________________________________________________________
 Double_t
+D5FieldMan::MomentumOffset( void )
+{
+  static const Double_t s_offset = [](){
+    if( ConfMan::GetInstance().HasKey( "D5MOMOFFSET" ) )
+      return ConfMan::Get<Double_t>( "D5MOMOFFSET" );
+    hddaq::cout << FUNC_NAME << " D5MOMOFFSET not in conf, use default "
+                << kDefaultMomentumOffset << std::endl;
+    return kDefaultMomentumOffset;
+  }();
+  return s_offset;
+}
+
+//_____________________________________________________________________________
+Double_t
 D5FieldMan::CentralMomentum( Double_t field )
 {
-  return 0.299792458 * std::abs( field ) * kRadius * FieldFactor();
+  return 0.299792458 * std::abs( field ) * kRadius * FieldFactor() + MomentumOffset();
 }
